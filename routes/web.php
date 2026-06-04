@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceBrandController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\DeviceModelController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
@@ -44,7 +45,16 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::post('/orders/{order}/payments', [PaymentController::class, 'store'])->name('orders.payments.store');
+            Route::get('/orders/{order}/payments/{payment}/receipt', [PaymentController::class, 'receiptPdf'])->name('orders.payments.receipt');
             Route::delete('/orders/{order}/payments/{payment}', [PaymentController::class, 'destroy'])->name('orders.payments.destroy');
+        });
+
+        Route::get('/invoices/payments/list', [InvoiceController::class, 'payments'])->name('invoices.payments');
+        Route::resource('invoices', InvoiceController::class);
+        Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+        Route::middleware('role:super_admin,admin')->group(function () {
+            Route::patch('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
+            Route::patch('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
         });
     });
 });

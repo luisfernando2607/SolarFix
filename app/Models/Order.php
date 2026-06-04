@@ -151,4 +151,9 @@ class Order extends Model
     {
         return $this->belongsToMany(Accessory::class, 'order_accessories');
     }
+
+    public function invoices()
+    {
+        return $this->hasMany(\App\Models\Invoice::class);
+    }
 }

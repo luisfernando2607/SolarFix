@@ -10,6 +10,7 @@ class OrderPayment extends Model
 
     protected $fillable = [
         'order_id',
+        'invoice_id',
         'amount',
         'method',
         'reference',
@@ -34,5 +35,10 @@ class OrderPayment extends Model
     public function registeredBy()
     {
         return $this->belongsTo(User::class, 'registered_by');
+    }
+
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class);
     }
 }

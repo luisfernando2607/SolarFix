@@ -20,8 +20,11 @@ class PaymentController extends Controller
             'paid_at' => ['nullable', 'date'],
         ]);
 
+        $invoiceId = $order->invoices()->where('status', '!=', 'anulada')->value('id');
+
         $payment = OrderPayment::create([
             'order_id' => $order->id,
+            'invoice_id' => $invoiceId,
             'amount' => $validated['amount'],
             'method' => $validated['method'],
             'reference' => $validated['reference'] ?? null,
@@ -58,5 +61,21 @@ class PaymentController extends Controller
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Pago eliminado.');
+    }
+
+    public function receiptPdf(Order $order, OrderPayment $payment)
+    {
+        if ($payment->order_id !== $order->id) {
+            abort(404);
+        }
+
+        $payment->load('registeredBy');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.receipt', [
+            'order' => $order,
+            'payment' => $payment,
+        ]);
+
+        return $pdf->stream('comprobante-' . $payment->id . '.pdf');
     }
 }
