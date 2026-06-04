@@ -46,7 +46,7 @@
                     <tbody class="divide-y">
                         @foreach ($orders as $order)
                             @php
-                                $days = $order->entry_date ? $order->entry_date->diffInDays(now()) : 0;
+                                $days = $order->entry_date ? (int) $order->entry_date->diffInDays(now()) : 0;
                             @endphp
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="px-6 py-4">

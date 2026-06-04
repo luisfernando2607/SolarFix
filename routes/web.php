@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
         Route::resource('orders', OrderController::class);
+        Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');
 

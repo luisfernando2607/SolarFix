@@ -185,6 +185,26 @@ class OrderController extends Controller
         ]);
     }
 
+    public function pdf(Order $order)
+    {
+        $order->load([
+            'client',
+            'brand',
+            'deviceModel',
+            'user',
+            'payments',
+            'statusHistory.changedBy',
+            'accessories',
+        ]);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf', [
+            'order' => $order,
+            'statuses' => Order::statuses(),
+        ]);
+
+        return $pdf->download('orden-' . $order->order_number . '.pdf');
+    }
+
     public function edit(Order $order)
     {
         $modelsByBrand = DeviceModel::where('is_active', true)
