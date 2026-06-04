@@ -43,21 +43,42 @@ class OrderController extends Controller
             ->groupBy('brand_id')
             ->map(fn ($models) => $models->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'device_type' => $m->device_type]));
 
+        $brandsData = DeviceBrand::where('is_active', true)->orderBy('name')->get()->map(fn ($b) => [
+            'id' => $b->id,
+            'name' => $b->name,
+            'device_types' => $b->device_types ?? [],
+        ]);
+
+        $clientsData = Client::orderBy('name')->get()->map(fn ($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'id_document' => $c->id_document,
+            'phone' => $c->phone,
+            'email' => $c->email,
+        ]);
+
         return view('orders.create', [
             'clients' => Client::orderBy('name')->get(),
+            'clientsData' => $clientsData,
             'brands' => DeviceBrand::where('is_active', true)->orderBy('name')->get(),
+            'brandsData' => $brandsData,
             'accessories' => Accessory::where('is_active', true)->orderBy('name')->get(),
             'statuses' => Order::statuses(),
             'deviceTypes' => Order::deviceTypes(),
             'unlockTypes' => Order::unlockTypes(),
             'modelsByBrand' => $modelsByBrand,
+            'deviceTypesData' => collect(Order::deviceTypes())->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->values(),
         ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'client_id' => ['required', 'exists:clients,id'],
+            'client_id' => ['nullable'],
+            'client_name' => ['required_without:client_id', 'nullable', 'string', 'max:150'],
+            'client_id_document' => ['nullable', 'string', 'max:20'],
+            'client_phone' => ['nullable', 'string', 'max:30'],
+            'client_email' => ['nullable', 'email', 'max:180'],
             'device_type' => ['required', Rule::in(array_keys(Order::deviceTypes()))],
             'brand_id' => ['nullable', 'exists:device_brands,id'],
             'model_id' => ['nullable', 'exists:device_models,id'],
@@ -72,9 +93,43 @@ class OrderController extends Controller
             'accessories.*' => ['exists:accessories,id'],
             'entry_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
-            'photos' => ['nullable', 'array'],
+            'photos' => ['nullable'],
             'photos.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
+            'diagnosis_cost' => ['nullable', 'numeric', 'min:0'],
+            'labor_cost' => ['nullable', 'numeric', 'min:0'],
+            'parts_cost' => ['nullable', 'numeric', 'min:0'],
+            'surcharge_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'amount_paid' => ['nullable', 'numeric', 'min:0'],
+            'warranty_days' => ['nullable', 'integer', 'min:0'],
         ]);
+
+        if (!empty($validated['client_id']) && !Client::where('id', $validated['client_id'])->exists()) {
+            return back()->withErrors(['client_id' => 'El cliente seleccionado no existe.'])->withInput();
+        }
+
+        if (empty($validated['client_id']) && !empty($validated['client_name'])) {
+            $client = Client::create([
+                'name' => $validated['client_name'],
+                'id_document' => $validated['client_id_document'] ?? null,
+                'phone' => $validated['client_phone'] ?? null,
+                'email' => $validated['client_email'] ?? null,
+                'client_type' => 'individual',
+            ]);
+            $validated['client_id'] = $client->id;
+        }
+
+        unset($validated['client_name'], $validated['client_id_document'], $validated['client_phone'], $validated['client_email']);
+
+        $diagnosisCost = (float) ($validated['diagnosis_cost'] ?? 0);
+        $laborCost = (float) ($validated['labor_cost'] ?? 0);
+        $partsCost = (float) ($validated['parts_cost'] ?? 0);
+        $surchargePercent = (float) ($validated['surcharge_percent'] ?? 0);
+        $subtotal = $diagnosisCost + $laborCost + $partsCost;
+        $surchargeAmount = $subtotal * ($surchargePercent / 100);
+        $validated['surcharge_amount'] = round($surchargeAmount, 2);
+        $validated['total_amount'] = round($subtotal + $surchargeAmount, 2);
+        $amountPaid = (float) ($validated['amount_paid'] ?? 0);
+        $validated['balance_due'] = round($validated['total_amount'] - $amountPaid, 2);
 
         $validated['order_number'] = $this->generateOrderNumber();
         $validated['status'] = 'received';
@@ -138,15 +193,32 @@ class OrderController extends Controller
             ->groupBy('brand_id')
             ->map(fn ($models) => $models->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'device_type' => $m->device_type]));
 
+        $brandsData = DeviceBrand::where('is_active', true)->orderBy('name')->get()->map(fn ($b) => [
+            'id' => $b->id,
+            'name' => $b->name,
+            'device_types' => $b->device_types ?? [],
+        ]);
+
+        $clientsData = Client::orderBy('name')->get()->map(fn ($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'id_document' => $c->id_document,
+            'phone' => $c->phone,
+            'email' => $c->email,
+        ]);
+
         return view('orders.edit', [
             'order' => $order->load('accessories'),
             'clients' => Client::orderBy('name')->get(),
+            'clientsData' => $clientsData,
             'brands' => DeviceBrand::where('is_active', true)->orderBy('name')->get(),
+            'brandsData' => $brandsData,
             'accessories' => Accessory::where('is_active', true)->orderBy('name')->get(),
             'statuses' => Order::statuses(),
             'deviceTypes' => Order::deviceTypes(),
             'unlockTypes' => Order::unlockTypes(),
             'modelsByBrand' => $modelsByBrand,
+            'deviceTypesData' => collect(Order::deviceTypes())->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->values(),
         ]);
     }
 
@@ -182,6 +254,17 @@ class OrderController extends Controller
             'status' => ['nullable', Rule::in(array_keys(Order::statuses()))],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $diagnosisCost = (float) ($validated['diagnosis_cost'] ?? 0);
+        $laborCost = (float) ($validated['labor_cost'] ?? 0);
+        $partsCost = (float) ($validated['parts_cost'] ?? 0);
+        $surchargePercent = (float) ($validated['surcharge_percent'] ?? 0);
+        $subtotal = $diagnosisCost + $laborCost + $partsCost;
+        $surchargeAmount = $subtotal * ($surchargePercent / 100);
+        $validated['surcharge_amount'] = round($surchargeAmount, 2);
+        $validated['total_amount'] = round($subtotal + $surchargeAmount, 2);
+        $amountPaid = (float) ($validated['amount_paid'] ?? 0);
+        $validated['balance_due'] = round($validated['total_amount'] - $amountPaid, 2);
 
         $oldStatus = $order->status;
         $order->update($validated);

@@ -30,21 +30,24 @@
 
         @if ($orders->count())
             <div class="overflow-x-auto">
-                <table data-table class="w-full">
+                    <table data-table class="w-full">
                     <thead>
                         <tr class="bg-gray-50 border-b">
                             <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider"># Orden</th>
                             <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
                             <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Dispositivo</th>
-                            <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
                             <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ingreso</th>
+                            <th class="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Días</th>
                             <th class="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pago</th>
                             <th class="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider no-sort">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
                         @foreach ($orders as $order)
+                            @php
+                                $days = $order->entry_date ? $order->entry_date->diffInDays(now()) : 0;
+                            @endphp
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="px-6 py-4">
                                     <span class="font-mono text-sm font-medium text-gray-800">#{{ $order->order_number }}</span>
@@ -53,11 +56,9 @@
                                     <p class="font-medium text-gray-800">{{ $order->client->name ?? '—' }}</p>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-600">
-                                    {{ $order->brand?->name ?? $order->brand_text }}
+                                    <span class="font-medium">{{ $order->brand?->name ?? $order->brand_text }}</span>
                                     {{ $order->deviceModel?->name ?? $order->model_text }}
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ml-1 align-middle
                                         {{ $order->device_type === 'celular' ? 'bg-indigo-100 text-indigo-800' : '' }}
                                         {{ $order->device_type === 'tablet' ? 'bg-orange-100 text-orange-800' : '' }}
                                         {{ $order->device_type === 'pc' ? 'bg-gray-100 text-gray-800' : '' }}
@@ -82,9 +83,33 @@
                                         {{ $statuses[$order->status] ?? $order->status }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600">{{ $order->entry_date ? $order->entry_date->format('d/m/Y') : '—' }}</td>
-                                <td class="px-6 py-4 text-right text-sm font-medium text-gray-800">
+                                <td class="px-6 py-4 text-center text-sm">
+                                    @if (!in_array($order->status, ['delivered', 'closed_no_repair']))
+                                        <span class="font-mono font-medium {{ $days > 7 ? 'text-red-600' : ($days > 3 ? 'text-amber-600' : 'text-gray-600') }}">
+                                            {{ $days }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-right text-sm font-semibold text-gray-800">
                                     ${{ number_format($order->total_amount, 2) }}
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    @if ($order->total_amount > 0)
+                                        @if ($order->balance_due <= 0)
+                                            <span class="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                Pagado
+                                            </span>
+                                        @else
+                                            <span class="text-xs font-medium text-red-600">
+                                                Debe ${{ number_format($order->balance_due, 2) }}
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="text-xs text-gray-400">—</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">

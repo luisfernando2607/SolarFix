@@ -10,21 +10,30 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $branch = Branch::create([
-            'name' => 'Matriz',
-            'address' => 'Av. Principal 123',
-            'phone' => '0999999999',
-            'email' => 'info@solarfix.ec',
-        ]);
+        $branch = Branch::firstOrCreate(
+            ['name' => 'Matriz'],
+            [
+                'address' => 'Av. Principal 123',
+                'phone' => '0999999999',
+                'email' => 'info@solarfix.ec',
+            ]
+        );
 
-        User::create([
-            'branch_id' => $branch->id,
-            'name' => 'Administrador',
-            'email' => 'admin@solarfix.ec',
-            'password' => bcrypt('password'),
-            'phone' => '0999999999',
-            'role' => 'super_admin',
-            'is_active' => true,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@solarfix.ec'],
+            [
+                'branch_id' => $branch->id,
+                'name' => 'Administrador',
+                'password' => bcrypt('password'),
+                'phone' => '0999999999',
+                'role' => 'super_admin',
+                'is_active' => true,
+            ]
+        );
+
+        // Only seed test data if no orders exist yet
+        if (Order::count() === 0) {
+            $this->call(TestDataSeeder::class);
+        }
     }
 }
