@@ -611,7 +611,7 @@
                     @endif
                 </h3>
 
-                @can('manage-payments')
+                @can('register-payments')
                 <form method="POST" action="{{ route('orders.payments.store', $order) }}" class="mb-4 p-3 bg-gray-50 rounded-lg border">
                     @csrf
                     <div class="grid grid-cols-2 gap-2">
@@ -657,9 +657,11 @@
                             </div>
                             <div class="flex items-center gap-1.5">
                                 <span class="text-xs text-gray-400">{{ $payment->paid_at ? $payment->paid_at->format('d/m/Y H:i') : '' }}</span>
+@can('register-payments')
                                 <a href="{{ route('orders.payments.receipt', [$order, $payment]) }}" class="text-gray-400 hover:text-gray-600" title="Imprimir comprobante">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                 </a>
+                                @endcan
                                 @can('manage-payments')
                                 <form method="POST" action="{{ route('orders.payments.destroy', [$order, $payment]) }}" class="inline"
                                     onsubmit="return confirm('¿Eliminar este pago de ${{ number_format($payment->amount, 2) }}?')">

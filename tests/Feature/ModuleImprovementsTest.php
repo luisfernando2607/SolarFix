@@ -312,4 +312,39 @@ class ModuleImprovementsTest extends TestCase
         $this->actingAs($receptionist)->get(route('maintenance-plans.index', ['filter' => 'all', 'q' => 'Split']))->assertOk()->assertSee('Split sala');
         $this->actingAs($receptionist)->get(route('clients.show', $plan->client_id))->assertOk()->assertSee('Mantenimientos preventivos');
     }
+
+    // --- Cobro en recepción ---
+
+    public function test_receptionist_records_payment_but_cannot_delete_it(): void
+    {
+        $receptionist = User::factory()->role('receptionist')->create();
+        $order = $this->makeOrder(['labor_cost' => 50, 'total_amount' => 50, 'balance_due' => 50]);
+
+        $this->actingAs($receptionist)->post(route('orders.payments.store', $order), ['amount' => 30, 'method' => 'cash'])
+            ->assertSessionHas('success');
+        $payment = \App\Models\OrderPayment::first();
+        $this->assertEquals(20, $order->fresh()->balance_due);
+
+        $this->actingAs($receptionist)->get(route('orders.payments.receipt', [$order, $payment]))->assertOk();
+        $this->actingAs($receptionist)->delete(route('orders.payments.destroy', [$order, $payment]))->assertForbidden();
+    }
+
+    public function test_payment_cannot_exceed_balance(): void
+    {
+        $order = $this->makeOrder(['labor_cost' => 50, 'total_amount' => 50, 'balance_due' => 50]);
+
+        $this->actingAs($this->admin())->post(route('orders.payments.store', $order), ['amount' => 60, 'method' => 'cash'])
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, \App\Models\OrderPayment::count());
+    }
+
+    public function test_technician_cannot_record_payments(): void
+    {
+        $order = $this->makeOrder(['total_amount' => 50, 'balance_due' => 50]);
+
+        $this->actingAs(User::factory()->role('technician')->create())
+            ->post(route('orders.payments.store', $order), ['amount' => 10, 'method' => 'cash'])
+            ->assertForbidden();
+    }
 }

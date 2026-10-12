@@ -94,9 +94,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/orders/{order}/signatures/{stage}/image', 'image')->name('orders.signatures.image');
         });
 
-        Route::middleware('role:super_admin,admin')->group(function () {
+        // La recepción cobra (flujo 4); eliminar pagos queda solo para administradores.
+        Route::middleware('role:super_admin,admin,receptionist')->group(function () {
             Route::post('/orders/{order}/payments', [PaymentController::class, 'store'])->name('orders.payments.store');
             Route::get('/orders/{order}/payments/{payment}/receipt', [PaymentController::class, 'receiptPdf'])->name('orders.payments.receipt');
+        });
+        Route::middleware('role:super_admin,admin')->group(function () {
             Route::delete('/orders/{order}/payments/{payment}', [PaymentController::class, 'destroy'])->name('orders.payments.destroy');
         });
 
