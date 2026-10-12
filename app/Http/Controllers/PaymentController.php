@@ -13,6 +13,8 @@ class PaymentController extends Controller
 {
     public function store(Request $request, Order $order)
     {
+        abort_unless($order->isVisibleTo(Auth::user()), 403);
+
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['required', Rule::in(PaymentMethods::keys())],
@@ -43,9 +45,10 @@ class PaymentController extends Controller
 
     public function destroy(Order $order, OrderPayment $payment)
     {
-        if ($payment->order_id !== $order->id) {
+        if ((int) $payment->order_id !== (int) $order->id) {
             abort(404);
         }
+        abort_unless($order->isVisibleTo(Auth::user()), 403);
 
         $payment->delete();
 
@@ -57,9 +60,10 @@ class PaymentController extends Controller
 
     public function receiptPdf(Order $order, OrderPayment $payment)
     {
-        if ($payment->order_id !== $order->id) {
+        if ((int) $payment->order_id !== (int) $order->id) {
             abort(404);
         }
+        abort_unless($order->isVisibleTo(Auth::user()), 403);
 
         $payment->load('registeredBy');
 

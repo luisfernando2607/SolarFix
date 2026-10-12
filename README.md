@@ -64,6 +64,13 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | `receptionist` | Solo su sucursal: clientes, órdenes, cobros, facturas, caja, garantías, agenda y mantenimientos. |
 | `technician` | Solo su sucursal: sus órdenes y las sin asignar, repuestos y entradas de inventario, sus citas y sus comisiones. No ve facturas ni caja. |
 
+Reglas de seguridad:
+
+- Solo un `super_admin` crea, edita o elimina a otro `super_admin`, y siempre queda al menos uno activo. Nadie cambia su propio rol ni se desactiva a sí mismo.
+- Un usuario desactivado queda fuera al instante, aunque tenga la sesión abierta.
+- La contraseña que asigna otra persona (al crear o restablecer un usuario) se cambia en el primer ingreso. Cada usuario cambia la suya en **Cambiar contraseña**, y al hacerlo se cierran sus otras sesiones.
+- La entrega se registra solo con cobro y firma, nunca desde "Editar orden". Los técnicos avanzan la orden paso a paso, no modifican órdenes cerradas, no registran cobros y en el buscador de clientes ven pocos resultados y sin correo ni dirección.
+
 ---
 
 ## 🧰 Stack
@@ -95,7 +102,7 @@ php artisan serve
 
 El seeder crea la sucursal, el usuario administrador, los catálogos (accesorios, marcas, modelos, checklists) y, fuera de producción, datos de demostración. Se puede volver a ejecutar sin duplicar nada.
 
-> **Usuario inicial:** `admin@solarfix.ec` / `password` — cámbialo al entrar.
+> **Usuario inicial:** `admin@solarfix.ec` / `password`. En producción la app obliga a cambiarla en el primer ingreso.
 
 ---
 

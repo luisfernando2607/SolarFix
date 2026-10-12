@@ -24,7 +24,9 @@ class NotificationController extends Controller
         $url = $notification->data['url'] ?? route('dashboard');
 
         // Solo enlaces internos.
-        return redirect()->to(str_starts_with($url, url('/')) ? $url : route('dashboard'));
+        $internal = parse_url($url, PHP_URL_HOST) === parse_url(url('/'), PHP_URL_HOST);
+
+        return redirect()->to($internal ? $url : route('dashboard'));
     }
 
     public function markAllRead()

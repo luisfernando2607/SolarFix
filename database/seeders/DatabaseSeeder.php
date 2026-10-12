@@ -26,6 +26,8 @@ class DatabaseSeeder extends Seeder
                 'branch_id' => $branch->id,
                 'name' => 'Administrador',
                 'password' => bcrypt('password'),
+                // En producción la contraseña inicial se cambia en el primer ingreso.
+                'must_change_password' => app()->isProduction(),
                 'phone' => '0999999999',
                 'role' => 'super_admin',
                 'is_active' => true,

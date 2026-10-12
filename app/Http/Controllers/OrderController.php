@@ -159,7 +159,11 @@ class OrderController extends Controller
         $surchargeAmount = $subtotal * ($surchargePercent / 100);
         $validated['surcharge_amount'] = round($surchargeAmount, 2);
         $validated['total_amount'] = round($subtotal + $surchargeAmount, 2);
-        $amountPaid = round((float) ($validated['amount_paid'] ?? 0), 2);
+        // El anticipo es un cobro: solo quien puede registrar pagos, y nunca más que el total.
+        $amountPaid = Gate::allows('register-payments') ? round((float) ($validated['amount_paid'] ?? 0), 2) : 0.0;
+        if ($amountPaid > $validated['total_amount'] + 0.004) {
+            return back()->withInput()->withErrors(['amount_paid' => 'El anticipo (' . money($amountPaid) . ') supera el total de la orden (' . money($validated['total_amount']) . ').']);
+        }
         $validated['amount_paid'] = $amountPaid;
         $validated['balance_due'] = round(max(0, $validated['total_amount'] - $amountPaid), 2);
 
@@ -349,8 +353,25 @@ class OrderController extends Controller
             'user_id' => ['nullable', Rule::in($this->assignableTechnicians($order)->pluck('id'))],
         ]);
 
+        $validated['status'] = $validated['status'] ?? $order->status;
+
+        // La entrega solo se registra con el cobro y la firma, no desde este formulario.
+        if ($validated['status'] === 'delivered' && $order->status !== 'delivered') {
+            return back()->withInput()->withErrors(['status' => 'La entrega se registra desde "Entregar" (cobro y firma del cliente).']);
+        }
+
+        // Los técnicos no editan órdenes cerradas y solo avanzan a los pasos permitidos.
+        if (Auth::user()->isTechnician()) {
+            if (in_array($order->status, ['delivered', 'closed_no_repair'], true)) {
+                return redirect()->route('orders.show', $order)->with('error', 'La orden está cerrada; solo un administrador puede modificarla.');
+            }
+            if ($validated['status'] !== $order->status && ! array_key_exists($validated['status'], app(OrderWorkflow::class)->nextActions($order))) {
+                return back()->withInput()->withErrors(['status' => 'No puedes pasar la orden de "' . (Order::statuses()[$order->status] ?? $order->status) . '" a "' . (Order::statuses()[$validated['status']] ?? $validated['status']) . '".']);
+            }
+        }
+
         // Control de calidad obligatorio (opcional en Configuración) para pasar a "Listo".
-        if ($error = app(OrderWorkflow::class)->qualityCheckError($order, $validated['status'] ?? null)) {
+        if ($error = app(OrderWorkflow::class)->qualityCheckError($order, $validated['status'])) {
             return back()->withInput()->withErrors(['status' => $error]);
         }
 
@@ -517,7 +538,8 @@ class OrderController extends Controller
     private function linkableAppointment($id): Appointment
     {
         $appointment = Appointment::with('client')->findOrFail($id);
-        abort_if(Auth::user()->isTechnician() && $appointment->user_id !== Auth::id(), 403, 'Esta cita está asignada a otro técnico.');
+        abort_unless(BranchContext::allows($appointment->branch_id), 403, 'La cita es de otra sucursal.');
+        abort_if(Auth::user()->isTechnician() && (int) $appointment->user_id !== (int) Auth::id(), 403, 'Esta cita está asignada a otro técnico.');
         abort_if($appointment->order_id || ! $appointment->isOpen(), 422, 'La cita ya tiene una orden o está cerrada.');
 
         return $appointment;

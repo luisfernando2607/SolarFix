@@ -58,6 +58,7 @@ class AppointmentController extends Controller
         // Visita de un plan de mantenimiento preventivo.
         if ($request->filled('plan_id')) {
             $plan = MaintenancePlan::findOrFail($request->plan_id);
+            abort_unless(BranchContext::allows($plan->branch_id), 403, 'El plan es de otra sucursal.');
             $appointment->fill([
                 'branch_id' => $plan->branch_id,
                 'maintenance_plan_id' => $plan->id,
@@ -72,6 +73,7 @@ class AppointmentController extends Controller
         // Segunda visita desde una orden: cliente, dirección y técnico de la orden.
         if ($request->filled('order_id')) {
             $order = Order::with('client')->findOrFail($request->order_id);
+            abort_unless($order->isVisibleTo(Auth::user()), 403, 'La orden es de otra sucursal.');
             $appointment->fill([
                 'branch_id' => $order->branch_id,
                 'order_id' => $order->id,
@@ -184,8 +186,16 @@ class AppointmentController extends Controller
         $validated = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
             'user_id' => ['nullable', Rule::in($this->technicians($appointment)->pluck('id'))],
-            'order_id' => ['nullable', 'exists:orders,id'],
-            'maintenance_plan_id' => ['nullable', 'exists:maintenance_plans,id'],
+            'order_id' => ['nullable', 'exists:orders,id', function ($attribute, $value, $fail) {
+                if (! Order::find($value)?->isVisibleTo(Auth::user())) {
+                    $fail('La orden es de otra sucursal.');
+                }
+            }],
+            'maintenance_plan_id' => ['nullable', 'exists:maintenance_plans,id', function ($attribute, $value, $fail) {
+                if (! BranchContext::allows(MaintenancePlan::find($value)?->branch_id)) {
+                    $fail('El plan es de otra sucursal.');
+                }
+            }],
             'type' => ['required', Rule::in(array_keys(Appointment::types()))],
             'title' => ['required', 'string', 'max:150'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -244,6 +254,6 @@ class AppointmentController extends Controller
     {
         $user = Auth::user();
         abort_unless(BranchContext::allows($appointment->branch_id), 403, 'La cita es de otra sucursal.');
-        abort_if($user->isTechnician() && $appointment->user_id !== $user->id, 403, 'Esta cita está asignada a otro técnico.');
+        abort_if($user->isTechnician() && (int) $appointment->user_id !== (int) $user->id, 403, 'Esta cita está asignada a otro técnico.');
     }
 }

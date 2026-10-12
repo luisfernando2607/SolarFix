@@ -120,6 +120,18 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] Agrega ese repuesto a una orden de Quito. → Se descuenta del stock de Quito.
 - [ ] **Caja**: cada sucursal tiene su propio cuadre del día.
 
+## 13. Seguridad
+
+- [ ] Crea un usuario nuevo e inicia sesión con él en modo incógnito. → Antes de continuar, la app pide cambiar la contraseña.
+- [ ] Con dos navegadores abiertos con el mismo usuario, cambia la contraseña en uno (menú → **Cambiar contraseña**). → El otro se cierra al recargar.
+- [ ] Como **admin** (no super admin): en **Usuarios**, los super admin no tienen botón de editar ni eliminar, y "Super Admin" no aparece como rol.
+- [ ] Con un usuario abierto en otro navegador, desactívalo como admin. → Al recargar, queda fuera.
+- [ ] Como **técnico**, en "Editar orden" de una orden recibida intenta pasarla directo a "Listo". → No lo permite; solo el siguiente paso.
+- [ ] En "Editar orden" (cualquier rol) elige "Entregado". → Avisa que la entrega se hace desde **Entregar** (cobro y firma).
+- [ ] Como **técnico**, al crear una orden el anticipo aparece bloqueado en 0.
+- [ ] Como **recepcionista de Guayaquil**, cambia en la URL el número de una orden de Quito para cobrarla o facturarla. → "403".
+- [ ] Deja un campo obligatorio vacío en cualquier formulario. → El mensaje sale en español.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

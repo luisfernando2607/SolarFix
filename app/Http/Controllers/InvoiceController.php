@@ -54,6 +54,7 @@ class InvoiceController extends Controller
 
         if ($request->filled('order_id')) {
             $order = Order::with(['client', 'brand', 'deviceModel'])->findOrFail($request->order_id);
+            abort_unless(BranchContext::allows($order->branch_id), 403, 'La orden es de otra sucursal.');
             $client = $order->client;
         }
 
@@ -91,6 +92,8 @@ class InvoiceController extends Controller
         ]);
 
         if (!empty($validated['order_id'])) {
+            abort_unless(BranchContext::allows(Order::findOrFail($validated['order_id'])->branch_id), 403, 'La orden es de otra sucursal.');
+
             $existing = Invoice::where('order_id', $validated['order_id'])
                 ->where('status', '!=', 'anulada')
                 ->first();

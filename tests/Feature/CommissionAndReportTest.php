@@ -58,8 +58,9 @@ class CommissionAndReportTest extends TestCase
             'labor_cost' => 40,
             'parts_cost' => 50,
             'user_id' => $order->user_id,
-            'status' => 'delivered',
         ]);
+        // La entrega se registra con la firma (no desde el formulario de edición).
+        $order->refresh()->markDelivered($by->id);
     }
 
     // --- Comisiones ---
@@ -133,7 +134,11 @@ class CommissionAndReportTest extends TestCase
         $this->deliver($order, $admin);
         $this->assertSame(1, Commission::count());
 
-        $this->deliver($order->fresh(), $admin, ['status' => 'repairing']);
+        $order->refresh();
+        $this->actingAs($admin)->put(route('orders.update', $order), [
+            'client_id' => $order->client_id, 'device_type' => 'celular', 'declared_fault' => 'No enciende',
+            'unlock_type' => 'none', 'entry_date' => $order->entry_date->toDateString(), 'status' => 'repairing',
+        ]);
         $this->assertSame(0, Commission::count());
 
         $other = $this->makeOrder($tech);

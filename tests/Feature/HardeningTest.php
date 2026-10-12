@@ -139,7 +139,13 @@ class HardeningTest extends TestCase
             Client::create(['name' => "Cliente $i", 'phone' => '09' . str_pad($i, 8, '0'), 'client_type' => 'individual']);
         }
 
+        // Técnicos: pocos resultados (solo para elegir al cliente); recepción: hasta 15.
         $this->actingAs(User::factory()->role('technician')->create())
+            ->getJson(route('clients.search', ['q' => 'Cliente']))
+            ->assertOk()
+            ->assertJsonCount(5);
+
+        $this->actingAs(User::factory()->role('receptionist')->create())
             ->getJson(route('clients.search', ['q' => 'Cliente']))
             ->assertOk()
             ->assertJsonCount(15);

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'must_change_password',
         'phone',
         'role',
         'commission_type',
@@ -38,6 +39,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
             'commission_value' => 'decimal:2',
         ];
     }

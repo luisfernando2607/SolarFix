@@ -68,9 +68,11 @@
             </div>
 
             <div class="pt-4 flex items-center gap-3 border-t">
-                <a href="{{ route('users.edit', $user) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                    Editar Usuario
-                </a>
+                @if (! $user->isSuperAdmin() || auth()->user()->isSuperAdmin())
+                    <a href="{{ route('users.edit', $user) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        Editar Usuario
+                    </a>
+                @endif
                 <a href="{{ route('users.index') }}" class="text-gray-600 hover:text-gray-800 px-4 py-2 text-sm font-medium transition">
                     Volver
                 </a>

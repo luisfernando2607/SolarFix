@@ -477,8 +477,8 @@
                             <label for="amount_paid" class="block text-sm font-medium text-gray-700 mb-1">{{ $editing ? 'Monto Pagado' : 'Anticipo' }}</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
-                                @if ($editing)
-                                    <input type="number" id="amount_paid" value="{{ $order->amount_paid }}" readonly
+                                @if ($editing || Gate::denies('register-payments'))
+                                    <input type="number" id="amount_paid" value="{{ $editing ? $order->amount_paid : 0 }}" readonly
                                         class="w-full pl-7 pr-4 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-gray-700 outline-none cursor-not-allowed">
                                 @else
                                     <input type="number" step="0.01" min="0" id="amount_paid" name="amount_paid" value="{{ old('amount_paid', '0') }}"
@@ -487,6 +487,8 @@
                             </div>
                             @if ($editing)
                                 <p class="text-xs text-gray-500 mt-1">Se calcula con los pagos registrados en la orden.</p>
+                            @elseif (Gate::denies('register-payments'))
+                                <p class="text-xs text-gray-500 mt-1">El anticipo lo registra recepción.</p>
                             @endif
                         </div>
 

@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
@@ -30,14 +31,17 @@ class ClientController extends Controller
      */
     public function search(Request $request)
     {
-        $request->validate(['q' => ['required', 'string', 'max:100']]);
+        // Quien no gestiona clientes (técnicos) busca con al menos 2 caracteres, recibe menos
+        // resultados y sin correo ni dirección: lo justo para elegir al cliente de la orden.
+        $full = Gate::allows('manage-clients');
+        $request->validate(['q' => ['required', 'string', 'min:' . ($full ? 1 : 2), 'max:100']]);
         $search = '%' . $request->q . '%';
 
         return Client::where(fn ($q) => $q->where('name', 'like', $search)
                 ->orWhere('id_document', 'like', $search)
                 ->orWhere('phone', 'like', $search))
             ->orderBy('name')
-            ->take(15)
+            ->take($full ? 15 : 5)
             ->get(['id', 'name', 'id_document', 'phone', 'email', 'address'])
             ->map(fn ($c) => [
                 'id' => $c->id,
@@ -45,8 +49,8 @@ class ClientController extends Controller
                 'label' => $c->name . ($c->id_document ? ' · ' . $c->id_document : ''),
                 'id_document' => $c->id_document,
                 'phone' => $c->phone,
-                'email' => $c->email,
-                'address' => $c->address,
+                'email' => $full ? $c->email : null,
+                'address' => $full ? $c->address : null,
             ]);
     }
 

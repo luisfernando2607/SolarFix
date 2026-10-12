@@ -67,7 +67,7 @@ class WarrantyAndSignatureTest extends TestCase
     {
         $order = $this->makeOrder();
 
-        $this->actingAs($this->admin())->put(route('orders.update', $order), $this->updatePayload($order, ['status' => 'delivered']));
+        $order->markDelivered($this->admin()->id);
 
         $order->refresh();
         $this->assertEquals(today(), $order->delivery_date);
@@ -80,7 +80,7 @@ class WarrantyAndSignatureTest extends TestCase
     {
         $order = $this->makeOrder(['warranty_days' => 0]);
 
-        $this->actingAs($this->admin())->put(route('orders.update', $order), $this->updatePayload($order, ['status' => 'delivered']));
+        $order->markDelivered($this->admin()->id);
 
         $this->assertNull($order->fresh()->warranty);
     }

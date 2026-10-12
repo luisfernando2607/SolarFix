@@ -50,6 +50,8 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/password', [\App\Http\Controllers\PasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/password', [\App\Http\Controllers\PasswordController::class, 'update'])->name('password.update');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -90,7 +92,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
-        Route::get('/clients-search', [ClientController::class, 'search'])->name('clients.search');
+        Route::get('/clients-search', [ClientController::class, 'search'])->middleware('throttle:60,1')->name('clients.search');
         Route::get('/commissions', [CommissionController::class, 'index'])->name('commissions.index');
         Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
         Route::get('/appointments/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show')->whereNumber('appointment');
