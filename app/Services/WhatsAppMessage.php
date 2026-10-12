@@ -48,9 +48,9 @@ class WhatsAppMessage
      * Una línea que solo contiene una variable vacía se omite (ej. {diagnostico} sin diagnóstico).
      */
     public const TEMPLATES = [
-        'budget' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) ya fue diagnosticado.\n\n{diagnostico}\n\n*Presupuesto:*\n{detalle_presupuesto}\n*Total: {total}*\n{abonos}\n\nPor favor confírmenos si aprueba la reparación. ¡Gracias!\n\nEstado de su orden: {seguimiento}",
+        'budget' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) ya fue diagnosticado.\n\n{diagnostico}\n\n*Presupuesto:*\n{detalle_presupuesto}\n*Total: {total}*\n{abonos}\n\nPuede aprobar o rechazar la reparación aquí: {seguimiento}\nTambién puede responder a este mensaje. ¡Gracias!",
         'ready' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) está *listo para retirar*.\n{saldo_pendiente}\n\n{direccion_negocio}\n\nEstado de su orden: {seguimiento}",
-        'delivery' => "Hola {cliente}, gracias por confiar en *{negocio}*.\nLe entregamos su equipo {equipo} (orden *{orden}*).\n\n{trabajo_realizado}\n\n{garantia}\n\nConserve su número de orden ({orden}) para cualquier consulta.",
+        'delivery' => "Hola {cliente}, gracias por confiar en *{negocio}*.\nLe entregamos su equipo {equipo} (orden *{orden}*).\n\n{trabajo_realizado}\n\n{garantia}\n\nConserve su número de orden ({orden}) para cualquier consulta.\n¿Cómo le atendimos? Califíquenos aquí: {seguimiento}",
         'appointment_confirmation' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu cita de {servicio} quedó agendada para el *{fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
         'appointment_reminder' => "Hola {cliente}, le recordamos de *{negocio}* su cita de {servicio} para *mañana {fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
         'maintenance_due' => "Hola {cliente}, le saludamos de *{negocio}*.\nSegún su plan de mantenimiento, {cuando} el mantenimiento de: *{equipo}*.\n\n¿Desea que agendemos una visita? Responda a este mensaje con el día y la hora que le convienen.",
@@ -186,6 +186,15 @@ class WhatsAppMessage
 
     private static function budgetLines(Order $order): string
     {
+        return implode("\n", array_map(fn ($c) => "- {$c[0]}: " . money($c[1]), self::budgetConcepts($order)));
+    }
+
+    /**
+     * Conceptos del presupuesto con monto (para WhatsApp y la página del cliente).
+     */
+    public static function budgetConcepts(Order $order): array
+    {
+        $order->loadMissing('parts.sparePart');
         $concepts = [['Diagnóstico', $order->diagnosis_cost], ['Mano de obra', $order->labor_cost]];
         if ($order->parts->isNotEmpty()) {
             foreach ($order->parts as $part) {
@@ -196,13 +205,6 @@ class WhatsAppMessage
         }
         $concepts[] = ['Recargo', $order->surcharge_amount];
 
-        $lines = [];
-        foreach ($concepts as [$label, $amount]) {
-            if ((float) $amount > 0) {
-                $lines[] = "- {$label}: " . money($amount);
-            }
-        }
-
-        return implode("\n", $lines);
+        return array_values(array_filter($concepts, fn ($c) => (float) $c[1] > 0));
     }
 }

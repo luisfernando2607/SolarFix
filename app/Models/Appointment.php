@@ -12,12 +12,13 @@ class Appointment extends Model
 
     protected $fillable = [
         'branch_id', 'client_id', 'user_id', 'order_id', 'maintenance_plan_id', 'type', 'title', 'address',
-        'scheduled_at', 'duration_min', 'status', 'notes', 'reminder_sent',
+        'scheduled_at', 'duration_min', 'status', 'requested_online', 'notes', 'reminder_sent',
     ];
 
     protected function casts(): array
     {
         return [
+            'requested_online' => 'boolean',
             'scheduled_at' => 'datetime',
             'duration_min' => 'integer',
             'reminder_sent' => 'boolean',

@@ -234,6 +234,7 @@ class OrderController extends Controller
             'whatsappLogs.sentBy',
             'parts.sparePart',
             'warranty',
+            'review',
             'signatures',
             'parentOrder',
             'childOrders',
@@ -312,6 +313,17 @@ class OrderController extends Controller
                 'terms' => Setting::get('ticket_terms'),
             ],
         ]);
+    }
+
+    /**
+     * Etiqueta adhesiva para pegar en el equipo (impresora de etiquetas, 50 × 30 mm):
+     * número de orden, cliente, equipo y un QR que abre la orden en la app.
+     */
+    public function label(Order $order)
+    {
+        $this->authorizeOrder($order);
+
+        return view('orders.label', ['order' => $order->load(['client', 'brand', 'deviceModel'])]);
     }
 
     public function edit(Order $order)

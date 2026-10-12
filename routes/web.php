@@ -42,6 +42,17 @@ Route::get('/seguimiento/{token}', [TrackingController::class, 'show'])
     ->where('token', '[A-Za-z0-9]{32}')
     ->middleware('throttle:30,1')
     ->name('tracking.show');
+// Solicitud de cita en línea (pública; con límite contra abusos).
+Route::get('/agendar', [\App\Http\Controllers\BookingController::class, 'create'])->middleware('throttle:30,1')->name('booking.create');
+Route::post('/agendar', [\App\Http\Controllers\BookingController::class, 'store'])->middleware('throttle:5,10')->name('booking.store');
+Route::post('/seguimiento/{token}/decision', [TrackingController::class, 'decide'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:10,1')
+    ->name('tracking.decide');
+Route::post('/seguimiento/{token}/calificar', [TrackingController::class, 'review'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:10,1')
+    ->name('tracking.review');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -119,6 +130,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('orders', OrderController::class)->except(['destroy']);
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
         Route::get('/orders/{order}/ticket', [OrderController::class, 'ticket'])->name('orders.ticket');
+        Route::get('/orders/{order}/label', [OrderController::class, 'label'])->name('orders.label');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');
         Route::get('/orders/{order}/photos/{photo}', [OrderController::class, 'showPhoto'])->name('orders.photo.show');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');
@@ -140,6 +152,11 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::middleware('role:super_admin,admin,receptionist')->group(function () {
+            Route::get('/sales', [\App\Http\Controllers\SaleController::class, 'index'])->name('sales.index');
+            Route::get('/sales/create', [\App\Http\Controllers\SaleController::class, 'create'])->name('sales.create');
+            Route::post('/sales', [\App\Http\Controllers\SaleController::class, 'store'])->name('sales.store');
+            Route::get('/sales/{sale}', [\App\Http\Controllers\SaleController::class, 'show'])->name('sales.show');
+            Route::get('/sales/{sale}/receipt', [\App\Http\Controllers\SaleController::class, 'receipt'])->name('sales.receipt');
             Route::get('/invoices/payments/list', [InvoiceController::class, 'payments'])->name('invoices.payments');
             Route::resource('invoices', InvoiceController::class)->only(['index', 'create', 'store', 'show']);
             Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
@@ -164,6 +181,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
             Route::patch('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
             Route::patch('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
+            Route::patch('/sales/{sale}/cancel', [\App\Http\Controllers\SaleController::class, 'cancel'])->name('sales.cancel');
         });
     });
 });

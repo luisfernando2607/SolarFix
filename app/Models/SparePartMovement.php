@@ -8,7 +8,7 @@ class SparePartMovement extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['spare_part_id', 'branch_id', 'type', 'quantity', 'reason', 'order_id', 'supplier_id', 'unit_cost', 'registered_by', 'moved_at'];
+    protected $fillable = ['spare_part_id', 'branch_id', 'type', 'quantity', 'reason', 'order_id', 'sale_id', 'supplier_id', 'unit_cost', 'registered_by', 'moved_at'];
 
     protected function casts(): array
     {

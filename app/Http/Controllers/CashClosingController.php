@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\CashClosing;
 use App\Models\CashMovement;
 use App\Models\OrderPayment;
+use App\Models\Sale;
 use App\Support\BranchContext;
 use App\Support\PaymentMethods;
 use Illuminate\Http\Request;
@@ -157,15 +158,29 @@ class CashClosingController extends Controller
     }
 
     /**
-     * Cobros del día de las órdenes de la sucursal.
+     * Ingresos del día de la sucursal: cobros de órdenes y ventas de mostrador, en una sola lista
+     * (hora, documento, cliente, método, referencia y monto).
      */
     private function paymentsOn(Carbon $date, int $branch)
     {
-        return OrderPayment::with(['order.client', 'registeredBy'])
+        $range = [$date->copy()->startOfDay(), $date->copy()->endOfDay()];
+
+        $payments = OrderPayment::with(['order.client', 'registeredBy'])
             ->whereHas('order', fn ($q) => $q->withTrashed()->where('branch_id', $branch))
-            ->whereBetween('paid_at', [$date->copy()->startOfDay(), $date->copy()->endOfDay()])
-            ->orderBy('paid_at')
-            ->get();
+            ->whereBetween('paid_at', $range)
+            ->get()
+            ->map(fn ($p) => (object) [
+                'time' => $p->paid_at, 'document' => $p->order?->order_number, 'url' => $p->order ? route('orders.show', $p->order) : null,
+                'client' => $p->order?->client?->name, 'method' => $p->method, 'reference' => $p->reference, 'amount' => (float) $p->amount,
+            ]);
+
+        $sales = Sale::with('client')->active()->where('branch_id', $branch)->whereBetween('sold_at', $range)->get()
+            ->map(fn ($s) => (object) [
+                'time' => $s->sold_at, 'document' => $s->sale_number, 'url' => route('sales.show', $s),
+                'client' => $s->customerLabel(), 'method' => $s->method, 'reference' => $s->reference, 'amount' => (float) $s->total,
+            ]);
+
+        return $payments->concat($sales)->sortBy('time')->values();
     }
 
     private function totalsByMethod($payments): array

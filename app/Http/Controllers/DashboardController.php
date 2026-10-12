@@ -27,7 +27,8 @@ class DashboardController extends Controller
 
         if ($user->isSuperAdmin() || $user->isAdmin()) {
             $stats['users_count'] = User::count();
-            $stats['revenue'] = BranchContext::applyThroughOrder(OrderPayment::query())->sum('amount');
+            $stats['revenue'] = (float) BranchContext::applyThroughOrder(OrderPayment::query())->sum('amount')
+                + (float) BranchContext::apply(\App\Models\Sale::active())->sum('total');
         }
 
         $ordersQuery = Order::visibleTo($user);

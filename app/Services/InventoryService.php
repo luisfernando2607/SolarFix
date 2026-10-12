@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Branch;
 use App\Models\Order;
 use App\Models\OrderPart;
+use App\Models\Sale;
 use App\Models\SparePart;
 use App\Models\SparePartMovement;
 use App\Models\SparePartStock;
@@ -167,6 +168,78 @@ class InventoryService
     }
 
     /**
+     * Venta de mostrador: descuenta cada repuesto del stock de la sucursal y crea la venta con
+     * sus ítems al precio de venta actual. Todo o nada: si falta stock de uno, no se vende nada.
+     *
+     * @param  array<int, array{spare_part_id:int, quantity:int}>  $lines
+     */
+    public function sell(int $branchId, array $lines, array $saleAttributes, ?int $userId): Sale
+    {
+        return DB::transaction(function () use ($branchId, $lines, $saleAttributes, $userId) {
+            // Un renglón por repuesto, en orden fijo (por id) para no bloquearse con otra venta simultánea.
+            $lines = collect($lines)->groupBy('spare_part_id')
+                ->map(fn ($rows) => (int) $rows->sum('quantity'))
+                ->sortKeys();
+
+            $items = [];
+            foreach ($lines as $partId => $quantity) {
+                [$locked, $stock] = $this->lock(SparePart::findOrFail($partId), $branchId);
+                if (! $locked->is_active) {
+                    throw new DomainException("{$locked->name} está desactivado.");
+                }
+                if ($stock->quantity < $quantity) {
+                    throw new DomainException("Stock insuficiente de {$locked->name}: hay {$stock->quantity}.");
+                }
+                $this->change($locked, $stock, -$quantity);
+                $items[] = [$locked, $quantity];
+            }
+
+            $total = round(array_sum(array_map(fn ($i) => round((float) $i[0]->sale_price * $i[1], 2), $items)), 2);
+            $sale = Sale::createWithUniqueNumber($saleAttributes + [
+                'branch_id' => $branchId,
+                'total' => $total,
+                'sold_by' => $userId,
+                'sold_at' => now(),
+            ]);
+
+            foreach ($items as [$part, $quantity]) {
+                $sale->items()->create([
+                    'spare_part_id' => $part->id,
+                    'description' => $part->name,
+                    'quantity' => $quantity,
+                    'unit_price' => $part->sale_price,
+                    'unit_cost' => $part->cost_price,
+                    'subtotal' => round((float) $part->sale_price * $quantity, 2),
+                ]);
+                $this->movement($part, $branchId, 'out', $quantity, 'Venta ' . $sale->sale_number, null, (float) $part->cost_price, $userId, null, $sale->id);
+            }
+
+            return $sale;
+        });
+    }
+
+    /**
+     * Anula una venta: las unidades vuelven al stock de la sucursal y el dinero sale de la caja del día.
+     */
+    public function cancelSale(Sale $sale, ?int $userId): void
+    {
+        DB::transaction(function () use ($sale, $userId) {
+            $sale = Sale::lockForUpdate()->findOrFail($sale->id);
+            if ($sale->isCancelled()) {
+                throw new DomainException('La venta ya está anulada.');
+            }
+
+            foreach ($sale->items()->orderBy('spare_part_id')->get() as $item) {
+                [$locked, $stock] = $this->lock(SparePart::findOrFail($item->spare_part_id), $sale->branch_id);
+                $this->change($locked, $stock, $item->quantity);
+                $this->movement($locked, $sale->branch_id, 'in', $item->quantity, 'Anulada la venta ' . $sale->sale_number, null, null, $userId, null, $sale->id);
+            }
+
+            $sale->update(['cancelled_at' => now(), 'cancelled_by' => $userId]);
+        });
+    }
+
+    /**
      * Bloquea el repuesto y luego su stock en la sucursal (lo crea si no existía).
      */
     private function lock(SparePart $part, int $branchId): array
@@ -194,7 +267,7 @@ class InventoryService
         $part->save();
     }
 
-    private function movement(SparePart $part, int $branchId, string $type, int $quantity, ?string $reason, ?int $orderId, ?float $unitCost, ?int $userId, ?int $supplierId = null): SparePartMovement
+    private function movement(SparePart $part, int $branchId, string $type, int $quantity, ?string $reason, ?int $orderId, ?float $unitCost, ?int $userId, ?int $supplierId = null, ?int $saleId = null): SparePartMovement
     {
         return SparePartMovement::create([
             'spare_part_id' => $part->id,
@@ -203,6 +276,7 @@ class InventoryService
             'quantity' => $quantity,
             'reason' => $reason,
             'order_id' => $orderId,
+            'sale_id' => $saleId,
             'supplier_id' => $supplierId,
             'unit_cost' => $unitCost,
             'registered_by' => $userId,

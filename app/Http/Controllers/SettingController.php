@@ -30,6 +30,9 @@ class SettingController extends Controller
         'diagnosis_cost_default' => 'orders',
         'maintenance_due_days' => 'alerts',
         'ticket_terms' => 'orders',
+        'online_approval' => 'portal',
+        'customer_survey' => 'portal',
+        'online_booking' => 'portal',
     ];
 
     public function edit()
@@ -122,6 +125,9 @@ class SettingController extends Controller
             'approval_alert_hours' => ['required', 'integer', 'min:1', 'max:720'],
             'commission_base' => ['required', 'in:service,total'],
             'require_quality_check' => ['boolean'],
+            'online_approval' => ['boolean'],
+            'customer_survey' => ['boolean'],
+            'online_booking' => ['boolean'],
             // El número de orden (prefijo-AAAAMMDD-0001) cabe en 20 caracteres con hasta 6 de prefijo.
             'order_prefix' => ['required', 'regex:/^[A-Z0-9]{1,6}$/'],
             'invoice_prefix' => ['required', 'regex:/^[A-Z0-9]{1,8}$/'],
@@ -140,7 +146,7 @@ class SettingController extends Controller
         ]);
 
         foreach (self::FIELDS as $key => $group) {
-            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check'], true);
+            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check', 'online_approval', 'customer_survey', 'online_booking'], true);
             Setting::put($key, $isFlag ? (string) (int) $request->boolean($key) : (string) ($validated[$key] ?? ''), $group);
         }
 

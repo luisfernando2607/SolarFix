@@ -127,6 +127,23 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Página del cliente</h3>
+            <p class="text-xs text-gray-500 mb-3">El enlace de seguimiento (QR del ticket y mensajes de WhatsApp).</p>
+            @foreach ([
+                'online_approval' => ['Permitir que el cliente apruebe o rechace el presupuesto en línea', 'La orden avanza sola y el técnico recibe un aviso.'],
+                'customer_survey' => ['Pedir una calificación del servicio después de la entrega', 'Las calificaciones de 3 estrellas o menos avisan a la administración.'],
+                'online_booking' => ['Permitir que los clientes soliciten citas en línea', 'Página pública para compartir en redes y WhatsApp: ' . route('booking.create')],
+            ] as $key => [$label, $help])
+                <label class="flex items-start gap-2 {{ $loop->first ? '' : 'mt-3' }}">
+                    <input type="hidden" name="{{ $key }}" value="0">
+                    <input type="checkbox" name="{{ $key }}" value="1" {{ old($key, $settings[$key] ?? '1') ? 'checked' : '' }}
+                        class="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-sm text-gray-700">{{ $label }}<span class="block text-xs text-gray-500">{{ $help }}</span></span>
+                </label>
+            @endforeach
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-3">Control de calidad</h3>
             <label class="flex items-start gap-2">
                 <input type="hidden" name="require_quality_check" value="0">

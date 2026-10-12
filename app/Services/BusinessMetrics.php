@@ -71,7 +71,9 @@ class BusinessMetrics
         $warrantyClaims = $this->orders()->whereNotNull('parent_order_id')->whereBetween('created_at', [$from, $to])->count();
 
         return [
-            'revenue' => round((float) $this->throughOrder(OrderPayment::query())->whereBetween('paid_at', [$from, $to])->sum('amount'), 2),
+            'revenue' => round((float) $this->throughOrder(OrderPayment::query())->whereBetween('paid_at', [$from, $to])->sum('amount')
+                + (float) \App\Models\Sale::active()->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))
+                    ->whereBetween('sold_at', [$from, $to])->sum('total'), 2),
             'received' => $this->orders()->whereBetween('created_at', [$from, $to])->count(),
             'delivered' => $delivered->count(),
             'avg_ticket' => $delivered->count() ? round((float) $delivered->avg('total_amount'), 2) : null,

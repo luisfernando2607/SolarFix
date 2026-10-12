@@ -39,6 +39,9 @@
             <a href="{{ route('orders.ticket', $order) }}" target="_blank" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition">
                 Ticket
             </a>
+            <a href="{{ route('orders.label', $order) }}" target="_blank" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition" title="Etiqueta adhesiva para el equipo">
+                Etiqueta
+            </a>
             <a href="{{ route('orders.edit', $order) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                 Editar
             </a>
@@ -744,6 +747,17 @@
                     </ul>
                 @endif
             </div>
+
+            @if ($order->review)
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">Calificación del cliente</h3>
+                <p class="text-2xl" aria-label="{{ $order->review->rating }} de 5"><span class="text-amber-500">{{ str_repeat('★', $order->review->rating) }}</span><span class="text-gray-300">{{ str_repeat('★', 5 - $order->review->rating) }}</span></p>
+                @if ($order->review->comment)
+                    <p class="text-sm text-gray-700 mt-2">“{{ $order->review->comment }}”</p>
+                @endif
+                <p class="text-xs text-gray-400 mt-1">{{ $order->review->created_at->format('d/m/Y H:i') }}</p>
+            </div>
+            @endif
 
             <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">

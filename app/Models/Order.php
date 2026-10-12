@@ -458,6 +458,11 @@ class Order extends Model
         return $this->hasMany(WhatsappLog::class)->latest('sent_at');
     }
 
+    public function review()
+    {
+        return $this->hasOne(OrderReview::class);
+    }
+
     public function invoices()
     {
         return $this->hasMany(\App\Models\Invoice::class);

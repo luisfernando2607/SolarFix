@@ -142,6 +142,17 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] Cierra la caja de un día y al día siguiente intenta registrar un pago o un gasto con la fecha del día cerrado. → Lo impide.
 - [ ] En una orden entregada, en "Editar" cambia el estado. → Avisa que debe registrarse un reclamo de garantía.
 
+## 15. Funciones para el cliente y el mostrador
+
+- [ ] Pasa una orden a "Esperando aprobación" y abre su enlace de seguimiento en el celular. → Aparece el presupuesto con **Aprobar reparación**. Apruébalo. → La orden pasa a "En reparación" y el técnico recibe un aviso.
+- [ ] En otra orden, elige "No deseo la reparación" y escribe un motivo. → La orden se cierra sin reparación y el motivo queda en el historial.
+- [ ] Abre el enlace de una orden entregada. → Pide calificar con estrellas; con 3 o menos llega un aviso a la administración. La calificación se ve en la orden y en **Reportes**.
+- [ ] **Ventas → Nueva venta**: busca un accesorio, agrega 2 unidades y cobra. → Baja el stock, aparece en **Caja del día** y se imprime el comprobante.
+- [ ] Como admin, anula la venta. → El stock vuelve y la caja ya no la suma.
+- [ ] Abre `/agendar` sin iniciar sesión y pide una visita. → Recepción recibe un aviso y la cita aparece "Solicitada en línea" en la agenda.
+- [ ] En una orden, **Etiqueta**. → Se abre la etiqueta de 50 × 30 mm lista para imprimir; el QR abre la orden.
+- [ ] En **Configuración → Página del cliente** desactiva cada opción. → Desaparece de la página pública.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

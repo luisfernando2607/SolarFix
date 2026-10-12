@@ -14,6 +14,9 @@
             <p class="text-gray-500">{{ \Illuminate\Support\Str::ucfirst($appointment->scheduled_at->translatedFormat('l d \d\e F \d\e Y')) }}, {{ $appointment->scheduled_at->format('H:i') }}–{{ $appointment->endsAt()->format('H:i') }}</p>
         </div>
         <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">{{ \App\Models\Appointment::statuses()[$appointment->status] }}</span>
+        @if ($appointment->requested_online)
+            <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">Solicitada en línea</span>
+        @endif
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">

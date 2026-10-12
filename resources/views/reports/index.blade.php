@@ -32,13 +32,14 @@
     </div>
 
     {{-- Indicadores del período --}}
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
         @foreach ([
-            ['Ingresos cobrados', $money($kpis['revenue'])],
+            ['Ingresos cobrados' . ($kpis['sales'] > 0 ? ' (ventas ' . $money($kpis['sales']) . ')' : ''), $money($kpis['revenue'])],
             ['Órdenes recibidas', $kpis['received']],
             ['Órdenes entregadas', $kpis['delivered']],
             ['Ticket promedio', $kpis['avg_ticket'] !== null ? $money($kpis['avg_ticket']) : '—'],
             ['Días de reparación (prom.)', $kpis['avg_days'] ?? '—'],
+            ['Satisfacción (' . $satisfaction['count'] . ')', $satisfaction['average'] !== null ? $satisfaction['average'] . ' / 5' : '—'],
         ] as [$label, $value])
             <div class="bg-white rounded-xl shadow-sm border p-5">
                 <p class="text-sm text-gray-500">{{ $label }}</p>
@@ -177,5 +178,21 @@
         </table>
         </div>
     </div>
+
+    @if ($satisfaction['latest']->isNotEmpty())
+        <div class="bg-white rounded-xl shadow-sm border p-6 mt-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Últimos comentarios de clientes</h3>
+            <ul class="divide-y text-sm">
+                @foreach ($satisfaction['latest'] as $review)
+                    <li class="py-2 flex flex-wrap items-baseline gap-x-3">
+                        <span class="text-amber-500" aria-label="{{ $review->rating }} de 5">{{ str_repeat('★', $review->rating) }}<span class="text-gray-300">{{ str_repeat('★', 5 - $review->rating) }}</span></span>
+                        <a href="{{ route('orders.show', $review->order_id) }}" class="text-blue-600 hover:underline">{{ $review->order?->order_number }}</a>
+                        <span class="text-gray-700 flex-1 min-w-0">{{ $review->comment }}</span>
+                        <span class="text-xs text-gray-400">{{ $review->created_at->format('d/m/Y') }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 </div>
 @endsection

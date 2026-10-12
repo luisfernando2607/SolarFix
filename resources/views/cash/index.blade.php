@@ -39,7 +39,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border overflow-hidden">
             <div class="px-6 py-4 border-b bg-gray-50/50">
-                <h3 class="text-base font-semibold text-gray-800">Pagos del día ({{ $payments->count() }})</h3>
+                <h3 class="text-base font-semibold text-gray-800">Cobros y ventas del día ({{ $payments->count() }})</h3>
             </div>
             @if ($payments->count())
             <div class="overflow-x-auto">
@@ -47,7 +47,7 @@
                     <thead>
                         <tr class="border-b bg-gray-50/50 text-left">
                             <th class="px-6 py-3 font-semibold text-gray-600">Hora</th>
-                            <th class="px-6 py-3 font-semibold text-gray-600">Orden</th>
+                            <th class="px-6 py-3 font-semibold text-gray-600">Orden / venta</th>
                             <th class="px-6 py-3 font-semibold text-gray-600">Cliente</th>
                             <th class="px-6 py-3 font-semibold text-gray-600">Método</th>
                             <th class="px-6 py-3 font-semibold text-gray-600">Referencia</th>
@@ -57,25 +57,25 @@
                     <tbody>
                         @foreach ($payments as $payment)
                         <tr class="border-b">
-                            <td class="px-6 py-3 text-gray-500">{{ $payment->paid_at->format('H:i') }}</td>
+                            <td class="px-6 py-3 text-gray-500">{{ $payment->time->format('H:i') }}</td>
                             <td class="px-6 py-3">
-                                @if ($payment->order)
-                                    <a href="{{ route('orders.show', $payment->order) }}" class="text-blue-600 hover:underline font-medium">{{ $payment->order->order_number }}</a>
+                                @if ($payment->url)
+                                    <a href="{{ $payment->url }}" class="text-blue-600 hover:underline font-medium">{{ $payment->document }}</a>
                                 @else
                                     —
                                 @endif
                             </td>
-                            <td class="px-6 py-3">{{ $payment->order?->client?->name ?? '—' }}</td>
+                            <td class="px-6 py-3">{{ $payment->client ?? '—' }}</td>
                             <td class="px-6 py-3">{{ $methods[$payment->method] ?? $payment->method }}</td>
                             <td class="px-6 py-3 text-gray-500">{{ $payment->reference ?: '—' }}</td>
-                            <td class="px-6 py-3 text-right font-medium">{{ money($payment->amount) }}</td>
+                            <td class="px-6 py-3 text-right font-medium {{ $payment->amount < 0 ? 'text-amber-700' : '' }}">{{ money($payment->amount) }}</td>
                         </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
             @else
-                <p class="px-6 py-8 text-center text-gray-500 text-sm">No hay pagos registrados en esta fecha.</p>
+                <p class="px-6 py-8 text-center text-gray-500 text-sm">No hay cobros ni ventas en esta fecha.</p>
             @endif
         </div>
 
@@ -129,7 +129,7 @@
             <dl class="mb-4 text-sm space-y-1">
                 @foreach ([
                     ['Fondo inicial', $cash['opening'], ''],
-                    ['Cobros en efectivo', $cash['payments'], '+'],
+                    ['Cobros y ventas en efectivo', $cash['payments'], '+'],
                     ['Otros ingresos', $cash['income'], '+'],
                     ['Gastos', $cash['expenses'], '−'],
                     ['Retiros / depósitos', $cash['withdrawals'], '−'],
