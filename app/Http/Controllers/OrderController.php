@@ -14,6 +14,7 @@ use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\OrderPhoto;
 use App\Models\OrderStatusHistory;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\AssignmentNotification;
 use Illuminate\Http\Request;
@@ -314,6 +315,14 @@ class OrderController extends Controller
             'notes' => ['nullable', 'string'],
             'user_id' => ['nullable', Rule::in($this->assignableTechnicians($order)->pluck('id'))],
         ]);
+
+        // Control de calidad obligatorio (opcional en Configuración) para pasar a "Listo".
+        if (($validated['status'] ?? null) === 'ready' && $order->status !== 'ready' && Setting::get('require_quality_check') === '1') {
+            $qualityCheck = $order->checklistProgress('delivery');
+            if ($qualityCheck && ! $qualityCheck['complete']) {
+                return back()->withInput()->withErrors(['status' => 'Completa el checklist de control de calidad antes de marcar la orden como lista.']);
+            }
+        }
 
         // Los técnicos no pueden reasignar órdenes.
         if (Auth::user()->isTechnician()) {

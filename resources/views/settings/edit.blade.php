@@ -63,6 +63,19 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Control de calidad</h3>
+            <label class="flex items-start gap-2">
+                <input type="hidden" name="require_quality_check" value="0">
+                <input type="checkbox" name="require_quality_check" value="1" {{ old('require_quality_check', $settings['require_quality_check'] ?? '0') ? 'checked' : '' }}
+                    class="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">
+                    Exigir el checklist de control de calidad para marcar una orden como "Listo"
+                    <span class="block text-xs text-gray-500">Solo aplica a los tipos de equipo que tienen ese checklist.</span>
+                </span>
+            </label>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-1">Comisiones</h3>
             <p class="text-xs text-gray-500 mb-4">Sobre qué monto se calcula la comisión porcentual de los técnicos (se configura en cada usuario).</p>
             @foreach (\App\Models\Commission::bases() as $key => $label)

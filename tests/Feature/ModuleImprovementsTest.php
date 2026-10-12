@@ -444,4 +444,42 @@ class ModuleImprovementsTest extends TestCase
 
         $this->actingAs(User::factory()->role('technician')->create())->get(route('notifications.open', $id))->assertNotFound();
     }
+
+    // --- Control de calidad obligatorio ---
+
+    public function test_quality_check_can_be_required_to_mark_ready(): void
+    {
+        $this->seed(\Database\Seeders\ChecklistSeeder::class);
+        $admin = $this->admin();
+        $order = $this->makeOrder(['status' => 'repairing']);
+        $payload = [
+            'client_id' => $order->client_id, 'device_type' => 'celular', 'declared_fault' => 'No enciende',
+            'unlock_type' => 'none', 'entry_date' => now()->toDateString(), 'status' => 'ready',
+        ];
+
+        // Desactivado (por defecto): se puede marcar como lista.
+        $this->actingAs($admin)->put(route('orders.update', $order), $payload)->assertSessionHasNoErrors();
+        $order->refresh()->update(['status' => 'repairing']);
+
+        \App\Models\Setting::put('require_quality_check', '1', 'orders');
+        $this->actingAs($admin)->put(route('orders.update', $order), $payload)->assertSessionHasErrors('status');
+        $this->assertSame('repairing', $order->fresh()->status);
+
+        $results = \App\Models\Checklist::for('celular', 'delivery')->activeItems()->pluck('id')->mapWithKeys(fn ($id) => [$id => 'ok'])->all();
+        $this->actingAs($admin)->put(route('orders.checklists.update', [$order, 'delivery']), ['results' => $results]);
+
+        $this->actingAs($admin)->put(route('orders.update', $order), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('ready', $order->fresh()->status);
+    }
+
+    public function test_required_quality_check_ignored_without_checklist(): void
+    {
+        \App\Models\Setting::put('require_quality_check', '1', 'orders');
+        $order = $this->makeOrder(['status' => 'repairing', 'device_type' => 'lavador']);
+
+        $this->actingAs($this->admin())->put(route('orders.update', $order), [
+            'client_id' => $order->client_id, 'device_type' => 'lavador', 'declared_fault' => 'x',
+            'unlock_type' => 'none', 'entry_date' => now()->toDateString(), 'status' => 'ready',
+        ])->assertSessionHasNoErrors();
+    }
 }

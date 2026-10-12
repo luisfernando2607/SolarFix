@@ -19,6 +19,7 @@ class SettingController extends Controller
         'stale_order_days' => 'alerts',
         'approval_alert_hours' => 'alerts',
         'commission_base' => 'commissions',
+        'require_quality_check' => 'orders',
     ];
 
     public function edit()
@@ -45,10 +46,12 @@ class SettingController extends Controller
             'stale_order_days' => ['required', 'integer', 'min:1', 'max:365'],
             'approval_alert_hours' => ['required', 'integer', 'min:1', 'max:720'],
             'commission_base' => ['required', 'in:service,total'],
+            'require_quality_check' => ['boolean'],
         ]);
 
         foreach (self::FIELDS as $key => $group) {
-            Setting::put($key, $key === 'prices_include_iva' ? (string) (int) $request->boolean($key) : (string) ($validated[$key] ?? ''), $group);
+            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check'], true);
+            Setting::put($key, $isFlag ? (string) (int) $request->boolean($key) : (string) ($validated[$key] ?? ''), $group);
         }
 
         return redirect()->route('settings.edit')->with('success', 'Configuración guardada.');
