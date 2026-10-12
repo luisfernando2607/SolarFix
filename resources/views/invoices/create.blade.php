@@ -41,29 +41,29 @@
                     <p class="text-xs text-gray-500 mt-1">O escribe los datos de un cliente ocasional abajo.</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Nombre *</label>
-                    <input type="text" name="client_name" required value="{{ old('client_name', $client->name ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_client_name" class="block text-sm font-medium text-gray-600 mb-1">Nombre *</label>
+                    <input type="text" id="inv_client_name" name="client_name" required value="{{ old('client_name', $client->name ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Documento</label>
-                    <input type="text" name="client_document" value="{{ old('client_document', $client->id_document ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_client_document" class="block text-sm font-medium text-gray-600 mb-1">Documento</label>
+                    <input type="text" id="inv_client_document" name="client_document" value="{{ old('client_document', $client->id_document ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
-                    <input type="text" name="client_phone" value="{{ old('client_phone', $client->phone ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_client_phone" class="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
+                    <input type="text" id="inv_client_phone" name="client_phone" value="{{ old('client_phone', $client->phone ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                    <input type="email" name="client_email" value="{{ old('client_email', $client->email ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_client_email" class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                    <input type="email" id="inv_client_email" name="client_email" value="{{ old('client_email', $client->email ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div class="col-span-2">
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Dirección</label>
-                    <input type="text" name="client_address" value="{{ old('client_address', $client->address ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_client_address" class="block text-sm font-medium text-gray-600 mb-1">Dirección</label>
+                    <input type="text" id="inv_client_address" name="client_address" value="{{ old('client_address', $client->address ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
             </div>
         </div>
@@ -72,24 +72,24 @@
             <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Dispositivo</h3>
             <div class="grid grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Tipo</label>
-                    <input type="text" name="device_type" value="{{ old('device_type', $order ? (\App\Models\Order::deviceTypes()[$order->device_type] ?? $order->device_type) : '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_device_type" class="block text-sm font-medium text-gray-600 mb-1">Tipo</label>
+                    <input type="text" id="inv_device_type" name="device_type" value="{{ old('device_type', $order ? (\App\Models\Order::deviceTypes()[$order->device_type] ?? $order->device_type) : '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Marca</label>
-                    <input type="text" name="device_brand" value="{{ old('device_brand', $order->brand?->name ?? $order->brand_text ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_device_brand" class="block text-sm font-medium text-gray-600 mb-1">Marca</label>
+                    <input type="text" id="inv_device_brand" name="device_brand" value="{{ old('device_brand', $order->brand?->name ?? $order->brand_text ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Modelo</label>
-                    <input type="text" name="device_model" value="{{ old('device_model', $order->deviceModel?->name ?? $order->model_text ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_device_model" class="block text-sm font-medium text-gray-600 mb-1">Modelo</label>
+                    <input type="text" id="inv_device_model" name="device_model" value="{{ old('device_model', $order->deviceModel?->name ?? $order->model_text ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Serial</label>
-                    <input type="text" name="device_serial" value="{{ old('device_serial', $order->serial_imei ?? '') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_device_serial" class="block text-sm font-medium text-gray-600 mb-1">Serial</label>
+                    <input type="text" id="inv_device_serial" name="device_serial" value="{{ old('device_serial', $order->serial_imei ?? '') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
             </div>
         </div>
@@ -151,14 +151,14 @@
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Fecha de Emisión *</label>
-                    <input type="date" name="issued_at" required value="{{ old('issued_at', date('Y-m-d')) }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_issued_at" class="block text-sm font-medium text-gray-600 mb-1">Fecha de Emisión *</label>
+                    <input type="date" id="inv_issued_at" name="issued_at" required value="{{ old('issued_at', date('Y-m-d')) }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Notas</label>
-                    <input type="text" name="notes" value="{{ old('notes') }}"
-                        class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <label for="inv_notes" class="block text-sm font-medium text-gray-600 mb-1">Notas</label>
+                    <input type="text" id="inv_notes" name="notes" value="{{ old('notes') }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div>
             </div>
         </div>

@@ -117,14 +117,18 @@ class ReportController extends Controller
      */
     public function export(Request $request, string $dataset)
     {
-        abort_unless(in_array($dataset, ['orders', 'payments']), 404);
+        abort_unless(in_array($dataset, ['orders', 'payments', 'sales']), 404);
         $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
 
         $from = $request->filled('from') ? Carbon::parse($request->from)->startOfDay() : now()->startOfMonth();
         $to = $request->filled('to') ? Carbon::parse($request->to)->endOfDay() : now()->endOfDay();
 
-        [$header, $rows] = $dataset === 'orders' ? $this->orderRows($from, $to) : $this->paymentRows($from, $to);
-        $filename = ($dataset === 'orders' ? 'ordenes' : 'pagos') . '-' . $from->format('Ymd') . '-' . $to->format('Ymd') . '.csv';
+        [$header, $rows] = match ($dataset) {
+            'orders' => $this->orderRows($from, $to),
+            'payments' => $this->paymentRows($from, $to),
+            'sales' => $this->saleRows($from, $to),
+        };
+        $filename = ['orders' => 'ordenes', 'payments' => 'pagos', 'sales' => 'ventas'][$dataset] . '-' . $from->format('Ymd') . '-' . $to->format('Ymd') . '.csv';
 
         return response()->streamDownload(function () use ($header, $rows) {
             $out = fopen('php://output', 'w');
@@ -173,6 +177,27 @@ class ReportController extends Controller
                 $p->paid_at->format('d/m/Y'), $p->paid_at->format('H:i'), $p->order?->branch?->name, $p->order?->order_number, $p->order?->client?->name,
                 PaymentMethods::label($p->method), $p->reference, $this->decimal($p->amount), $p->registeredBy?->name,
             ]),
+        ];
+    }
+
+    /**
+     * Una fila por producto vendido (las ventas anuladas se marcan).
+     */
+    private function saleRows(Carbon $from, Carbon $to): array
+    {
+        $sales = BranchContext::apply(Sale::with(['items', 'client', 'branch', 'soldBy']))
+            ->whereBetween('sold_at', [$from, $to])
+            ->orderBy('sold_at')
+            ->orderBy('id')
+            ->lazy(500);
+
+        return [
+            ['Fecha', 'Hora', 'Sucursal', 'Venta', 'Cliente', 'Producto', 'Cantidad', 'Precio', 'Subtotal', 'Costo', 'Método', 'Vendido por', 'Estado'],
+            $sales->flatMap(fn ($s) => $s->items->map(fn ($i) => [
+                $s->sold_at->format('d/m/Y'), $s->sold_at->format('H:i'), $s->branch?->name, $s->sale_number, $s->customerLabel(),
+                $i->description, $i->quantity, $this->decimal($i->unit_price), $this->decimal($i->subtotal), $this->decimal($i->unit_cost * $i->quantity),
+                PaymentMethods::label($s->method), $s->soldBy?->name, $s->isCancelled() ? 'Anulada' : 'Vigente',
+            ])),
         ];
     }
 

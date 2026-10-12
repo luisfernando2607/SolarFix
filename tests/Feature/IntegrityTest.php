@@ -268,4 +268,17 @@ class IntegrityTest extends TestCase
 
         $this->assertTrue(CommissionAdvance::first()->is_settled);
     }
+
+    public function test_costs_locked_after_commission_is_paid(): void
+    {
+        $admin = $this->admin();
+        $tech = User::factory()->role('technician')->create(['commission_type' => 'percent', 'commission_value' => 10]);
+        $order = $this->makeOrder(['user_id' => $tech->id, 'status' => 'ready']);
+        $order->markDelivered(null);
+        $this->actingAs($admin)->post(route('commissions.pay'), ['user_id' => $tech->id, 'period' => now()->format('Y-m')]);
+
+        $this->actingAs($admin)->put(route('orders.update', $order), $this->editPayload($order->fresh(), ['labor_cost' => 20]))
+            ->assertSessionHasErrors('labor_cost');
+        $this->assertEquals(100, $order->fresh()->labor_cost);
+    }
 }

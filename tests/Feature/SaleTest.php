@@ -121,4 +121,20 @@ class SaleTest extends TestCase
         $qtoDesk = User::factory()->role('receptionist')->create(['branch_id' => $other->id]);
         $this->actingAs($qtoDesk)->get(route('sales.show', Sale::first()))->assertForbidden();
     }
+
+    public function test_sales_export_and_client_merge_keeps_sales(): void
+    {
+        $admin = User::factory()->role('admin')->create();
+        $case = $this->part('Funda', 5, 8);
+        $keep = \App\Models\Client::create(['name' => 'Ana Ruiz', 'phone' => '0991234567', 'client_type' => 'individual']);
+        $dupe = \App\Models\Client::create(['name' => 'Ana R.', 'phone' => '099 123 4567', 'client_type' => 'individual']);
+        $this->actingAs($admin)->post(route('sales.store'), ['items' => [['spare_part_id' => $case->id, 'quantity' => 2]], 'method' => 'cash', 'client_id' => $dupe->id]);
+
+        $csv = $this->actingAs($admin)->get(route('reports.export', ['dataset' => 'sales']))->assertOk()->streamedContent();
+        $this->assertStringContainsString('Funda;2;8,00;16,00', $csv);
+
+        $this->actingAs($admin)->get(route('clients.duplicates'))->assertOk()->assertSee('Ana R.');
+        $this->actingAs($admin)->post(route('clients.merge', $dupe), ['target_id' => $keep->id]);
+        $this->assertSame($keep->id, Sale::first()->client_id);
+    }
 }

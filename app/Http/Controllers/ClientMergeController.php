@@ -16,20 +16,33 @@ class ClientMergeController extends Controller
     /**
      * Tablas con client_id que pasan al cliente que se conserva.
      */
-    private const RELATED_TABLES = ['orders', 'appointments', 'maintenance_plans', 'invoices', 'whatsapp_logs'];
+    private const RELATED_TABLES = ['orders', 'appointments', 'maintenance_plans', 'invoices', 'whatsapp_logs', 'sales'];
 
     public function duplicates()
     {
-        $clients = Client::withCount('orders')->orderBy('id')->get(['id', 'name', 'phone', 'id_document', 'email', 'created_at']);
+        // Primera pasada liviana (solo id, teléfono y cédula, por bloques); después se cargan
+        // completos únicamente los clientes que están repetidos.
+        $keys = ['teléfono' => [], 'cédula' => []];
+        Client::select(['id', 'phone', 'id_document'])->lazyById(2000)->each(function ($c) use (&$keys) {
+            if ($phone = WhatsAppMessage::normalizePhone($c->phone)) {
+                $keys['teléfono'][$phone][] = $c->id;
+            }
+            if ($document = preg_replace('/\D/', '', (string) $c->id_document)) {
+                $keys['cédula'][$document][] = $c->id;
+            }
+        });
+
+        $repeated = collect($keys)->map(fn ($values) => array_filter($values, fn ($ids) => count($ids) > 1));
+        $clients = Client::withCount('orders')
+            ->whereIn('id', $repeated->flatten()->unique()->values())
+            ->get(['id', 'name', 'phone', 'id_document', 'email', 'created_at'])
+            ->keyBy('id');
 
         $groups = collect();
-        foreach ([
-            'teléfono' => fn ($c) => WhatsAppMessage::normalizePhone($c->phone),
-            'cédula' => fn ($c) => preg_replace('/\D/', '', (string) $c->id_document) ?: null,
-        ] as $reason => $key) {
-            $clients->groupBy(fn ($c) => $key($c) ?? '')
-                ->filter(fn ($group, $value) => $value !== '' && $group->count() > 1)
-                ->each(fn ($group, $value) => $groups->push(['reason' => $reason, 'value' => $value, 'clients' => $group]));
+        foreach ($repeated as $reason => $values) {
+            foreach ($values as $value => $ids) {
+                $groups->push(['reason' => $reason, 'value' => (string) $value, 'clients' => $clients->only($ids)->sortKeys()->values()]);
+            }
         }
 
         return view('clients.duplicates', ['groups' => $groups]);

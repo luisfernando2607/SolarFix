@@ -28,6 +28,7 @@
             <span class="text-gray-300">|</span>
             <a href="{{ route('reports.export', ['dataset' => 'orders', 'from' => $from->toDateString(), 'to' => $to->toDateString()]) }}" class="text-sm bg-white border px-3 py-2 rounded-lg hover:bg-gray-50">Excel: órdenes</a>
             <a href="{{ route('reports.export', ['dataset' => 'payments', 'from' => $from->toDateString(), 'to' => $to->toDateString()]) }}" class="text-sm bg-white border px-3 py-2 rounded-lg hover:bg-gray-50">Excel: pagos</a>
+            <a href="{{ route('reports.export', ['dataset' => 'sales', 'from' => $from->toDateString(), 'to' => $to->toDateString()]) }}" class="text-sm bg-white border px-3 py-2 rounded-lg hover:bg-gray-50">Excel: ventas</a>
         </form>
     </div>
 

@@ -153,7 +153,7 @@
                 <ul class="divide-y">
                     @foreach ($warranties as $warranty)
                         <li><a href="{{ route('orders.show', $warranty->order_id) }}" class="px-6 py-2 flex justify-between text-sm hover:bg-gray-50">
-                            <span>Orden {{ $orders->firstWhere('id', $warranty->order_id)?->order_number }} · {{ \App\Models\Warranty::types()[$warranty->warranty_type] ?? '' }}</span>
+                            <span>Orden {{ $warranty->order?->order_number }} · {{ \App\Models\Warranty::types()[$warranty->warranty_type] ?? '' }}</span>
                             <span class="text-gray-500">hasta {{ $warranty->end_date->format('d/m/Y') }}</span>
                         </a></li>
                     @endforeach
@@ -198,6 +198,20 @@
                 <p class="px-6 py-6 text-sm text-gray-500 text-center">Sin órdenes.</p>
             @endif
         </div>
+
+        @if ($sales->isNotEmpty())
+            <div class="bg-white rounded-xl shadow-sm border">
+                <h3 class="px-6 py-3 border-b text-base font-semibold text-gray-800">Compras en mostrador</h3>
+                <ul class="divide-y">
+                    @foreach ($sales as $sale)
+                        <li><a href="{{ route('sales.show', $sale) }}" class="px-6 py-2 flex flex-wrap justify-between gap-2 text-sm hover:bg-gray-50">
+                            <span>{{ $sale->sold_at->format('d/m/Y') }} · {{ $sale->items->map(fn ($i) => $i->quantity . ' × ' . $i->description)->join(', ') }}</span>
+                            <span class="font-medium">{{ money($sale->total) }}</span>
+                        </a></li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
     </div>
     </div>
 </div>

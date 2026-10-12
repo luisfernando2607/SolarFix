@@ -258,15 +258,19 @@ class Order extends Model
     }
 
     /**
-     * Motivo por el que no se pueden cambiar los costos: una factura vigente ya los fijó.
+     * Motivo por el que no se pueden cambiar los costos: una factura vigente ya los fijó,
+     * o la comisión del técnico ya se pagó con estos montos.
      */
     public function costsLockedReason(): ?string
     {
-        $invoice = $this->activeInvoice();
+        if ($invoice = $this->activeInvoice()) {
+            return "La orden tiene la factura #{$invoice->invoice_number} vigente; anúlala para cambiar costos o repuestos.";
+        }
+        if (Commission::where('order_id', $this->id)->where('is_paid', true)->exists()) {
+            return 'La comisión del técnico por esta orden ya se pagó con estos montos; los costos no se pueden cambiar.';
+        }
 
-        return $invoice
-            ? "La orden tiene la factura #{$invoice->invoice_number} vigente; anúlala para cambiar costos o repuestos."
-            : null;
+        return null;
     }
 
     /**
