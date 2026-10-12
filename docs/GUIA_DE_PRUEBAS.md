@@ -104,6 +104,8 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 ## 11. Cliente, comisiones, reportes y auditoría (admin)
 
 - [ ] **Clientes → ver**: muestra sus órdenes, total pagado, saldo, garantías, citas y planes.
+- [ ] Dashboard del admin: **Indicadores del mes** con la variación frente al mes anterior y **Cuentas por cobrar** (entrega una orden sin cobrar todo para verla).
+- [ ] Crea dos clientes con el mismo teléfono escrito distinto (0991234567 y +593 99 123 4567). → **Clientes → Ver duplicados** los agrupa; únelos y revisa que las órdenes pasen al que conservaste.
 - [ ] **Comisiones**: la del técnico aparece pendiente → **Pagar**. Como técnico, solo ve las suyas.
 - [ ] **Reportes**: el gráfico de 12 meses muestra la barra del mes; pasa el mouse sobre ella para ver el monto.
 - [ ] **Excel: órdenes / pagos**: el archivo abre en Excel en columnas, con tildes y decimales con coma.

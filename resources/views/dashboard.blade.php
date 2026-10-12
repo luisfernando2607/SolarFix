@@ -9,6 +9,81 @@
         <p class="text-gray-500">Bienvenido, {{ Auth::user()->name }}</p>
     </div>
 
+    @if ($metrics)
+    @php
+        $cur = $metrics['current'];
+        $prev = $metrics['previous'];
+        // [etiqueta, clave, formato, ¿subir es bueno?]
+        $tiles = [
+            ['Ingresos cobrados', 'revenue', 'money', true],
+            ['Órdenes recibidas', 'received', 'int', true],
+            ['Órdenes entregadas', 'delivered', 'int', true],
+            ['Ticket promedio', 'avg_ticket', 'money', true],
+            ['Días de reparación', 'avg_days', 'dec', false],
+            ['Presupuestos aprobados', 'approval_rate', 'pct', true],
+            ['Retrabajos (garantías)', 'rework_rate', 'pct', false],
+        ];
+        $fmt = fn ($v, $f) => $v === null ? '—' : match ($f) {
+            'money' => money($v), 'pct' => $v . '%', 'dec' => number_format($v, 1), default => (string) $v,
+        };
+    @endphp
+    <div class="mb-6">
+        <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
+            <h3 class="text-lg font-semibold text-gray-800">Indicadores de {{ now()->translatedFormat('F') }}</h3>
+            <a href="{{ route('reports.index') }}" class="text-sm text-blue-600 hover:underline">Ver reportes →</a>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            @foreach ($tiles as [$label, $key, $format, $upIsGood])
+                @php
+                    $value = $cur[$key]; $before = $prev[$key];
+                    $delta = ($value !== null && $before !== null) ? $value - $before : null;
+                    $good = $delta === null || $delta == 0 ? null : (($delta > 0) === $upIsGood);
+                @endphp
+                <div class="bg-white rounded-xl shadow-sm border p-4">
+                    <p class="text-xs text-gray-500">{{ $label }}</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1">{{ $fmt($value, $format) }}</p>
+                    <p class="text-xs mt-1 {{ $good === null ? 'text-gray-400' : ($good ? 'text-green-700' : 'text-red-600') }}">
+                        @if ($delta === null)
+                            sin datos del mes anterior
+                        @elseif ($delta == 0)
+                            igual que el mes anterior
+                        @else
+                            {{ $delta > 0 ? '▲' : '▼' }} {{ $format === 'pct' ? abs($delta) . ' pts' : $fmt(abs($delta), $format) }} vs. mes anterior
+                        @endif
+                    </p>
+                    @if ($key === 'approval_rate' && ($cur['approved'] + $cur['rejected']))
+                        <p class="text-[11px] text-gray-400">{{ $cur['approved'] }} aprobados · {{ $cur['rejected'] }} rechazados</p>
+                    @endif
+                </div>
+            @endforeach
+            <div class="bg-white rounded-xl shadow-sm border p-4">
+                <p class="text-xs text-gray-500">Valor del inventario</p>
+                <p class="text-2xl font-bold text-gray-800 mt-1">{{ money($metrics['inventory_value']) }}</p>
+                <p class="text-xs text-gray-400 mt-1">a costo promedio</p>
+            </div>
+        </div>
+
+        @if ($metrics['receivables']['count'])
+            <div class="mt-4 bg-white rounded-xl shadow-sm border border-red-200">
+                <div class="px-4 py-3 border-b bg-red-50 flex flex-wrap justify-between gap-2">
+                    <span class="text-sm font-semibold text-red-900">Cuentas por cobrar: equipos entregados con saldo</span>
+                    <span class="text-sm font-bold text-red-700">{{ money($metrics['receivables']['total']) }} · {{ $metrics['receivables']['count'] }} {{ $metrics['receivables']['count'] === 1 ? 'orden' : 'órdenes' }}</span>
+                </div>
+                <ul class="divide-y">
+                    @foreach ($metrics['receivables']['orders'] as $order)
+                        <li>
+                            <a href="{{ route('orders.show', $order) }}" class="px-4 py-2.5 flex flex-wrap justify-between gap-2 text-sm hover:bg-gray-50">
+                                <span><span class="font-medium text-blue-700">{{ $order->order_number }}</span> · {{ $order->client?->name }} <span class="text-gray-400">{{ $order->client?->phone }}</span></span>
+                                <span class="text-gray-500">entregada {{ $order->delivery_date?->format('d/m/Y') }} · <span class="font-semibold text-red-600">{{ money($order->balance_due) }}</span></span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    </div>
+    @endif
+
     @if ($counter)
     <div class="mb-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-3">Mostrador</h3>

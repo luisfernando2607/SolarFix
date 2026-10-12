@@ -43,6 +43,8 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 📅 **Agenda** | Visitas a domicilio con choque de horarios, confirmación y recordatorio |
 | 🔁 **Mantenimientos** | Planes preventivos por cliente que se renuevan al completar la visita |
 | 💰 **Comisiones** | Fijas o porcentuales por técnico, generadas al entregar; adelantos que se descuentan al pagar |
+| 📈 **Indicadores** | Mes actual vs. anterior (ingresos, entregas, ticket, días de reparación, aprobación de presupuestos, retrabajos), cuentas por cobrar y valor del inventario |
+| 👥 **Clientes duplicados** | Detección por teléfono o cédula y unión con todo su historial |
 | 📊 **Reportes** | Ingresos, órdenes, técnicos, tipos de equipo y repuestos; exportación a Excel |
 | ⚙️ **Configuración** | Datos del negocio, IVA, prefijos de orden y factura, moneda, métodos de pago, textos de WhatsApp, alertas y comisiones |
 | 🧑‍🔧 **Para técnicos** | Cola "Mi trabajo" por etapa, tomar órdenes sin técnico, acciones rápidas de estado, panel de diagnóstico y costos, bitácora y fotos con la cámara |

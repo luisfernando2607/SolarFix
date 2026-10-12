@@ -82,6 +82,26 @@
     </div>
 
     <div class="lg:col-span-2 space-y-6">
+        @can('manage-users')
+            <details class="bg-white rounded-xl shadow-sm border">
+                <summary class="px-6 py-3 cursor-pointer text-sm text-gray-700">¿Este cliente está duplicado? <span class="text-blue-600">Unir con otro cliente</span></summary>
+                <form method="POST" action="{{ route('clients.merge', $client) }}" class="px-6 pb-4 space-y-2"
+                    onsubmit="return document.getElementById('clientId').value ? confirm('¿Unir este cliente al elegido? Este registro se elimina y su historial pasa al otro.') : false">
+                    @csrf
+                    <p class="text-xs text-gray-500">Este registro (<strong>{{ $client->name }}</strong>) se elimina y todo su historial pasa al cliente que elijas.</p>
+                    <div class="relative">
+                        <input type="text" id="clientSearch" autocomplete="off" placeholder="Buscar el cliente que se conserva..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="hidden" id="clientLabel">
+                        <input type="hidden" name="target_id" id="clientId">
+                        <div id="clientResults" class="hidden absolute z-50 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto"></div>
+                    </div>
+                    <button type="submit" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium">Unir</button>
+                </form>
+            </details>
+            @include('partials.client-search')
+        @endcan
+
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             @foreach ([
                 ['Órdenes', $stats['orders'], 'text-gray-800'],

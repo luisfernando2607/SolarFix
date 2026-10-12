@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Models\SparePart;
 use App\Models\User;
 use App\Models\Warranty;
+use App\Services\BusinessMetrics;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -94,6 +95,7 @@ class DashboardController extends Controller
 
         $myWork = $user->isTechnician() ? $this->technicianQueue($user) : null;
         $counter = $user->can('manage-invoices') ? $this->counterPanel() : null;
+        $metrics = $user->can('manage-commissions') ? app(BusinessMetrics::class)->forMonth(now()) : null;
 
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])
@@ -112,6 +114,7 @@ class DashboardController extends Controller
             'lowStockParts' => $lowStockParts,
             'myWork' => $myWork,
             'counter' => $counter,
+            'metrics' => $metrics,
             'todayAppointments' => $todayAppointments,
             'unassignedAppointments' => $unassignedAppointments,
             'duePlans' => $duePlans,
