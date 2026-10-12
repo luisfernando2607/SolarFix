@@ -30,6 +30,14 @@ return [
 
     'disks' => [
 
+        // Copia de los respaldos fuera del servidor: una carpeta montada de otro equipo,
+        // un NAS o una unidad sincronizada con la nube (BACKUP_DISK=offsite).
+        'offsite' => [
+            'driver' => 'local',
+            'root' => env('BACKUP_OFFSITE_PATH', storage_path('app/offsite')),
+            'throw' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

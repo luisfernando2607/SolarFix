@@ -112,7 +112,12 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // En producción, avisa a la administración si falta algo indispensable (revisión cada 10 minutos).
+        $systemIssues = app()->isProduction() && ($user->isSuperAdmin() || $user->isAdmin())
+            && Cache::remember('system-check-failures', now()->addMinutes(10), fn () => \App\Support\SystemCheck::hasFailures());
+
         return view('dashboard', [
+            'systemIssues' => $systemIssues,
             'stats' => $stats,
             'recentOrders' => $recentOrders,
             'staleOrders' => $staleOrders,

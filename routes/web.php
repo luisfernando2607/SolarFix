@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export/{dataset}', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::get('/system', fn () => view('system.index', ['checks' => \App\Support\SystemCheck::run()]))->name('system.index');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
 

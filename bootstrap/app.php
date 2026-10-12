@@ -19,7 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \Illuminate\Session\Middleware\AuthenticateSession::class,
             \App\Http\Middleware\EnsureAccountIsUsable::class,
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
+        // Detrás de un proxy (Nginx, Cloudflare, el panel del hosting) para detectar HTTPS e IP real.
+        // TRUSTED_PROXIES: "*" o la lista de IPs del proxy.
+        if ($proxies = env('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

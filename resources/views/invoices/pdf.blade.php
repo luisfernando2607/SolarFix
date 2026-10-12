@@ -31,9 +31,12 @@
     <table>
         <tr>
             <td style="width:60%">
+                @php $company = \App\Support\Company::info($invoice->branch_id); @endphp
                 <h1>FACTURA</h1>
-                <div class="sub">SolarFix — Sistema de Reparaciones</div>
-                <div class="sub">RUC: 1234567890001</div>
+                <div class="sub" style="font-weight:bold">{{ $company['name'] }}{{ $company['branch'] ? ' — ' . $company['branch'] : '' }}</div>
+                @if ($company['tax_id']) <div class="sub">RUC: {{ $company['tax_id'] }}</div> @endif
+                @if ($company['address']) <div class="sub">{{ $company['address'] }}</div> @endif
+                @if ($company['phone'] || $company['email']) <div class="sub">{{ collect([$company['phone'], $company['email']])->filter()->join(' · ') }}</div> @endif
             </td>
             <td style="width:40%;text-align:right">
                 <div style="font-size:14pt;font-weight:bold">{{ $invoice->invoice_number }}</div>
@@ -121,7 +124,7 @@
 @endif
 
 <div class="footer">
-    SolarFix — {{ $invoice->createdBy->name ?? '—' }} — Generado {{ now()->format('d/m/Y H:i') }}
+    {{ $company['name'] }} — {{ $invoice->createdBy->name ?? '—' }} — Generado {{ now()->format('d/m/Y H:i') }}
 </div>
 
 </body>

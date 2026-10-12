@@ -9,6 +9,12 @@
         <p class="text-gray-500">Bienvenido, {{ Auth::user()->name }}</p>
     </div>
 
+    @if ($systemIssues)
+        <a href="{{ route('system.index') }}" class="mb-6 block rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm text-red-900 hover:bg-red-100">
+            <strong>Falta configurar algo importante</strong> (respaldos, HTTPS, cron o contraseñas). Ver el estado del sistema →
+        </a>
+    @endif
+
     @if ($metrics)
     @php
         $cur = $metrics['current'];

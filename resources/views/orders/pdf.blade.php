@@ -22,6 +22,9 @@
 <body>
 
 <div class="hdr">
+    @php $company = \App\Support\Company::info($order->branch_id); @endphp
+    <p style="font-size:11pt;font-weight:bold;margin:0 0 2pt 0">{{ $company['name'] }}{{ $company['branch'] ? ' — ' . $company['branch'] : '' }}</p>
+    <p style="margin:0 0 4pt 0">{{ collect([$company['tax_id'] ? 'RUC ' . $company['tax_id'] : null, $company['address'], $company['phone']])->filter()->join(' · ') }}</p>
     <h1>ORDEN DE SERVICIO #{{ $order->order_number }}</h1>
     @if ($order->parentOrder)
         <p style="font-size:10pt;font-weight:bold;margin:3pt 0">REPARACIÓN EN GARANTÍA{{ (float) $order->total_amount == 0 ? ' — $0' : '' }} · Orden original #{{ $order->parentOrder->order_number }}</p>
@@ -223,7 +226,7 @@
 </table>
 
 <div class="ftr">
-    Generado el {{ now()->format('d/m/Y \a \l\a\s H:i') }} — SolarFix Sistema de Reparaciones
+    Generado el {{ now()->format('d/m/Y \a \l\a\s H:i') }} — {{ \App\Support\Company::info($order->branch_id)['name'] }}
 </div>
 
 </body>

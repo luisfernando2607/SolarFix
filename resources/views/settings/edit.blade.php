@@ -21,7 +21,7 @@
             <h3 class="text-base font-semibold text-gray-800 mb-1">Negocio</h3>
             <p class="text-xs text-gray-500 mb-4">Aparece en los mensajes de WhatsApp.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                @foreach (['company_name' => 'Nombre *', 'company_phone' => 'Teléfono', 'company_email' => 'Email', 'company_address' => 'Dirección'] as $key => $label)
+                @foreach (['company_name' => 'Nombre *', 'company_tax_id' => 'RUC', 'company_phone' => 'Teléfono', 'company_email' => 'Email', 'company_address' => 'Dirección'] as $key => $label)
                     <div>
                         <label for="{{ $key }}" class="block text-sm font-medium text-gray-700 mb-1">{{ $label }}</label>
                         <input type="{{ $key === 'company_email' ? 'email' : 'text' }}" id="{{ $key }}" name="{{ $key }}"

@@ -13,6 +13,7 @@ class SettingController extends Controller
 {
     private const FIELDS = [
         'company_name' => 'general',
+        'company_tax_id' => 'general',
         'company_phone' => 'general',
         'company_email' => 'general',
         'company_address' => 'general',
@@ -114,6 +115,7 @@ class SettingController extends Controller
 
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:120'],
+            'company_tax_id' => ['nullable', 'string', 'max:20'],
             'company_phone' => ['nullable', 'string', 'max:30'],
             'company_email' => ['nullable', 'email', 'max:120'],
             'company_address' => ['nullable', 'string', 'max:255'],

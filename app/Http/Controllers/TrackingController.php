@@ -26,11 +26,7 @@ class TrackingController extends Controller
 
         return response()->view('tracking.show', [
             'order' => $order,
-            'company' => [
-                'name' => Setting::get('company_name', 'SolarFix'),
-                'phone' => Setting::get('company_phone'),
-                'address' => Setting::get('company_address'),
-            ],
+            'company' => \App\Support\Company::info($order->branch_id),
             'statuses' => Order::statuses(),
             'canDecide' => $this->canDecide($order),
             'budget' => $this->canDecide($order) ? WhatsAppMessage::budgetConcepts($order) : [],

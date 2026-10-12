@@ -88,7 +88,7 @@ class WhatsAppMessage
     {
         $order->loadMissing(['client', 'brand', 'deviceModel', 'parts.sparePart']);
 
-        $vars = self::common($order->client?->name) + [
+        $vars = self::common($order->client?->name, $order->branch_id) + [
             'equipo' => trim(implode(' ', array_filter([
                 Order::deviceTypes()[$order->device_type] ?? null,
                 $order->brand?->name ?? $order->brand_text,
@@ -110,7 +110,7 @@ class WhatsAppMessage
             ],
             'ready' => [
                 'saldo_pendiente' => (float) $order->balance_due > 0 ? 'Saldo pendiente: ' . money($order->balance_due) : '',
-                'direccion_negocio' => ($address = Setting::get('company_address')) ? "Le esperamos en: {$address}" : '',
+                'direccion_negocio' => ($address = \App\Support\Company::info($order->branch_id)['address']) ? "Le esperamos en: {$address}" : '',
             ],
             'delivery' => [
                 'trabajo_realizado' => $order->work_done ? '*Trabajo realizado:* ' . $order->work_done : '',
@@ -133,7 +133,7 @@ class WhatsAppMessage
     {
         $appointment->loadMissing(['client', 'user']);
 
-        return self::render(self::template($type), self::common($appointment->client?->name) + [
+        return self::render(self::template($type), self::common($appointment->client?->name, $appointment->branch_id) + [
             'servicio' => strtolower(Appointment::types()[$appointment->type] ?? 'visita'),
             'fecha_hora' => $appointment->scheduled_at->translatedFormat('l d \d\e F') . ' a las ' . $appointment->scheduled_at->format('H:i'),
             'direccion' => $appointment->address ? "Dirección: {$appointment->address}" : '',
@@ -143,7 +143,7 @@ class WhatsAppMessage
 
     public static function buildMaintenanceDue(MaintenancePlan $plan): string
     {
-        return self::render(self::template('maintenance_due'), self::common($plan->client?->name) + [
+        return self::render(self::template('maintenance_due'), self::common($plan->client?->name, $plan->branch_id) + [
             'equipo' => $plan->title,
             'cuando' => $plan->next_due_date->lt(today())
                 ? 'ya le corresponde'
@@ -175,12 +175,14 @@ class WhatsAppMessage
         return trim(preg_replace("/\n{3,}/", "\n\n", $text));
     }
 
-    private static function common(?string $client): array
+    private static function common(?string $client, ?int $branchId = null): array
     {
+        $company = \App\Support\Company::info($branchId);
+
         return [
             'cliente' => $client ?? 'cliente',
-            'negocio' => Setting::get('company_name', 'SolarFix'),
-            'telefono_negocio' => (string) Setting::get('company_phone', ''),
+            'negocio' => $company['name'],
+            'telefono_negocio' => (string) $company['phone'],
         ];
     }
 

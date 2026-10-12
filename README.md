@@ -111,7 +111,7 @@ El seeder crea la sucursal, el usuario administrador, los catálogos (accesorios
 
 ## 🌐 Puesta en producción
 
-1. **Entorno** (`.env`): `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` con HTTPS, `APP_TIMEZONE=America/Guayaquil`.
+1. **Entorno** (`.env`): `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` con HTTPS, `APP_TIMEZONE=America/Guayaquil`, `SESSION_SECURE_COOKIE=true`. Si hay un proxy delante (Nginx, Cloudflare, el panel del hosting), `TRUSTED_PROXIES=*` para que la app detecte el HTTPS.
 2. **Código y dependencias:**
    ```bash
    composer install --no-dev --optimize-autoloader
@@ -120,14 +120,15 @@ El seeder crea la sucursal, el usuario administrador, los catálogos (accesorios
    php artisan db:seed --force    # catálogos y checklists base (en producción no carga datos de demo)
    php artisan config:cache && php artisan route:cache && php artisan view:cache
    ```
-3. **Seguridad:** cambia la contraseña del administrador y sirve el sitio solo por HTTPS.
+3. **Seguridad:** al entrar por primera vez la app obliga a cambiar la contraseña del administrador. Sirve el sitio solo por HTTPS (la app envía cabeceras de seguridad y HSTS).
 4. **`APP_KEY`:** guárdala en un lugar seguro y no la cambies; cifra el PIN/patrón de los equipos y sin ella no se pueden leer.
 5. **Respaldos:** activa el programador de Laravel con este cron (cada minuto):
    ```
    * * * * * cd /ruta/a/SolarFix && php artisan schedule:run >> /dev/null 2>&1
    ```
-   Así se ejecuta `php artisan solarfix:backup` todos los días a las 02:00: guarda en `storage/app/backups` un .zip con la base de datos (vía `mysqldump`) y las fotos y firmas, y conserva los últimos 14. **Copia esos .zip fuera del servidor** (otro disco o la nube): un respaldo en el mismo servidor no sirve si el servidor falla. También se puede ejecutar a mano, con `--to=/otra/carpeta` y `--keep=30`.
+   Así se ejecuta `php artisan solarfix:backup` todos los días a las 02:00: guarda en `storage/app/backups` un .zip con la base de datos (vía `mysqldump`) y las fotos y firmas, y conserva los últimos 14 (`BACKUP_KEEP`). **Copia fuera del servidor:** con `BACKUP_DISK=offsite` y `BACKUP_OFFSITE_PATH=/ruta/montada` (otro disco, un NAS o una carpeta sincronizada con la nube) cada respaldo se copia también allí. También se puede ejecutar a mano, con `--to=/otra/carpeta`, `--keep=30` o `--disk=offsite`.
 6. **HTTPS** es necesario para que el celular ofrezca instalar la app.
+7. **Revisión final:** `php artisan solarfix:check` (o **Estado del sistema** en el menú del admin) dice qué falta: modo producción, HTTPS, contraseñas por defecto, datos y RUC del negocio, cron, respaldos y copia externa. Mientras falte algo indispensable, el panel del admin muestra un aviso.
 
 Las fotos y firmas son privadas: se sirven a través de la app con control de acceso. No hace falta `php artisan storage:link`.
 

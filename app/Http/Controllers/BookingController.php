@@ -23,7 +23,7 @@ class BookingController extends Controller
         abort_unless($this->enabled(), 404);
 
         return response()->view('booking.create', [
-            'company' => ['name' => Setting::get('company_name', 'SolarFix'), 'phone' => Setting::get('company_phone')],
+            'company' => \App\Support\Company::info(),
             'types' => Appointment::types(),
             'branches' => Branch::activeList(),
         ])->header('X-Robots-Tag', 'noindex');

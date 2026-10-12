@@ -90,11 +90,7 @@ class SaleController extends Controller
 
         return view('sales.receipt', [
             'sale' => $sale->load(['items', 'soldBy', 'client', 'branch']),
-            'company' => [
-                'name' => Setting::get('company_name', 'SolarFix'),
-                'phone' => $sale->branch?->phone ?: Setting::get('company_phone'),
-                'address' => $sale->branch?->address ?: Setting::get('company_address'),
-            ],
+            'company' => \App\Support\Company::info($sale->branch_id),
         ]);
     }
 

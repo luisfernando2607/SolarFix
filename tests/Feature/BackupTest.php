@@ -21,6 +21,7 @@ class BackupTest extends TestCase
     protected function tearDown(): void
     {
         File::deleteDirectory($this->dir);
+        File::delete(storage_path(\App\Console\Commands\BackupCommand::STATUS_FILE));
         parent::tearDown();
     }
 
@@ -82,5 +83,23 @@ class BackupTest extends TestCase
     public function test_backup_is_scheduled_daily(): void
     {
         $this->artisan('schedule:list')->expectsOutputToContain('solarfix:backup')->assertSuccessful();
+    }
+
+    public function test_backup_is_copied_offsite_and_status_recorded(): void
+    {
+        $this->useSqliteFile();
+        Storage::fake('local');
+        Storage::fake('offsite');
+        File::delete(storage_path(\App\Console\Commands\BackupCommand::STATUS_FILE));
+
+        $this->artisan('solarfix:backup', ['--to' => $this->dir . '/out', '--disk' => 'offsite'])
+            ->expectsOutputToContain('Copia enviada')
+            ->assertSuccessful();
+
+        $this->assertCount(1, Storage::disk('offsite')->files('solarfix-backups'));
+        $status = \App\Console\Commands\BackupCommand::status();
+        $this->assertArrayHasKey('local', $status);
+        $this->assertArrayHasKey('offsite', $status);
+        File::delete(storage_path(\App\Console\Commands\BackupCommand::STATUS_FILE));
     }
 }

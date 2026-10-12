@@ -26,6 +26,7 @@
     </div>
 
     <div class="c b big">{{ $company['name'] }}</div>
+    @if ($company['tax_id']) <div class="c">RUC {{ $company['tax_id'] }}</div> @endif
     @if ($company['address']) <div class="c">{{ $company['address'] }}</div> @endif
     @if ($company['phone']) <div class="c">Tel. {{ $company['phone'] }}</div> @endif
     <hr>

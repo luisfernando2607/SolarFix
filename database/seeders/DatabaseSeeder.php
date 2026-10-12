@@ -11,9 +11,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // En producción la sucursal nace sin datos de ejemplo (saldrían en tickets y facturas).
         $branch = Branch::firstOrCreate(
             ['name' => 'Matriz'],
-            [
+            app()->isProduction() ? [] : [
                 'address' => 'Av. Principal 123',
                 'phone' => '0999999999',
                 'email' => 'info@solarfix.ec',
@@ -28,7 +29,7 @@ class DatabaseSeeder extends Seeder
                 'password' => bcrypt('password'),
                 // En producción la contraseña inicial se cambia en el primer ingreso.
                 'must_change_password' => app()->isProduction(),
-                'phone' => '0999999999',
+                'phone' => app()->isProduction() ? null : '0999999999',
                 'role' => 'super_admin',
                 'is_active' => true,
             ]

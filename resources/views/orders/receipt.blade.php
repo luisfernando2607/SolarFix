@@ -23,8 +23,12 @@
 <body>
 
 <div class="hdr">
-    <h1>COMPROBANTE DE PAGO</h1>
-    <p>SolarFix — Sistema de Reparaciones</p>
+    @php $company = \App\Support\Company::info($order->branch_id); @endphp
+    <h1>{{ $company['name'] }}</h1>
+    @if ($company['tax_id']) <p>RUC: {{ $company['tax_id'] }}</p> @endif
+    @if ($company['address']) <p>{{ $company['address'] }}</p> @endif
+    @if ($company['phone']) <p>Tel. {{ $company['phone'] }}</p> @endif
+    <p><strong>{{ $payment->isRefund() ? 'COMPROBANTE DE DEVOLUCIÓN' : 'COMPROBANTE DE PAGO' }}</strong></p>
     <p>Orden #{{ $order->order_number }}</p>
 </div>
 

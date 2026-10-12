@@ -306,12 +306,7 @@ class OrderController extends Controller
 
         return view('orders.ticket', [
             'order' => $order,
-            'company' => [
-                'name' => Setting::get('company_name', 'SolarFix'),
-                'phone' => Setting::get('company_phone'),
-                'address' => Setting::get('company_address'),
-                'terms' => Setting::get('ticket_terms'),
-            ],
+            'company' => \App\Support\Company::info($order->branch_id),
         ]);
     }
 

@@ -25,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Con APP_URL en https, los enlaces (QR, WhatsApp, correos) se generan siempre con https.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Accesos al sistema en la auditoría (los fallidos ayudan a detectar intentos de acceso).
         Event::listen(Login::class, fn (Login $e) => AuditLog::record('login', userId: $e->user->getAuthIdentifier()));
         Event::listen(Logout::class, fn (Logout $e) => $e->user && AuditLog::record('logout', userId: $e->user->getAuthIdentifier()));

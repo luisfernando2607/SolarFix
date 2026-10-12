@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Respaldo diario (requiere el cron de Laravel: * * * * * php artisan schedule:run).
 Schedule::command('solarfix:backup')->dailyAt('02:00')->withoutOverlapping();
+
+// Señal de vida del programador: la revisión del sistema avisa si el cron no está corriendo.
+Schedule::call(fn () => touch(storage_path('app/schedule-heartbeat')))->everyFiveMinutes()->name('schedule-heartbeat');

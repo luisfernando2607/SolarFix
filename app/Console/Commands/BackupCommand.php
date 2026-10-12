@@ -17,14 +17,15 @@ class BackupCommand extends Command
 {
     protected $signature = 'solarfix:backup
         {--to= : Carpeta destino (por defecto storage/app/backups)}
-        {--keep=14 : Cuántos respaldos conservar}';
+        {--keep= : Cuántos respaldos conservar (por defecto BACKUP_KEEP o 14)}
+        {--disk= : Disco para la copia fuera del servidor (por defecto BACKUP_DISK)}';
 
     protected $description = 'Respalda la base de datos, las fotos y las firmas en un archivo .zip';
 
     public function handle(): int
     {
         $destination = $this->option('to') ?: storage_path('app/backups');
-        $keep = max(1, (int) $this->option('keep'));
+        $keep = max(1, (int) ($this->option('keep') ?: config('solarfix.backup_keep', 14)));
         File::ensureDirectoryExists($destination);
 
         $zipPath = $destination . '/solarfix-' . now()->format('Ymd-His') . '.zip';
@@ -52,6 +53,21 @@ class BackupCommand extends Command
         }
 
         $removed = $this->prune($destination, $keep);
+        self::recordStatus('local');
+
+        // Copia fuera del servidor: si falla, el respaldo local queda y el comando lo informa.
+        $disk = $this->option('disk') ?: config('solarfix.backup_disk');
+        if ($disk) {
+            try {
+                $this->copyOffsite($disk, $zipPath, $keep);
+                self::recordStatus('offsite');
+                $this->info("Copia enviada al disco «{$disk}».");
+            } catch (\Throwable $e) {
+                $this->error("No se pudo copiar al disco «{$disk}»: " . $e->getMessage());
+
+                return self::FAILURE;
+            }
+        }
 
         $this->info(sprintf('Respaldo creado: %s (%s, %d archivos privados).', $zipPath, $this->size(filesize($zipPath)), $files));
         if ($removed) {
@@ -118,6 +134,41 @@ class BackupCommand extends Command
         }
 
         return $count;
+    }
+
+    public const STATUS_FILE = 'app/backup-status.json';
+
+    /**
+     * Fecha del último respaldo (local y fuera del servidor), para la revisión del sistema.
+     */
+    public static function status(): array
+    {
+        $file = storage_path(self::STATUS_FILE);
+
+        return is_file($file) ? (json_decode((string) file_get_contents($file), true) ?: []) : [];
+    }
+
+    private static function recordStatus(string $kind): void
+    {
+        File::put(storage_path(self::STATUS_FILE), json_encode([$kind => now()->toIso8601String()] + self::status()));
+    }
+
+    private function copyOffsite(string $disk, string $zipPath, int $keep): void
+    {
+        $storage = Storage::disk($disk);
+        $stream = fopen($zipPath, 'r');
+        try {
+            if (! $storage->writeStream('solarfix-backups/' . basename($zipPath), $stream)) {
+                throw new RuntimeException('el disco rechazó el archivo');
+            }
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        $remote = collect($storage->files('solarfix-backups'))->filter(fn ($path) => str_ends_with($path, '.zip'))->sort()->values();
+        $remote->slice(0, max(0, $remote->count() - $keep))->each(fn ($path) => $storage->delete($path));
     }
 
     private function prune(string $destination, int $keep): int
