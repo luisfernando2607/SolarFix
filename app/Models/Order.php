@@ -343,6 +343,12 @@ class Order extends Model
         return $this->hasOne(Commission::class);
     }
 
+    // Bitácora técnica ("notes" ya es una columna de la orden).
+    public function workNotes()
+    {
+        return $this->hasMany(OrderNote::class)->latest('created_at')->latest('id');
+    }
+
     public function checklistResults()
     {
         return $this->hasMany(OrderChecklistResult::class);

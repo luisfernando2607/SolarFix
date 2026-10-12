@@ -17,6 +17,7 @@ use App\Http\Controllers\DeviceModelController;
 use App\Http\Controllers\OrderChecklistController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPartController;
+use App\Http\Controllers\OrderWorkController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
@@ -85,6 +86,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/spare-parts/{spare_part}/receive', [SparePartController::class, 'receive'])
             ->name('spare-parts.receive')->middleware('role:super_admin,admin,technician');
         Route::post('/orders/{order}/parts', [OrderPartController::class, 'store'])->name('orders.parts.store');
+        Route::patch('/orders/{order}/quick-status', [OrderWorkController::class, 'status'])->name('orders.quick-status');
+        Route::post('/orders/{order}/take', [OrderWorkController::class, 'take'])->name('orders.take');
+        Route::patch('/orders/{order}/work', [OrderWorkController::class, 'work'])->name('orders.work');
+        Route::post('/orders/{order}/notes', [OrderWorkController::class, 'addNote'])->name('orders.notes.store');
+        Route::delete('/orders/{order}/notes/{note}', [OrderWorkController::class, 'deleteNote'])->name('orders.notes.destroy');
         Route::controller(OrderChecklistController::class)->where(['stage' => 'reception|diagnosis|delivery'])->group(function () {
             Route::get('/orders/{order}/checklists/{stage}', 'edit')->name('orders.checklists.edit');
             Route::put('/orders/{order}/checklists/{stage}', 'update')->name('orders.checklists.update');

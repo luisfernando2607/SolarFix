@@ -18,6 +18,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\AssignmentNotification;
 use App\Services\InventoryService;
+use App\Services\OrderWorkflow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -221,6 +222,7 @@ class OrderController extends Controller
             'parentOrder',
             'childOrders',
             'appointments.user',
+            'workNotes.user',
         ]);
 
         return view('orders.show', [
@@ -318,11 +320,8 @@ class OrderController extends Controller
         ]);
 
         // Control de calidad obligatorio (opcional en Configuración) para pasar a "Listo".
-        if (($validated['status'] ?? null) === 'ready' && $order->status !== 'ready' && Setting::get('require_quality_check') === '1') {
-            $qualityCheck = $order->checklistProgress('delivery');
-            if ($qualityCheck && ! $qualityCheck['complete']) {
-                return back()->withInput()->withErrors(['status' => 'Completa el checklist de control de calidad antes de marcar la orden como lista.']);
-            }
+        if ($error = app(OrderWorkflow::class)->qualityCheckError($order, $validated['status'] ?? null)) {
+            return back()->withInput()->withErrors(['status' => $error]);
         }
 
         // Los técnicos no pueden reasignar órdenes.
@@ -360,30 +359,8 @@ class OrderController extends Controller
             $order->accessories()->sync($validated['accessories']);
         }
 
-        if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
-            OrderStatusHistory::create([
-                'order_id' => $order->id,
-                'from_status' => $oldStatus,
-                'to_status' => $validated['status'],
-                'changed_by' => Auth::id(),
-            ]);
-        }
-
-        // Sin reparación: los repuestos reservados para el presupuesto vuelven al stock.
-        if ($order->status === 'closed_no_repair' && $oldStatus !== 'closed_no_repair') {
-            app(InventoryService::class)->releaseOrderParts($order, 'Devuelto: cerrada sin reparación la orden', Auth::id());
-        }
-
-        // Al entregar se emite la garantía; si ya existe, se ajustan sus fechas.
-        if ($order->status === 'delivered') {
-            if (! $order->delivery_date) {
-                $order->update(['delivery_date' => today()]);
-            }
-            $order->issueWarranty();
-        }
-
-        // Crea, ajusta o elimina la comisión pendiente según el estado y los costos actuales.
-        Commission::syncFor($order);
+        // Historial, repuestos, garantía y comisión según el nuevo estado.
+        app(OrderWorkflow::class)->afterUpdate($order, $oldStatus, Auth::id());
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Orden #' . $order->order_number . ' actualizada.');

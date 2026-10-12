@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\Commission;
 use App\Models\MaintenancePlan;
 use App\Models\Order;
 use App\Models\OrderPayment;
@@ -91,6 +92,8 @@ class DashboardController extends Controller
             ? Appointment::whereNull('user_id')->whereIn('status', ['pending', 'confirmed'])->where('scheduled_at', '>=', now())->count()
             : 0;
 
+        $myWork = $user->isTechnician() ? $this->technicianQueue($user) : null;
+
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])
             ->orderBy('created_at', 'desc')
@@ -106,11 +109,45 @@ class DashboardController extends Controller
             'approvalHours' => $approvalHours,
             'expiringWarranties' => $expiringWarranties,
             'lowStockParts' => $lowStockParts,
+            'myWork' => $myWork,
             'todayAppointments' => $todayAppointments,
             'unassignedAppointments' => $unassignedAppointments,
             'duePlans' => $duePlans,
             'warrantyAlertDays' => Warranty::alertDays(),
             'statuses' => Order::statuses(),
         ]);
+    }
+
+    /**
+     * Cola del técnico: sus órdenes abiertas por etapa (la más antigua primero),
+     * las que puede tomar y su comisión del mes.
+     */
+    private function technicianQueue(User $user): array
+    {
+        $stages = [
+            'Por diagnosticar' => ['received', 'diagnosing', 'warranty'],
+            'Esperando aprobación' => ['waiting_approval'],
+            'En reparación' => ['repairing'],
+            'Listas para entregar' => ['ready'],
+        ];
+
+        $orders = Order::with(['client', 'brand', 'deviceModel'])
+            ->where('user_id', $user->id)
+            ->whereIn('status', array_merge(...array_values($stages)))
+            ->orderBy('entry_date')
+            ->orderBy('id')
+            ->get();
+
+        return [
+            'stages' => collect($stages)->map(fn ($statuses) => $orders->whereIn('status', $statuses)->values()),
+            'available' => Order::with(['client', 'brand', 'deviceModel'])
+                ->whereNull('user_id')
+                ->whereNotIn('status', ['delivered', 'closed_no_repair'])
+                ->orderBy('entry_date')
+                ->take(10)
+                ->get(),
+            'commission' => round((float) Commission::where('user_id', $user->id)
+                ->where('period', now()->format('Y-m'))->sum('commission_amount'), 2),
+        ];
     }
 }

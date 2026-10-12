@@ -4,10 +4,10 @@
 
 @section('content')
 @php
-    $days = $order->entry_date ? $order->entry_date->diffInDays(now()) : 0;
+    $days = $order->entry_date ? (int) $order->entry_date->diffInDays(today()) : 0;
 @endphp
-<div class="p-6 max-w-5xl mx-auto">
-    <div class="mb-6 flex items-center justify-between">
+<div class="p-4 sm:p-6 max-w-5xl mx-auto">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
             <a href="{{ route('orders.index') }}" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -62,8 +62,108 @@
         </div>
     @endif
 
+    @php
+        $nextActions = app(\App\Services\OrderWorkflow::class)->nextActions($order);
+        $canTake = Auth::user()->isTechnician() && ! $order->user_id;
+        $workLocked = in_array($order->status, ['delivered', 'closed_no_repair']);
+    @endphp
+    @if ($canTake || $nextActions || $order->status === 'ready')
+        <div class="mb-6 bg-white rounded-xl shadow-sm border border-blue-200 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 class="text-sm font-semibold text-gray-800">Acciones rápidas</h3>
+                <span class="text-xs text-gray-500">Técnico: {{ $order->user?->name ?? 'sin asignar' }}</span>
+            </div>
+            @if ($canTake)
+                <form method="POST" action="{{ route('orders.take', $order) }}" class="mb-3">
+                    @csrf
+                    <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium">Tomar esta orden</button>
+                </form>
+            @endif
+            @if ($nextActions)
+                <form method="POST" action="{{ route('orders.quick-status', $order) }}" class="space-y-2">
+                    @csrf @method('PATCH')
+                    <input type="text" name="note" maxlength="255" placeholder="Nota para el historial (opcional)"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        @foreach ($nextActions as $status => $label)
+                            <button type="submit" name="status" value="{{ $status }}"
+                                @if ($status === 'closed_no_repair') onclick="return confirm('¿Cerrar la orden sin reparación? Los repuestos vuelven al stock.')" @endif
+                                class="px-4 py-2.5 rounded-lg text-sm font-medium {{ $loop->first ? 'bg-blue-600 hover:bg-blue-700 text-white' : ($status === 'closed_no_repair' ? 'bg-white border border-red-200 text-red-600 hover:bg-red-50' : 'bg-white border text-gray-700 hover:bg-gray-50') }}">
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
+                </form>
+            @endif
+            @if ($order->status === 'ready')
+                <a href="{{ route('orders.signatures.create', [$order, 'delivery']) }}" class="mt-2 block text-center w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">
+                    {{ $order->balance_due > 0 ? 'Cobrar ' . money($order->balance_due) . ' y entregar' : 'Entregar (firma del cliente)' }}
+                </a>
+            @endif
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="md:col-span-2 space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Trabajo técnico</h3>
+                <p class="text-sm text-gray-600 mb-3"><span class="text-gray-500">Falla declarada:</span> {{ $order->declared_fault }}</p>
+                @if ($workLocked)
+                    <dl class="space-y-2 text-sm">
+                        <div><dt class="text-gray-500">Diagnóstico</dt><dd class="text-gray-800 whitespace-pre-line">{{ $order->diagnosis ?: '—' }}</dd></div>
+                        <div><dt class="text-gray-500">Trabajo realizado</dt><dd class="text-gray-800 whitespace-pre-line">{{ $order->work_done ?: '—' }}</dd></div>
+                    </dl>
+                @else
+                    <form method="POST" action="{{ route('orders.work', $order) }}" class="space-y-3">
+                        @csrf @method('PATCH')
+                        <div>
+                            <label for="work_diagnosis" class="block text-sm font-medium text-gray-700 mb-1">Diagnóstico</label>
+                            <textarea id="work_diagnosis" name="diagnosis" rows="3" maxlength="5000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">{{ old('diagnosis', $order->diagnosis) }}</textarea>
+                        </div>
+                        <div>
+                            <label for="work_done" class="block text-sm font-medium text-gray-700 mb-1">Trabajo realizado</label>
+                            <textarea id="work_done" name="work_done" rows="3" maxlength="5000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">{{ old('work_done', $order->work_done) }}</textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="work_diagnosis_cost" class="block text-sm font-medium text-gray-700 mb-1">Costo diagnóstico</label>
+                                <input type="number" id="work_diagnosis_cost" name="diagnosis_cost" step="0.01" min="0" inputmode="decimal" value="{{ old('diagnosis_cost', $order->diagnosis_cost) }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label for="work_labor_cost" class="block text-sm font-medium text-gray-700 mb-1">Mano de obra</label>
+                                <input type="number" id="work_labor_cost" name="labor_cost" step="0.01" min="0" inputmode="decimal" value="{{ old('labor_cost', $order->labor_cost) }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium">Guardar trabajo</button>
+                    </form>
+                @endif
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Bitácora técnica</h3>
+                <form method="POST" action="{{ route('orders.notes.store', $order) }}" class="flex flex-col sm:flex-row gap-2 mb-4">
+                    @csrf
+                    <textarea name="body" rows="2" maxlength="2000" required placeholder="Ej. Se pidió el repuesto al proveedor; llega el jueves."
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                    <button type="submit" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium sm:self-end">Agregar nota</button>
+                </form>
+                @forelse ($order->workNotes as $note)
+                    <div class="text-sm border-l-2 border-gray-200 pl-3 py-1 mb-2">
+                        <p class="text-gray-800 whitespace-pre-line">{{ $note->body }}</p>
+                        <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
+                            {{ $note->user?->name ?? '—' }} · {{ $note->created_at->format('d/m/Y H:i') }}
+                            @if ($note->user_id === Auth::id() || Auth::user()->isAdmin() || Auth::user()->isSuperAdmin())
+                                <form method="POST" action="{{ route('orders.notes.destroy', [$order, $note]) }}" onsubmit="return confirm('¿Borrar esta nota?')" class="inline">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="text-red-400 hover:text-red-600">borrar</button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-sm text-gray-400">Sin notas todavía.</p>
+                @endforelse
+            </div>
 
             <div class="bg-white rounded-xl shadow-sm border p-6">
                 <div class="flex items-center justify-between border-b pb-2 mb-4">
@@ -114,18 +214,6 @@
                         <dd class="font-medium text-gray-800 mt-1">{{ $order->physical_condition }}</dd>
                     </div>
                     @endif
-                    @if ($order->diagnosis)
-                    <div class="col-span-2">
-                        <dt class="text-gray-500">Diagnóstico</dt>
-                        <dd class="font-medium text-gray-800 mt-1">{{ $order->diagnosis }}</dd>
-                    </div>
-                    @endif
-                    @if ($order->work_done)
-                    <div class="col-span-2">
-                        <dt class="text-gray-500">Trabajo Realizado</dt>
-                        <dd class="font-medium text-gray-800 mt-1">{{ $order->work_done }}</dd>
-                    </div>
-                    @endif
                 </dl>
             </div>
 
@@ -165,21 +253,36 @@
             </div>
             @endif
 
-            @if ($order->photos->count())
             <div class="bg-white rounded-xl shadow-sm border p-6">
-                <div class="flex items-center justify-between border-b pb-2 mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Fotos</h3>
-                    <a href="{{ route('orders.edit', $order) }}#photos" class="text-xs text-blue-600 hover:text-blue-800">Agregar</a>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    @foreach ($order->photos as $photo)
-                        <a href="{{ route('orders.photo.show', [$order, $photo]) }}" target="_blank" class="block aspect-square rounded-lg overflow-hidden border bg-gray-100 hover:opacity-90 transition">
-                            <img src="{{ route('orders.photo.show', [$order, $photo]) }}" class="w-full h-full object-cover" alt="{{ $photo->caption ?? 'Foto' }}" loading="lazy">
-                        </a>
-                    @endforeach
-                </div>
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Fotos</h3>
+                @if ($order->photos->count())
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                        @foreach ($order->photos as $photo)
+                            <a href="{{ route('orders.photo.show', [$order, $photo]) }}" target="_blank" class="relative block aspect-square rounded-lg overflow-hidden border bg-gray-100 hover:opacity-90 transition">
+                                <img src="{{ route('orders.photo.show', [$order, $photo]) }}" class="w-full h-full object-cover" alt="{{ $photo->caption ?? 'Foto' }}" loading="lazy">
+                                <span class="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">{{ ['reception' => 'Recepción', 'process' => 'Proceso', 'delivery' => 'Entrega'][$photo->stage] ?? $photo->stage }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
+                @unless ($workLocked)
+                    <form method="POST" action="{{ route('orders.photo.upload', $order) }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-2">
+                        @csrf
+                        <label class="flex-1 min-w-48 cursor-pointer rounded-lg border-2 border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-600 hover:border-blue-400">
+                            <span id="photoLabel">📷 Tomar o elegir foto</span>
+                            <input type="file" name="photo" accept="image/*" capture="environment" required class="sr-only"
+                                onchange="document.getElementById('photoLabel').textContent = this.files[0] ? this.files[0].name : '📷 Tomar o elegir foto'">
+                        </label>
+                        <select name="stage" class="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                            <option value="process" {{ in_array($order->status, ['diagnosing', 'waiting_approval', 'repairing', 'warranty']) ? 'selected' : '' }}>Proceso</option>
+                            <option value="reception" {{ $order->status === 'received' ? 'selected' : '' }}>Recepción</option>
+                            <option value="delivery" {{ $order->status === 'ready' ? 'selected' : '' }}>Entrega</option>
+                        </select>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">Subir</button>
+                    </form>
+                    @error('photo') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                @endunless
             </div>
-            @endif
 
             <div class="bg-white rounded-xl shadow-sm border p-6">
                 <div class="flex items-center justify-between border-b pb-2 mb-4">

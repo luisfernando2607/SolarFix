@@ -29,7 +29,14 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] **Firmas → Firmar recepción**: el resumen muestra el daño marcado; firma con el dedo. → La firma aparece en la orden.
 - [ ] Abre la foto de la orden en una ventana de incógnito **sin sesión**. → No se ve (redirige al login).
 
-## 3. Diagnóstico y presupuesto (técnico)
+## 3. Diagnóstico y presupuesto (técnico, desde el celular)
+
+- [ ] El dashboard del técnico muestra **Mi trabajo** por etapa, con los días en taller, y las órdenes sin técnico con el botón **Tomar**.
+- [ ] Toma una orden sin técnico. → Pasa a ser suya.
+- [ ] En la orden, **Acciones rápidas → Iniciar diagnóstico** con una nota. → El estado cambia y la nota aparece en el historial.
+- [ ] **Trabajo técnico**: escribe el diagnóstico y la mano de obra → Guardar. → El total de la orden se actualiza.
+- [ ] **Bitácora**: agrega una nota de avance. → Aparece con tu nombre y la hora.
+- [ ] **Fotos**: en el celular, "Tomar o elegir foto" abre la cámara; súbela como "Proceso".
 
 - [ ] Como técnico, la campana del menú muestra "1" por la orden asignada; al abrir la notificación lleva a la orden.
 - [ ] Como técnico, en **Órdenes** solo ve las suyas y las sin asignar.

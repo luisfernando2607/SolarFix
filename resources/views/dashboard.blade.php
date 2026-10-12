@@ -9,6 +9,64 @@
         <p class="text-gray-500">Bienvenido, {{ Auth::user()->name }}</p>
     </div>
 
+    @if ($myWork)
+    <div class="mb-6">
+        <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
+            <h3 class="text-lg font-semibold text-gray-800">Mi trabajo</h3>
+            <a href="{{ route('commissions.index') }}" class="text-sm text-gray-600 hover:text-blue-600">Comisión del mes: <strong>{{ money($myWork['commission']) }}</strong></a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            @foreach ($myWork['stages'] as $stage => $stageOrders)
+                <div class="bg-white rounded-xl shadow-sm border">
+                    <div class="px-4 py-3 border-b flex items-center justify-between">
+                        <span class="text-sm font-semibold text-gray-800">{{ $stage }}</span>
+                        <span class="text-xs font-bold rounded-full px-2 py-0.5 {{ $stageOrders->count() ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500' }}">{{ $stageOrders->count() }}</span>
+                    </div>
+                    <ul class="divide-y">
+                        @forelse ($stageOrders as $order)
+                            @php $days = $order->entry_date ? (int) $order->entry_date->diffInDays(today()) : 0; @endphp
+                            <li>
+                                <a href="{{ route('orders.show', $order) }}" class="block px-4 py-2.5 hover:bg-gray-50">
+                                    <span class="flex justify-between text-sm">
+                                        <span class="font-medium text-blue-700">{{ $order->order_number }}</span>
+                                        <span class="text-xs {{ $days > 7 ? 'text-red-600 font-semibold' : ($days > 3 ? 'text-amber-600' : 'text-gray-400') }}">{{ $days }} d</span>
+                                    </span>
+                                    <span class="block text-xs text-gray-600 truncate">{{ $order->brand?->name ?? $order->brand_text }} {{ $order->deviceModel?->name ?? $order->model_text }} · {{ $order->client?->name }}</span>
+                                    <span class="block text-xs text-gray-400 truncate">{{ $order->declared_fault }}</span>
+                                </a>
+                            </li>
+                        @empty
+                            <li class="px-4 py-3 text-xs text-gray-400">Nada aquí.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            @endforeach
+        </div>
+
+        @if ($myWork['available']->count())
+            <div class="mt-4 bg-white rounded-xl shadow-sm border border-indigo-200">
+                <div class="px-4 py-3 border-b bg-indigo-50 text-sm font-semibold text-indigo-900">Órdenes sin técnico ({{ $myWork['available']->count() }})</div>
+                <ul class="divide-y">
+                    @foreach ($myWork['available'] as $order)
+                        <li class="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                            <a href="{{ route('orders.show', $order) }}" class="text-sm">
+                                <span class="font-medium text-blue-700">{{ $order->order_number }}</span>
+                                <span class="text-gray-600">· {{ \App\Models\Order::deviceTypes()[$order->device_type] ?? $order->device_type }} {{ $order->brand?->name ?? $order->brand_text }} · {{ \Illuminate\Support\Str::limit($order->declared_fault, 40) }}</span>
+                            </a>
+                            <form method="POST" action="{{ route('orders.take', $order) }}">
+                                @csrf
+                                <button type="submit" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg">Tomar</button>
+                            </form>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- El técnico ya ve su cola en "Mi trabajo"; los totales generales son para recepción y administración. --}}
+    @unless ($myWork)
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <div class="flex items-center justify-between">
@@ -76,6 +134,8 @@
         </div>
         @endcan
     </div>
+
+    @endunless
 
     @if ($staleOrders->count() || $awaitingApproval->count())
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
