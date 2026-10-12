@@ -163,7 +163,7 @@
                     @error('warranty_alert_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label for="maintenance_due_days" class="block text-sm font-medium text-gray-700 mb-1">Avisar mantenimientos con (días) de anticipación *</label>
+                    <label for="maintenance_due_days" class="block text-sm font-medium text-gray-700 mb-1">Avisar mantenimientos (días antes) *</label>
                     <input id="maintenance_due_days" name="maintenance_due_days" type="number" min="1" max="90" value="{{ old('maintenance_due_days', $settings['maintenance_due_days']) }}" required
                         class="{{ $input }} @error('maintenance_due_days') border-red-500 @enderror">
                     
@@ -176,6 +176,30 @@
                         class="{{ $input }} @error('approval_alert_hours') border-red-500 @enderror">
                     @error('approval_alert_hours') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Mensajes de WhatsApp</h3>
+            <p class="text-xs text-gray-500 mb-4">
+                Deja un mensaje vacío para usar el texto original. Las variables van entre llaves, ej. <code>{cliente}</code>.
+                Una línea que solo tiene una variable sin valor (ej. <code>{diagnostico}</code> sin diagnóstico) no se envía.
+                Usa *asteriscos* para negrita.
+            </p>
+            <div class="space-y-5">
+                @foreach (\App\Services\WhatsAppMessage::TEMPLATES as $type => $default)
+                    <div>
+                        <label for="wa_{{ $type }}" class="block text-sm font-medium text-gray-700 mb-1">{{ \App\Services\WhatsAppMessage::TEMPLATE_LABELS[$type] }}</label>
+                        <textarea id="wa_{{ $type }}" name="wa_templates[{{ $type }}]" rows="6" maxlength="2000" placeholder="{{ $default }}"
+                            class="{{ $input }} font-mono text-xs @error('wa_templates.' . $type) border-red-500 @enderror">{{ old('wa_templates.' . $type, $templates[$type]) }}</textarea>
+                        @error('wa_templates.' . $type) <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                        <p class="text-xs text-gray-500 mt-1">Variables:
+                            @foreach (\App\Services\WhatsAppMessage::VARIABLES[$type] as $variable)
+                                <code class="bg-gray-100 px-1 rounded">{{ '{' . $variable . '}' }}</code>
+                            @endforeach
+                        </p>
+                    </div>
+                @endforeach
             </div>
         </div>
 

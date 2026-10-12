@@ -43,110 +43,84 @@ class WhatsAppMessage
         return 'https://wa.me/' . $phone . '?text=' . rawurlencode($message);
     }
 
+    /**
+     * Plantillas por defecto. Se pueden reemplazar en Configuración; las variables van entre llaves.
+     * Una línea que solo contiene una variable vacía se omite (ej. {diagnostico} sin diagnóstico).
+     */
+    public const TEMPLATES = [
+        'budget' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) ya fue diagnosticado.\n\n{diagnostico}\n\n*Presupuesto:*\n{detalle_presupuesto}\n*Total: {total}*\n{abonos}\n\nPor favor confírmenos si aprueba la reparación. ¡Gracias!",
+        'ready' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) está *listo para retirar*.\n{saldo_pendiente}\n\n{direccion_negocio}",
+        'delivery' => "Hola {cliente}, gracias por confiar en *{negocio}*.\nLe entregamos su equipo {equipo} (orden *{orden}*).\n\n{trabajo_realizado}\n\n{garantia}\n\nConserve su número de orden ({orden}) para cualquier consulta.",
+        'appointment_confirmation' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu cita de {servicio} quedó agendada para el *{fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
+        'appointment_reminder' => "Hola {cliente}, le recordamos de *{negocio}* su cita de {servicio} para *mañana {fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
+        'maintenance_due' => "Hola {cliente}, le saludamos de *{negocio}*.\nSegún su plan de mantenimiento, {cuando} el mantenimiento de: *{equipo}*.\n\n¿Desea que agendemos una visita? Responda a este mensaje con el día y la hora que le convienen.",
+    ];
+
+    public const TEMPLATE_LABELS = [
+        'budget' => 'Presupuesto',
+        'ready' => 'Equipo listo',
+        'delivery' => 'Entrega y garantía',
+        'appointment_confirmation' => 'Confirmación de cita',
+        'appointment_reminder' => 'Recordatorio de cita',
+        'maintenance_due' => 'Mantenimiento preventivo',
+    ];
+
+    /**
+     * Variables disponibles por plantilla (para mostrarlas en Configuración).
+     */
+    public const VARIABLES = [
+        'budget' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'diagnostico', 'detalle_presupuesto', 'total', 'abonos', 'saldo'],
+        'ready' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'total', 'saldo', 'saldo_pendiente', 'direccion_negocio'],
+        'delivery' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'trabajo_realizado', 'garantia', 'total'],
+        'appointment_confirmation' => ['cliente', 'negocio', 'telefono_negocio', 'servicio', 'fecha_hora', 'direccion', 'tecnico'],
+        'appointment_reminder' => ['cliente', 'negocio', 'telefono_negocio', 'servicio', 'fecha_hora', 'direccion', 'tecnico'],
+        'maintenance_due' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'cuando', 'fecha'],
+    ];
+
+    public static function template(string $type): string
+    {
+        $custom = trim((string) Setting::get('wa_template_' . $type, ''));
+
+        return $custom !== '' ? $custom : self::TEMPLATES[$type];
+    }
+
     public static function build(string $type, Order $order): string
     {
         $order->loadMissing(['client', 'brand', 'deviceModel', 'parts.sparePart']);
 
-        $company = Setting::get('company_name', 'SolarFix');
-        $client = $order->client?->name ?? 'cliente';
-        $device = trim(implode(' ', array_filter([
-            Order::deviceTypes()[$order->device_type] ?? null,
-            $order->brand?->name ?? $order->brand_text,
-            $order->deviceModel?->name ?? $order->model_text,
-        ])));
+        $vars = self::common($order->client?->name) + [
+            'equipo' => trim(implode(' ', array_filter([
+                Order::deviceTypes()[$order->device_type] ?? null,
+                $order->brand?->name ?? $order->brand_text,
+                $order->deviceModel?->name ?? $order->model_text,
+            ]))),
+            'orden' => $order->order_number,
+            'total' => money($order->total_amount),
+            'saldo' => money($order->balance_due),
+        ];
 
-        $lines = match ($type) {
-            'budget' => self::budget($order, $client, $company, $device),
-            'ready' => self::ready($order, $client, $company, $device),
-            'delivery' => self::delivery($order, $client, $company, $device),
+        $vars += match ($type) {
+            'budget' => [
+                'diagnostico' => $order->diagnosis ? '*Diagnóstico:* ' . $order->diagnosis : '',
+                'detalle_presupuesto' => self::budgetLines($order),
+                'abonos' => (float) $order->amount_paid > 0
+                    ? 'Abonado: ' . money($order->amount_paid) . "\n" . 'Saldo: ' . money($order->balance_due)
+                    : '',
+            ],
+            'ready' => [
+                'saldo_pendiente' => (float) $order->balance_due > 0 ? 'Saldo pendiente: ' . money($order->balance_due) : '',
+                'direccion_negocio' => ($address = Setting::get('company_address')) ? "Le esperamos en: {$address}" : '',
+            ],
+            'delivery' => [
+                'trabajo_realizado' => $order->work_done ? '*Trabajo realizado:* ' . $order->work_done : '',
+                'garantia' => $order->warranty_days > 0
+                    ? "*Garantía:* {$order->warranty_days} días, hasta el "
+                        . ($order->delivery_date ?? now())->copy()->addDays($order->warranty_days)->format('d/m/Y') . '.'
+                    : '',
+            ],
         };
 
-        return implode("\n", $lines);
-    }
-
-    private static function budget(Order $order, string $client, string $company, string $device): array
-    {
-        $lines = [
-            "Hola {$client}, le saludamos de *{$company}*.",
-            "Su equipo {$device} (orden *{$order->order_number}*) ya fue diagnosticado.",
-            '',
-        ];
-
-        if ($order->diagnosis) {
-            $lines[] = '*Diagnóstico:* ' . $order->diagnosis;
-            $lines[] = '';
-        }
-
-        $lines[] = '*Presupuesto:*';
-        $concepts = [['Diagnóstico', $order->diagnosis_cost], ['Mano de obra', $order->labor_cost]];
-        if ($order->parts->isNotEmpty()) {
-            foreach ($order->parts as $part) {
-                $concepts[] = [($part->sparePart?->name ?? 'Repuesto') . ' x' . $part->quantity, $part->subtotal];
-            }
-        } else {
-            $concepts[] = ['Repuestos', $order->parts_cost];
-        }
-        $concepts[] = ['Recargo', $order->surcharge_amount];
-
-        foreach ($concepts as [$label, $amount]) {
-            if ((float) $amount > 0) {
-                $lines[] = "- {$label}: " . self::money($amount);
-            }
-        }
-        $lines[] = '*Total: ' . self::money($order->total_amount) . '*';
-
-        if ((float) $order->amount_paid > 0) {
-            $lines[] = 'Abonado: ' . self::money($order->amount_paid);
-            $lines[] = 'Saldo: ' . self::money($order->balance_due);
-        }
-
-        $lines[] = '';
-        $lines[] = 'Por favor confírmenos si aprueba la reparación. ¡Gracias!';
-
-        return $lines;
-    }
-
-    private static function ready(Order $order, string $client, string $company, string $device): array
-    {
-        $lines = [
-            "Hola {$client}, le saludamos de *{$company}*.",
-            "Su equipo {$device} (orden *{$order->order_number}*) está *listo para retirar*.",
-        ];
-
-        if ((float) $order->balance_due > 0) {
-            $lines[] = 'Saldo pendiente: ' . self::money($order->balance_due);
-        }
-
-        if ($address = Setting::get('company_address')) {
-            $lines[] = '';
-            $lines[] = "Le esperamos en: {$address}";
-        }
-
-        return $lines;
-    }
-
-    private static function delivery(Order $order, string $client, string $company, string $device): array
-    {
-        $lines = [
-            "Hola {$client}, gracias por confiar en *{$company}*.",
-            "Le entregamos su equipo {$device} (orden *{$order->order_number}*).",
-        ];
-
-        if ($order->work_done) {
-            $lines[] = '';
-            $lines[] = '*Trabajo realizado:* ' . $order->work_done;
-        }
-
-        if ($order->warranty_days > 0) {
-            $until = ($order->delivery_date ?? now())->copy()->addDays($order->warranty_days);
-            $lines[] = '';
-            $lines[] = "*Garantía:* {$order->warranty_days} días, hasta el " . $until->format('d/m/Y') . '.';
-        }
-
-        $lines[] = '';
-        $lines[] = "Conserve su número de orden ({$order->order_number}) para cualquier consulta.";
-
-        return $lines;
+        return self::render(self::template($type), $vars);
     }
 
     public const APPOINTMENT_TYPES = [
@@ -158,46 +132,76 @@ class WhatsAppMessage
     {
         $appointment->loadMissing(['client', 'user']);
 
-        $company = Setting::get('company_name', 'SolarFix');
-        $client = $appointment->client?->name ?? 'cliente';
-        $service = strtolower(Appointment::types()[$appointment->type] ?? 'visita');
-        $when = $appointment->scheduled_at->translatedFormat('l d \\d\\e F') . ' a las ' . $appointment->scheduled_at->format('H:i');
-
-        $lines = $type === 'appointment_reminder'
-            ? ["Hola {$client}, le recordamos de *{$company}* su cita de {$service} para *mañana {$when}*."]
-            : ["Hola {$client}, le saludamos de *{$company}*.", "Su cita de {$service} quedó agendada para el *{$when}*."];
-
-        if ($appointment->address) {
-            $lines[] = "Dirección: {$appointment->address}";
-        }
-        if ($appointment->user) {
-            $lines[] = "Técnico: {$appointment->user->name}";
-        }
-
-        $lines[] = '';
-        $lines[] = 'Si necesita reprogramar, responda a este mensaje. ¡Gracias!';
-
-        return implode("\n", $lines);
+        return self::render(self::template($type), self::common($appointment->client?->name) + [
+            'servicio' => strtolower(Appointment::types()[$appointment->type] ?? 'visita'),
+            'fecha_hora' => $appointment->scheduled_at->translatedFormat('l d \d\e F') . ' a las ' . $appointment->scheduled_at->format('H:i'),
+            'direccion' => $appointment->address ? "Dirección: {$appointment->address}" : '',
+            'tecnico' => $appointment->user ? "Técnico: {$appointment->user->name}" : '',
+        ]);
     }
 
     public static function buildMaintenanceDue(MaintenancePlan $plan): string
     {
-        $company = Setting::get('company_name', 'SolarFix');
-        $client = $plan->client?->name ?? 'cliente';
-        $when = $plan->next_due_date->lt(today())
-            ? 'ya le corresponde'
-            : 'le corresponde el ' . $plan->next_due_date->translatedFormat('d \\d\\e F');
-
-        return implode("\n", [
-            "Hola {$client}, le saludamos de *{$company}*.",
-            "Según su plan de mantenimiento, {$when} el mantenimiento de: *{$plan->title}*.",
-            '',
-            '¿Desea que agendemos una visita? Responda a este mensaje con el día y la hora que le convienen.',
+        return self::render(self::template('maintenance_due'), self::common($plan->client?->name) + [
+            'equipo' => $plan->title,
+            'cuando' => $plan->next_due_date->lt(today())
+                ? 'ya le corresponde'
+                : 'le corresponde el ' . $plan->next_due_date->translatedFormat('d \d\e F'),
+            'fecha' => $plan->next_due_date->format('d/m/Y'),
         ]);
     }
 
-    private static function money($amount): string
+    /**
+     * Reemplaza las variables; omite las líneas que solo tenían una variable vacía.
+     */
+    public static function render(string $template, array $vars): string
     {
-        return money($amount);
+        $lines = [];
+        foreach (preg_split('/\r\n|\r|\n/', $template) as $line) {
+            if (preg_match('/^\s*\{([a-z_]+)\}\s*$/', $line, $m) && array_key_exists($m[1], $vars) && $vars[$m[1]] === '') {
+                continue;
+            }
+            $lines[] = $line;
+        }
+
+        $replacements = [];
+        foreach ($vars as $key => $value) {
+            $replacements['{' . $key . '}'] = (string) $value;
+        }
+
+        $text = strtr(implode("\n", $lines), $replacements);
+
+        return trim(preg_replace("/\n{3,}/", "\n\n", $text));
+    }
+
+    private static function common(?string $client): array
+    {
+        return [
+            'cliente' => $client ?? 'cliente',
+            'negocio' => Setting::get('company_name', 'SolarFix'),
+            'telefono_negocio' => (string) Setting::get('company_phone', ''),
+        ];
+    }
+
+    private static function budgetLines(Order $order): string
+    {
+        $concepts = [['Diagnóstico', $order->diagnosis_cost], ['Mano de obra', $order->labor_cost]];
+        if ($order->parts->isNotEmpty()) {
+            foreach ($order->parts as $part) {
+                $concepts[] = [($part->sparePart?->name ?? 'Repuesto') . ' x' . $part->quantity, $part->subtotal];
+            }
+        } else {
+            $concepts[] = ['Repuestos', $order->parts_cost];
+        }
+        $concepts[] = ['Recargo', $order->surcharge_amount];
+
+        $lines = [];
+        foreach ($concepts as [$label, $amount]) {
+            if ((float) $amount > 0) {
+                $lines[] = "- {$label}: " . money($amount);
+            }
+        }
+
+        return implode("\n", $lines);
     }
 }

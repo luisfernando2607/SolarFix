@@ -165,4 +165,49 @@ class ConfigurationTest extends TestCase
         $this->assertSame('Tarjeta', $payment->method_label);
         $this->actingAs($this->admin())->get(route('orders.show', $order))->assertSee('Tarjeta');
     }
+
+    // --- Textos de WhatsApp ---
+
+    private function budgetOrder(): Order
+    {
+        $client = Client::create(['name' => 'Ana', 'phone' => '0991234567', 'client_type' => 'individual']);
+
+        return Order::create([
+            'client_id' => $client->id, 'order_number' => 'T-9', 'device_type' => 'celular', 'declared_fault' => 'x',
+            'unlock_type' => 'none', 'status' => 'diagnosing', 'entry_date' => now()->toDateString(),
+            'labor_cost' => 40, 'total_amount' => 40, 'balance_due' => 40,
+        ]);
+    }
+
+    public function test_custom_template_is_used_and_empty_variable_lines_dropped(): void
+    {
+        $this->actingAs($this->admin())->put(route('settings.update'), $this->settingsPayload(['wa_templates' => [
+            'budget' => "Buenas {cliente}! Orden {orden}\n{diagnostico}\nTotal: {total}\nLlámenos al {telefono_negocio}",
+        ]]))->assertSessionHasNoErrors();
+        Setting::put('company_phone', '042-123456', 'general');
+
+        $message = \App\Services\WhatsAppMessage::build('budget', $this->budgetOrder());
+
+        $this->assertSame("Buenas Ana! Orden T-9\nTotal: $40.00\nLlámenos al 042-123456", $message);
+    }
+
+    public function test_unknown_variable_is_rejected(): void
+    {
+        $this->actingAs($this->admin())->put(route('settings.update'), $this->settingsPayload(['wa_templates' => [
+            'ready' => 'Hola {clinete}, su equipo está listo',
+        ]]))->assertSessionHasErrors(['wa_templates.ready' => 'Variables que no existen en este mensaje: {clinete}.']);
+    }
+
+    public function test_empty_or_default_template_falls_back_to_original(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin)->put(route('settings.update'), $this->settingsPayload(['wa_templates' => [
+            'ready' => \App\Services\WhatsAppMessage::TEMPLATES['ready'],
+            'budget' => '',
+        ]]))->assertSessionHasNoErrors();
+
+        $this->assertSame('', Setting::get('wa_template_ready', ''));
+        $this->assertStringContainsString('ya fue diagnosticado', \App\Services\WhatsAppMessage::build('budget', $this->budgetOrder()));
+        $this->actingAs($admin)->get(route('settings.edit'))->assertOk()->assertSee('Mensajes de WhatsApp')->assertSee('{detalle_presupuesto}');
+    }
 }

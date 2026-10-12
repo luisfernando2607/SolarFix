@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Setting;
+use App\Services\WhatsAppMessage;
 use App\Support\PaymentMethods;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
@@ -39,7 +41,30 @@ class SettingController extends Controller
         return view('settings.edit', [
             'settings' => $settings,
             'paymentMethods' => PaymentMethods::all(),
+            'templates' => collect(WhatsAppMessage::TEMPLATES)->map(fn ($default, $type) => (string) Setting::get('wa_template_' . $type, '')),
         ]);
+    }
+
+    /**
+     * Una variable mal escrita (ej. {clinete}) llegaría tal cual al cliente: se rechaza.
+     */
+    private function rejectUnknownVariables(array $templates): void
+    {
+        $errors = [];
+        foreach ($templates as $type => $text) {
+            if (! isset(WhatsAppMessage::VARIABLES[$type]) || ! is_string($text)) {
+                continue;
+            }
+            preg_match_all('/\{([^{}\s]+)\}/', $text, $matches);
+            $unknown = array_diff(array_unique($matches[1]), WhatsAppMessage::VARIABLES[$type]);
+            if ($unknown) {
+                $errors["wa_templates.{$type}"] = 'Variables que no existen en este mensaje: {' . implode('}, {', $unknown) . '}.';
+            }
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     /**
@@ -81,6 +106,8 @@ class SettingController extends Controller
             'invoice_prefix' => strtoupper(trim((string) $request->input('invoice_prefix'))),
         ]);
 
+        $this->rejectUnknownVariables($request->input('wa_templates', []));
+
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:120'],
             'company_phone' => ['nullable', 'string', 'max:30'],
@@ -103,6 +130,8 @@ class SettingController extends Controller
             'payment_methods' => ['required', 'array', 'max:20'],
             'payment_methods.*.key' => ['nullable', 'string', 'max:30'],
             'payment_methods.*.label' => ['nullable', 'string', 'max:40'],
+            'wa_templates' => ['nullable', 'array'],
+            'wa_templates.*' => ['nullable', 'string', 'max:2000'],
         ], [
             'order_prefix.regex' => 'El prefijo de orden debe tener de 1 a 6 letras o números, sin espacios.',
             'invoice_prefix.regex' => 'El prefijo de factura debe tener de 1 a 8 letras o números, sin espacios.',
@@ -114,6 +143,12 @@ class SettingController extends Controller
         }
 
         Setting::put('payment_methods', json_encode($this->paymentMethods($validated['payment_methods']), JSON_UNESCAPED_UNICODE), 'billing');
+
+        // Textos de WhatsApp: vacío o igual al original = se usa el texto por defecto.
+        foreach (WhatsAppMessage::TEMPLATES as $type => $default) {
+            $text = trim(str_replace("\r\n", "\n", (string) ($validated['wa_templates'][$type] ?? '')));
+            Setting::put('wa_template_' . $type, $text === $default ? '' : $text, 'whatsapp');
+        }
 
         return redirect()->route('settings.edit')->with('success', 'Configuración guardada.');
     }
