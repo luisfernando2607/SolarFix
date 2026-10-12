@@ -190,4 +190,29 @@ class ModuleImprovementsTest extends TestCase
         $this->actingAs(User::factory()->role('receptionist')->create())->get(route('reports.export', ['dataset' => 'payments']))->assertForbidden();
         $this->actingAs($this->admin())->get(route('reports.export', ['dataset' => 'otro']))->assertNotFound();
     }
+
+    // --- 5. Costo promedio ponderado ---
+
+    public function test_purchase_updates_weighted_average_cost(): void
+    {
+        $part = \App\Models\SparePart::create(['name' => 'Capacitor 35uF', 'cost_price' => 20, 'sale_price' => 45, 'min_stock' => 1]);
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('spare-parts.receive', $part), ['quantity' => 10, 'unit_cost' => 20]);
+
+        $this->actingAs($admin)->post(route('spare-parts.receive', $part), ['quantity' => 2, 'unit_cost' => 30]);
+
+        $part->refresh();
+        $this->assertSame(12, $part->stock_quantity);
+        $this->assertEquals(21.67, $part->cost_price); // (10×20 + 2×30) / 12
+        $this->assertEquals(30, $part->movements()->where('type', 'in')->latest('id')->first()->unit_cost);
+    }
+
+    public function test_purchase_with_no_stock_takes_new_cost(): void
+    {
+        $part = \App\Models\SparePart::create(['name' => 'Filtro', 'cost_price' => 5, 'sale_price' => 12, 'min_stock' => 1]);
+
+        $this->actingAs($this->admin())->post(route('spare-parts.receive', $part), ['quantity' => 3, 'unit_cost' => 7]);
+
+        $this->assertEquals(7, $part->fresh()->cost_price);
+    }
 }

@@ -43,7 +43,7 @@
             <p class="text-2xl font-bold text-gray-800">${{ number_format($part->sale_price, 2) }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border p-5">
-            <p class="text-sm text-gray-500">Costo</p>
+            <p class="text-sm text-gray-500">Costo promedio</p>
             <p class="text-2xl font-bold text-gray-800">${{ number_format($part->cost_price, 2) }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border p-5">
@@ -67,7 +67,7 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Costo unitario *</label>
-                            <input type="number" name="unit_cost" step="0.01" min="0" required value="{{ old('unit_cost', $part->cost_price) }}" class="{{ $input }}">
+                            <input type="number" name="unit_cost" step="0.01" min="0" required value="{{ old('unit_cost') }}" placeholder="Precio de esta compra" class="{{ $input }}">
                         </div>
                     </div>
                     @can('manage-inventory')

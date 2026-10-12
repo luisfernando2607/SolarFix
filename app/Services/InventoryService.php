@@ -16,14 +16,18 @@ use Illuminate\Support\Facades\DB;
 class InventoryService
 {
     /**
-     * Entrada por compra: suma stock y actualiza el costo (y el precio de venta si se indica).
+     * Entrada por compra: suma stock y recalcula el costo promedio ponderado
+     * (y el precio de venta si se indica). El movimiento guarda el costo real de esta compra.
      */
     public function receive(SparePart $part, int $quantity, float $unitCost, ?float $salePrice, ?string $reason, ?int $userId): SparePartMovement
     {
         return DB::transaction(function () use ($part, $quantity, $unitCost, $salePrice, $reason, $userId) {
             $locked = SparePart::lockForUpdate()->findOrFail($part->id);
+            $currentStock = max(0, $locked->stock_quantity);
+            $locked->cost_price = $currentStock > 0
+                ? round(($currentStock * (float) $locked->cost_price + $quantity * $unitCost) / ($currentStock + $quantity), 2)
+                : $unitCost;
             $locked->stock_quantity += $quantity;
-            $locked->cost_price = $unitCost;
             if ($salePrice !== null) {
                 $locked->sale_price = $salePrice;
             }

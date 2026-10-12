@@ -92,7 +92,7 @@ class InventoryTest extends TestCase
 
         $part->refresh();
         $this->assertSame(11, $part->stock_quantity);
-        $this->assertEquals(22, $part->cost_price);
+        $this->assertEquals(21.82, $part->cost_price); // costo promedio: (1×20 + 10×22) / 11
         $this->assertEquals(45, $part->sale_price); // el técnico no cambia precios
         $this->assertFalse($part->isLowStock());
     }
