@@ -6,6 +6,7 @@ use App\Models\Accessory;
 use App\Models\AuditLog;
 use App\Models\Checklist;
 use App\Models\Client;
+use App\Models\Commission;
 use App\Models\DeviceBrand;
 use App\Models\DeviceModel;
 use App\Models\Order;
@@ -328,6 +329,9 @@ class OrderController extends Controller
             $order->issueWarranty();
         }
 
+        // Crea, ajusta o elimina la comisión pendiente según el estado y los costos actuales.
+        Commission::syncFor($order);
+
         return redirect()->route('orders.show', $order)
             ->with('success', 'Orden #' . $order->order_number . ' actualizada.');
     }
@@ -335,6 +339,7 @@ class OrderController extends Controller
     public function destroy(Order $order)
     {
         $order->delete();
+        Commission::syncFor($order);
 
         return redirect()->route('orders.index')
             ->with('success', 'Orden eliminada.');

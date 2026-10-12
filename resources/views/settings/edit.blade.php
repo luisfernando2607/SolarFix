@@ -63,6 +63,18 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Comisiones</h3>
+            <p class="text-xs text-gray-500 mb-4">Sobre qué monto se calcula la comisión porcentual de los técnicos (se configura en cada usuario).</p>
+            @foreach (\App\Models\Commission::bases() as $key => $label)
+                <label class="flex items-center gap-2 mb-2">
+                    <input type="radio" name="commission_base" value="{{ $key }}" {{ old('commission_base', $settings['commission_base'] ?? 'service') === $key ? 'checked' : '' }}
+                        class="w-4 h-4 text-blue-600 border-gray-300">
+                    <span class="text-sm text-gray-700">{{ $label }}</span>
+                </label>
+            @endforeach
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-1">Alertas del dashboard</h3>
             <p class="text-xs text-gray-500 mb-4">Cuándo marcar una orden como demorada.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

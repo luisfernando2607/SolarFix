@@ -118,6 +118,7 @@ class AuditLogTest extends TestCase
             'prices_include_iva' => '1',
             'stale_order_days' => 5,
             'approval_alert_hours' => 72,
+            'commission_base' => 'service',
         ]);
 
         $this->assertTrue(AuditLog::where('auditable_type', 'Setting')->where('description', 'Configuración: iva_percent')->exists());

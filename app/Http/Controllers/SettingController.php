@@ -18,6 +18,7 @@ class SettingController extends Controller
         'prices_include_iva' => 'billing',
         'stale_order_days' => 'alerts',
         'approval_alert_hours' => 'alerts',
+        'commission_base' => 'commissions',
     ];
 
     public function edit()
@@ -43,6 +44,7 @@ class SettingController extends Controller
             'prices_include_iva' => ['boolean'],
             'stale_order_days' => ['required', 'integer', 'min:1', 'max:365'],
             'approval_alert_hours' => ['required', 'integer', 'min:1', 'max:720'],
+            'commission_base' => ['required', 'in:service,total'],
         ]);
 
         foreach (self::FIELDS as $key => $group) {

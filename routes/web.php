@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceBrandController;
 use App\Http\Controllers\InvoiceController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\OrderChecklistController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPartController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\SparePartController;
@@ -49,6 +51,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/spare-parts/{spare_part}', [SparePartController::class, 'destroy'])->name('spare-parts.destroy');
         Route::post('/spare-parts/{spare_part}/adjust', [SparePartController::class, 'adjust'])->name('spare-parts.adjust');
         Route::resource('checklists', ChecklistController::class)->except(['show', 'destroy']);
+        Route::post('/commissions/pay', [CommissionController::class, 'pay'])->name('commissions.pay');
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
@@ -59,6 +63,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
         Route::get('/clients-search', [ClientController::class, 'search'])->name('clients.search');
+        Route::get('/commissions', [CommissionController::class, 'index'])->name('commissions.index');
         Route::get('/spare-parts', [SparePartController::class, 'index'])->name('spare-parts.index');
         Route::get('/spare-parts-search', [SparePartController::class, 'search'])->name('spare-parts.search');
         Route::get('/spare-parts/{spare_part}', [SparePartController::class, 'show'])->name('spare-parts.show')->whereNumber('spare_part');

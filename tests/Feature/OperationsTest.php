@@ -181,6 +181,7 @@ class OperationsTest extends TestCase
             'prices_include_iva' => '0',
             'stale_order_days' => 7,
             'approval_alert_hours' => 48,
+            'commission_base' => 'total',
         ])->assertRedirect(route('settings.edit'));
 
         Setting::flushCache();

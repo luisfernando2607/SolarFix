@@ -145,6 +145,7 @@ class Order extends Model
         $this->save();
 
         $this->issueWarranty();
+        Commission::syncFor($this);
     }
 
     /**
@@ -288,6 +289,11 @@ class Order extends Model
     public function signatures()
     {
         return $this->hasMany(OrderSignature::class);
+    }
+
+    public function commission()
+    {
+        return $this->hasOne(Commission::class);
     }
 
     public function checklistResults()
