@@ -302,4 +302,35 @@ class InventoryTest extends TestCase
         $this->actingAs($admin)->get(route('orders.pdf', $order))->assertOk();
         $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Repuestos con stock bajo');
     }
+
+    public function test_parts_return_to_stock_when_order_closed_without_repair(): void
+    {
+        $part = $this->part(5);
+        $order = $this->makeOrder(['status' => 'waiting_approval']);
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('orders.parts.store', $order), ['spare_part_id' => $part->id, 'quantity' => 2]);
+        $this->actingAs($admin)->get(route('spare-parts.show', $part))->assertViewHas('reserved', 2);
+
+        $this->actingAs($admin)->put(route('orders.update', $order), [
+            'client_id' => $order->client_id, 'device_type' => 'celular', 'declared_fault' => 'Pantalla rota',
+            'unlock_type' => 'none', 'entry_date' => now()->toDateString(), 'labor_cost' => 15, 'status' => 'closed_no_repair',
+        ]);
+
+        $this->assertSame(5, $part->fresh()->stock_quantity);
+        $this->assertSame(0, $order->parts()->count());
+        $this->assertEquals(0, $order->fresh()->parts_cost);
+        $this->assertStringContainsString('cerrada sin reparación', SparePartMovement::latest('id')->first()->reason);
+    }
+
+    public function test_parts_return_to_stock_when_order_deleted(): void
+    {
+        $part = $this->part(5);
+        $order = $this->makeOrder();
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('orders.parts.store', $order), ['spare_part_id' => $part->id, 'quantity' => 3]);
+
+        $this->actingAs($admin)->delete(route('orders.destroy', $order));
+
+        $this->assertSame(5, $part->fresh()->stock_quantity);
+    }
 }

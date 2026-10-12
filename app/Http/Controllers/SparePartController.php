@@ -57,6 +57,9 @@ class SparePartController extends Controller
 
         return view('spare_parts.show', [
             'part' => $sparePart,
+            'reserved' => (int) $sparePart->orderParts()
+                ->whereHas('order', fn ($q) => $q->whereNotIn('status', ['delivered', 'closed_no_repair']))
+                ->sum('quantity'),
             'suppliers' => Supplier::where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }

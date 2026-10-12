@@ -92,17 +92,31 @@ class InventoryService
     }
 
     /**
+     * Devuelve al stock todos los repuestos de una orden que no se reparó (cerrada sin
+     * reparación o anulada): estaban reservados para el presupuesto.
+     */
+    public function releaseOrderParts(Order $order, string $reason, ?int $userId): int
+    {
+        $parts = $order->parts()->get();
+        foreach ($parts as $orderPart) {
+            $this->removeFromOrder($orderPart, $userId, $reason);
+        }
+
+        return $parts->count();
+    }
+
+    /**
      * Quita el repuesto de la orden y devuelve las unidades al stock.
      */
-    public function removeFromOrder(OrderPart $orderPart, ?int $userId): void
+    public function removeFromOrder(OrderPart $orderPart, ?int $userId, ?string $reason = null): void
     {
-        DB::transaction(function () use ($orderPart, $userId) {
+        DB::transaction(function () use ($orderPart, $userId, $reason) {
             $locked = SparePart::lockForUpdate()->findOrFail($orderPart->spare_part_id);
             $locked->stock_quantity += $orderPart->quantity;
             $locked->save();
 
             $order = $orderPart->order;
-            $this->movement($locked, 'in', $orderPart->quantity, 'Devuelto de orden ' . $order->order_number, $order->id, null, $userId);
+            $this->movement($locked, 'in', $orderPart->quantity, ($reason ?? 'Devuelto de orden') . ' ' . $order->order_number, $order->id, null, $userId);
 
             $orderPart->delete();
             if (! $order->parts()->exists()) {

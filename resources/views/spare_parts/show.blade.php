@@ -37,6 +37,9 @@
             <p class="text-sm text-gray-500">Stock</p>
             <p class="text-3xl font-bold {{ $part->isLowStock() ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stock_quantity }}</p>
             <p class="text-xs {{ $part->isLowStock() ? 'text-red-600' : 'text-gray-400' }}">mínimo {{ $part->min_stock }}{{ $part->isLowStock() ? ' · stock bajo' : '' }}</p>
+            @if ($reserved)
+                <p class="text-xs text-blue-700 mt-1">{{ $reserved }} más en órdenes abiertas (ya descontadas)</p>
+            @endif
         </div>
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <p class="text-sm text-gray-500">Precio de venta</p>

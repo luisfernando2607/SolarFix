@@ -17,6 +17,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\AssignmentNotification;
+use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -368,6 +369,11 @@ class OrderController extends Controller
             ]);
         }
 
+        // Sin reparación: los repuestos reservados para el presupuesto vuelven al stock.
+        if ($order->status === 'closed_no_repair' && $oldStatus !== 'closed_no_repair') {
+            app(InventoryService::class)->releaseOrderParts($order, 'Devuelto: cerrada sin reparación la orden', Auth::id());
+        }
+
         // Al entregar se emite la garantía; si ya existe, se ajustan sus fechas.
         if ($order->status === 'delivered') {
             if (! $order->delivery_date) {
@@ -385,6 +391,9 @@ class OrderController extends Controller
 
     public function destroy(Order $order)
     {
+        if (! in_array($order->status, ['delivered', 'closed_no_repair'])) {
+            app(InventoryService::class)->releaseOrderParts($order, 'Devuelto: anulada la orden', Auth::id());
+        }
         $order->delete();
         Commission::syncFor($order);
 
