@@ -203,4 +203,125 @@ class MultiBranchTest extends TestCase
             ->assertOk()->assertSee('Caja del día · Quito')
             ->assertViewHas('totals', fn ($t) => $t['cash'] == 25);
     }
+
+    // --- Inventario por sucursal ---
+
+    private function part(array $stocks): \App\Models\SparePart
+    {
+        $part = \App\Models\SparePart::create(['name' => 'Pantalla A15', 'cost_price' => 20, 'sale_price' => 45, 'min_stock' => 2]);
+        foreach ($stocks as $branchId => $quantity) {
+            $part->setBranchStock($branchId, $quantity);
+        }
+
+        return $part->fresh();
+    }
+
+    public function test_purchase_goes_to_the_users_branch(): void
+    {
+        $part = $this->part([$this->gye->id => 5]);
+
+        $this->actingAs($this->user('technician', $this->qto))
+            ->post(route('spare-parts.receive', $part), ['quantity' => 3, 'unit_cost' => 20])->assertSessionHasNoErrors();
+
+        $part->refresh();
+        $this->assertSame(5, $part->stockIn($this->gye->id));
+        $this->assertSame(3, $part->stockIn($this->qto->id));
+        $this->assertSame(8, $part->stock_quantity);
+        $this->assertSame($this->qto->id, $part->movements()->first()->branch_id);
+    }
+
+    public function test_order_uses_stock_of_its_branch(): void
+    {
+        $part = $this->part([$this->gye->id => 5, $this->qto->id => 0]);
+        $qtoOrder = $this->makeOrder($this->qto);
+        $qtoDesk = $this->user('receptionist', $this->qto);
+
+        $this->actingAs($qtoDesk)->post(route('orders.parts.store', $qtoOrder), ['spare_part_id' => $part->id, 'quantity' => 1])
+            ->assertSessionHas('error', fn ($m) => str_contains($m, 'en esta sucursal'));
+
+        $this->actingAs($qtoDesk)->getJson(route('spare-parts.search', ['q' => 'Pantalla', 'branch_id' => $qtoOrder->branch_id]))
+            ->assertJsonPath('0.stock', 0);
+    }
+
+    public function test_transfer_moves_units_between_branches(): void
+    {
+        $part = $this->part([$this->gye->id => 5]);
+        $tech = $this->user('technician', $this->gye);
+
+        $this->actingAs($tech)->post(route('spare-parts.transfer', $part), [
+            'from_branch_id' => $this->gye->id, 'to_branch_id' => $this->qto->id, 'quantity' => 2, 'note' => 'Pedido urgente',
+        ])->assertSessionHas('success');
+
+        $part->refresh();
+        $this->assertSame(3, $part->stockIn($this->gye->id));
+        $this->assertSame(2, $part->stockIn($this->qto->id));
+        $this->assertSame(5, $part->stock_quantity);
+        $movements = \App\Models\SparePartMovement::where('spare_part_id', $part->id)->orderBy('id')->get();
+        $this->assertSame(['out', 'in'], $movements->pluck('type')->all());
+        $this->assertSame([$this->gye->id, $this->qto->id], $movements->pluck('branch_id')->all());
+        $this->assertStringContainsString('Traslado a Quito', $movements->first()->reason);
+
+        // Ya en Quito, se puede usar en una orden de Quito.
+        $qtoOrder = $this->makeOrder($this->qto);
+        $this->actingAs($this->user('receptionist', $this->qto))
+            ->post(route('orders.parts.store', $qtoOrder), ['spare_part_id' => $part->id, 'quantity' => 2])->assertSessionHas('success');
+        $this->assertSame(0, $part->fresh()->stockIn($this->qto->id));
+    }
+
+    public function test_transfer_rules(): void
+    {
+        $part = $this->part([$this->gye->id => 1]);
+
+        // Sin stock suficiente en el origen.
+        $this->actingAs($this->user('admin'))->post(route('spare-parts.transfer', $part), [
+            'from_branch_id' => $this->gye->id, 'to_branch_id' => $this->qto->id, 'quantity' => 5,
+        ])->assertSessionHas('error');
+        // Un técnico no envía desde otra sucursal.
+        $this->actingAs($this->user('technician', $this->qto))->post(route('spare-parts.transfer', $part), [
+            'from_branch_id' => $this->gye->id, 'to_branch_id' => $this->qto->id, 'quantity' => 1,
+        ])->assertForbidden();
+        // Origen y destino distintos.
+        $this->actingAs($this->user('admin'))->post(route('spare-parts.transfer', $part), [
+            'from_branch_id' => $this->gye->id, 'to_branch_id' => $this->gye->id, 'quantity' => 1,
+        ])->assertSessionHasErrors('to_branch_id');
+
+        $this->assertSame(1, $part->fresh()->stockIn($this->gye->id));
+    }
+
+    public function test_low_stock_alert_is_per_branch(): void
+    {
+        $part = $this->part([$this->gye->id => 10, $this->qto->id => 1]);
+
+        $this->assertTrue($part->isLowStock($this->qto->id));
+        $this->assertFalse($part->isLowStock($this->gye->id));
+        $this->assertSame(1, \App\Models\SparePart::lowStock($this->qto->id)->count());
+        $this->assertSame(0, \App\Models\SparePart::lowStock($this->gye->id)->count());
+
+        $this->actingAs($this->user('technician', $this->gye))->get(route('dashboard'))->assertDontSee('Repuestos con stock bajo');
+        $this->actingAs($this->user('technician', $this->qto))->get(route('dashboard'))->assertSee('Repuestos con stock bajo');
+    }
+
+    public function test_cancelled_order_returns_parts_to_its_branch(): void
+    {
+        $part = $this->part([$this->qto->id => 4]);
+        $qtoOrder = $this->makeOrder($this->qto);
+        $admin = $this->user('admin');
+        $this->actingAs($admin)->post(route('orders.parts.store', $qtoOrder), ['spare_part_id' => $part->id, 'quantity' => 3]);
+
+        $this->actingAs($admin)->delete(route('orders.destroy', $qtoOrder));
+
+        $this->assertSame(4, $part->fresh()->stockIn($this->qto->id));
+        $this->assertSame(0, $part->fresh()->stockIn($this->gye->id));
+    }
+
+    public function test_inventory_screens_show_branch_breakdown(): void
+    {
+        $part = $this->part([$this->gye->id => 5, $this->qto->id => 2]);
+        $admin = $this->user('admin');
+
+        $this->actingAs($admin)->get(route('spare-parts.index'))->assertSee('GYE: 5')->assertSee('QTO: 2');
+        $this->actingAs($admin)->get(route('spare-parts.show', $part))->assertOk()->assertSee('Traslado entre sucursales');
+        $this->actingAs($this->user('receptionist', $this->qto))->get(route('spare-parts.index'))
+            ->assertViewHas('branch', $this->qto->id);
+    }
 }

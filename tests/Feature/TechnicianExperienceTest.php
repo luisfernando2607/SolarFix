@@ -77,8 +77,7 @@ class TechnicianExperienceTest extends TestCase
         $tech = $this->tech();
         $order = $this->makeOrder(['user_id' => $tech->id, 'status' => 'waiting_approval']);
         $part = SparePart::create(['name' => 'Puerto USB-C', 'cost_price' => 2, 'sale_price' => 8, 'min_stock' => 0]);
-        $part->stock_quantity = 3;
-        $part->save();
+        $part->setBranchStock(\App\Models\Branch::mainId(), 3);
         $this->actingAs($tech)->post(route('orders.parts.store', $order), ['spare_part_id' => $part->id, 'quantity' => 1]);
 
         $this->actingAs($tech)->patch(route('orders.quick-status', $order), ['status' => 'closed_no_repair', 'note' => 'Cliente rechazó']);

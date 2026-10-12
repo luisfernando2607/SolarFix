@@ -391,7 +391,12 @@
             @foreach ($lowStockParts as $part)
             <li class="px-6 py-3 flex items-center justify-between text-sm">
                 <a href="{{ route('spare-parts.show', $part) }}" class="text-blue-600 hover:underline font-medium">{{ $part->name }}</a>
-                <span class="text-xs text-red-700 whitespace-nowrap">stock {{ $part->stock_quantity }} / mín. {{ $part->min_stock }}</span>
+                <span class="text-xs text-red-700 whitespace-nowrap">
+                    @foreach ($part->stocks->filter(fn ($s) => $s->quantity <= $part->min_stock && (\App\Support\BranchContext::current() === null || $s->branch_id === \App\Support\BranchContext::current())) as $stock)
+                        {{ \App\Models\Branch::count() > 1 ? $stock->branch?->code . ': ' : 'stock ' }}{{ $stock->quantity }}{{ $loop->last ? '' : ' · ' }}
+                    @endforeach
+                    / mín. {{ $part->min_stock }}
+                </span>
             </li>
             @endforeach
         </ul>

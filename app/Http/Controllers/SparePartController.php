@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\SparePart;
 use App\Models\Supplier;
 use App\Services\InventoryService;
+use App\Support\BranchContext;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -17,10 +20,11 @@ class SparePartController extends Controller
 
     public function index(Request $request)
     {
-        $parts = SparePart::query()
+        $branch = BranchContext::current();
+        $parts = SparePart::with('stocks.branch:id,code')
             ->search($request->q)
             ->when($request->filled('category'), fn ($q) => $q->where('category', $request->category))
-            ->when($request->boolean('low'), fn ($q) => $q->lowStock())
+            ->when($request->boolean('low'), fn ($q) => $q->lowStock($branch))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
@@ -28,7 +32,8 @@ class SparePartController extends Controller
         return view('spare_parts.index', [
             'parts' => $parts,
             'categories' => $this->categories(),
-            'lowCount' => SparePart::lowStock()->count(),
+            'lowCount' => SparePart::lowStock($branch)->count(),
+            'branch' => $branch,
         ]);
     }
 
@@ -45,7 +50,7 @@ class SparePartController extends Controller
         $part = SparePart::create($validated);
 
         if ($initialStock > 0) {
-            $this->inventory->receive($part, $initialStock, (float) $part->cost_price, null, 'Stock inicial', Auth::id());
+            $this->inventory->receive($part, $initialStock, (float) $part->cost_price, null, 'Stock inicial', Auth::id(), null, BranchContext::forCreate());
         }
 
         return redirect()->route('spare-parts.show', $part)->with('success', 'Repuesto creado.');
@@ -53,10 +58,18 @@ class SparePartController extends Controller
 
     public function show(SparePart $sparePart)
     {
-        $sparePart->load(['movements.registeredBy', 'movements.order', 'movements.supplier']);
+        $sparePart->load(['stocks.branch', 'movements.registeredBy', 'movements.order', 'movements.supplier', 'movements.branch']);
+        $seesAll = BranchContext::seesAllBranches();
+        $branch = BranchContext::current();
 
         return view('spare_parts.show', [
             'part' => $sparePart,
+            'branch' => $branch,
+            'operatingBranch' => BranchContext::forCreate(),
+            'branches' => Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
+            'seesAll' => $seesAll,
+            // Movimientos: los de la sucursal activa (o todos, para un admin con "todas").
+            'movements' => $sparePart->movements->when($branch, fn ($m) => $m->where('branch_id', $branch))->take(100),
             'reserved' => (int) $sparePart->orderParts()
                 ->whereHas('order', fn ($q) => $q->whereNotIn('status', ['delivered', 'closed_no_repair']))
                 ->sum('quantity'),
@@ -100,7 +113,8 @@ class SparePartController extends Controller
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
         ]);
 
-        $wasLow = $sparePart->isLowStock();
+        $branchId = $this->operatingBranch($request);
+        $wasLow = $sparePart->isLowStock($branchId);
 
         $this->inventory->receive(
             $sparePart,
@@ -111,11 +125,12 @@ class SparePartController extends Controller
             $validated['reason'] ?? null,
             Auth::id(),
             isset($validated['supplier_id']) ? (int) $validated['supplier_id'] : null,
+            $branchId,
         );
 
         $sparePart->refresh();
-        $message = 'Entrada de ' . $validated['quantity'] . ' unidades registrada. Stock: ' . $sparePart->stock_quantity . '.';
-        if ($wasLow && ! $sparePart->isLowStock()) {
+        $message = 'Entrada de ' . $validated['quantity'] . ' unidades registrada. Stock en la sucursal: ' . $sparePart->stockIn($branchId) . '.';
+        if ($wasLow && ! $sparePart->isLowStock($branchId)) {
             $message .= ' Ya no está en stock bajo.';
         }
 
@@ -129,20 +144,47 @@ class SparePartController extends Controller
             'reason' => ['required', 'string', 'max:200'],
         ]);
 
-        $movement = $this->inventory->adjust($sparePart, (int) $validated['counted_quantity'], $validated['reason'], Auth::id());
+        $movement = $this->inventory->adjust($sparePart, (int) $validated['counted_quantity'], $validated['reason'], Auth::id(), $this->operatingBranch($request));
 
         return redirect()->route('spare-parts.show', $sparePart)
             ->with('success', $movement ? 'Stock ajustado a ' . $validated['counted_quantity'] . '.' : 'El stock ya coincidía con el conteo.');
     }
 
     /**
-     * Búsqueda para agregar repuestos a una orden.
+     * Traslado de unidades entre sucursales.
+     */
+    public function transfer(Request $request, SparePart $sparePart)
+    {
+        $validated = $request->validate([
+            'from_branch_id' => ['required', 'integer', 'exists:branches,id'],
+            'to_branch_id' => ['required', 'integer', 'different:from_branch_id', Rule::exists('branches', 'id')->where('is_active', true)],
+            'quantity' => ['required', 'integer', 'min:1', 'max:100000'],
+            'note' => ['nullable', 'string', 'max:100'],
+        ], ['to_branch_id.different' => 'Elige una sucursal de destino distinta al origen.']);
+
+        // Un técnico solo envía desde su propia sucursal.
+        abort_unless(BranchContext::allows((int) $validated['from_branch_id']), 403, 'Solo puedes trasladar desde tu sucursal.');
+
+        try {
+            $this->inventory->transfer($sparePart, (int) $validated['from_branch_id'], (int) $validated['to_branch_id'], (int) $validated['quantity'], Auth::id(), $validated['note'] ?? null);
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('spare-parts.show', $sparePart)->with('success', 'Traslado de ' . $validated['quantity'] . ' unidades registrado.');
+    }
+
+    /**
+     * Búsqueda para agregar repuestos a una orden: muestra el stock de la sucursal de la orden.
      */
     public function search(Request $request)
     {
-        $request->validate(['q' => ['required', 'string', 'max:100']]);
+        $request->validate(['q' => ['required', 'string', 'max:100'], 'branch_id' => ['nullable', 'integer']]);
+        $branchId = $request->filled('branch_id') && BranchContext::allows((int) $request->branch_id)
+            ? (int) $request->branch_id
+            : BranchContext::forCreate();
 
-        return SparePart::where('is_active', true)
+        return SparePart::with('stocks')->where('is_active', true)
             ->search($request->q)
             ->orderBy('name')
             ->take(15)
@@ -150,10 +192,22 @@ class SparePartController extends Controller
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
-                'label' => trim($p->name . ($p->code ? ' · ' . $p->code : '')) . ' — stock ' . $p->stock_quantity . ' — ' . money($p->sale_price),
-                'stock' => $p->stock_quantity,
+                'label' => trim($p->name . ($p->code ? ' · ' . $p->code : '')) . ' — stock ' . $p->stockIn($branchId) . ' — ' . money($p->sale_price),
+                'stock' => $p->stockIn($branchId),
                 'sale_price' => (float) $p->sale_price,
             ]);
+    }
+
+    /**
+     * Sucursal en la que se registra una entrada o ajuste: la propia; un admin puede elegir.
+     */
+    private function operatingBranch(Request $request): int
+    {
+        if (BranchContext::seesAllBranches() && $request->filled('branch_id') && Branch::whereKey($request->branch_id)->exists()) {
+            return (int) $request->branch_id;
+        }
+
+        return BranchContext::forCreate();
     }
 
     private function validatePart(Request $request, ?SparePart $part = null): array

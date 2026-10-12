@@ -101,6 +101,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/spare-parts/{spare_part}', [SparePartController::class, 'show'])->name('spare-parts.show')->whereNumber('spare_part');
         Route::post('/spare-parts/{spare_part}/receive', [SparePartController::class, 'receive'])
             ->name('spare-parts.receive')->middleware('role:super_admin,admin,technician');
+        Route::post('/spare-parts/{spare_part}/transfer', [SparePartController::class, 'transfer'])
+            ->name('spare-parts.transfer')->middleware('role:super_admin,admin,technician');
         Route::post('/orders/{order}/parts', [OrderPartController::class, 'store'])->name('orders.parts.store');
         Route::patch('/orders/{order}/quick-status', [OrderWorkController::class, 'status'])->name('orders.quick-status');
         Route::post('/orders/{order}/take', [OrderWorkController::class, 'take'])->name('orders.take');

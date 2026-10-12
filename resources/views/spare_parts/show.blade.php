@@ -33,10 +33,19 @@
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl shadow-sm border p-5 {{ $part->isLowStock() ? 'border-red-300' : '' }}">
-            <p class="text-sm text-gray-500">Stock</p>
-            <p class="text-3xl font-bold {{ $part->isLowStock() ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stock_quantity }}</p>
-            <p class="text-xs {{ $part->isLowStock() ? 'text-red-600' : 'text-gray-400' }}">mínimo {{ $part->min_stock }}{{ $part->isLowStock() ? ' · stock bajo' : '' }}</p>
+        <div class="bg-white rounded-xl shadow-sm border p-5 {{ $part->isLowStock($branch) ? 'border-red-300' : '' }}">
+            <p class="text-sm text-gray-500">Stock{{ $branch === null && $branches->count() > 1 ? ' total' : '' }}</p>
+            <p class="text-3xl font-bold {{ $part->isLowStock($branch) ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stockIn($branch) }}</p>
+            <p class="text-xs {{ $part->isLowStock($branch) ? 'text-red-600' : 'text-gray-400' }}">mínimo {{ $part->min_stock }}{{ $part->isLowStock($branch) ? ' · stock bajo' : '' }}</p>
+            @if ($branches->count() > 1 && $part->stocks->count())
+                <ul class="mt-2 text-xs text-gray-600 space-y-0.5">
+                    @foreach ($part->stocks->sortBy('branch.name') as $stock)
+                        @if ($seesAll || $stock->branch_id === $operatingBranch)
+                            <li class="flex justify-between {{ $stock->quantity <= $part->min_stock ? 'text-red-600' : '' }}"><span>{{ $stock->branch?->name }}</span><span class="font-medium">{{ $stock->quantity }}</span></li>
+                        @endif
+                    @endforeach
+                </ul>
+            @endif
             @if ($reserved)
                 <p class="text-xs text-blue-700 mt-1">{{ $reserved }} más en órdenes abiertas (ya descontadas)</p>
             @endif
@@ -63,6 +72,13 @@
                 <h3 class="text-base font-semibold text-gray-800 mb-3">Registrar entrada (compra)</h3>
                 <form method="POST" action="{{ route('spare-parts.receive', $part) }}" class="space-y-3">
                     @csrf
+                    @if ($seesAll && $branches->count() > 1)
+                        <select name="branch_id" class="{{ $input }} bg-white">
+                            @foreach ($branches as $option)
+                                <option value="{{ $option->id }}" {{ $option->id === $operatingBranch ? 'selected' : '' }}>Sucursal: {{ $option->name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs text-gray-600 mb-1">Cantidad *</label>
@@ -100,6 +116,13 @@
                 <p class="text-xs text-gray-500 mb-3">Deja el stock en la cantidad contada físicamente.</p>
                 <form method="POST" action="{{ route('spare-parts.adjust', $part) }}" class="space-y-3">
                     @csrf
+                    @if ($seesAll && $branches->count() > 1)
+                        <select name="branch_id" class="{{ $input }} bg-white">
+                            @foreach ($branches as $option)
+                                <option value="{{ $option->id }}" {{ $option->id === $operatingBranch ? 'selected' : '' }}>Sucursal: {{ $option->name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                     <input type="number" name="counted_quantity" min="0" required placeholder="Cantidad contada" class="{{ $input }} @error('counted_quantity') border-red-500 @enderror">
                     <input type="text" name="reason" maxlength="200" required placeholder="Motivo (ej. conteo mensual, pieza dañada)" class="{{ $input }} @error('reason') border-red-500 @enderror">
                     @error('reason') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
@@ -107,6 +130,40 @@
                 </form>
             </div>
             @endcan
+
+            @if ($branches->count() > 1)
+                @can('receive-inventory')
+                <div class="bg-white rounded-xl shadow-sm border p-6">
+                    <h3 class="text-base font-semibold text-gray-800 mb-1">Traslado entre sucursales</h3>
+                    <p class="text-xs text-gray-500 mb-3">Mueve unidades de una sucursal a otra; el total no cambia.</p>
+                    <form method="POST" action="{{ route('spare-parts.transfer', $part) }}" class="space-y-3">
+                        @csrf
+                        @if ($seesAll)
+                            <select name="from_branch_id" class="{{ $input }} bg-white">
+                                @foreach ($branches as $option)
+                                    <option value="{{ $option->id }}" {{ $option->id === $operatingBranch ? 'selected' : '' }}>Desde: {{ $option->name }} ({{ $part->stockIn($option->id) }})</option>
+                                @endforeach
+                            </select>
+                        @else
+                            <input type="hidden" name="from_branch_id" value="{{ $operatingBranch }}">
+                            <p class="text-sm text-gray-600">Desde tu sucursal ({{ $part->stockIn($operatingBranch) }} disponibles)</p>
+                        @endif
+                        <select name="to_branch_id" required class="{{ $input }} bg-white @error('to_branch_id') border-red-500 @enderror">
+                            <option value="">Hacia...</option>
+                            @foreach ($branches as $option)
+                                <option value="{{ $option->id }}">{{ $option->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('to_branch_id') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" name="quantity" min="1" required placeholder="Cantidad" class="{{ $input }}">
+                            <input type="text" name="note" maxlength="100" placeholder="Nota (opcional)" class="{{ $input }}">
+                        </div>
+                        <button type="submit" class="w-full bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium">Trasladar</button>
+                    </form>
+                </div>
+                @endcan
+            @endif
         </div>
 
         <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border overflow-hidden h-fit">
@@ -119,19 +176,21 @@
                         <tr class="border-b bg-gray-50/50 text-left">
                             <th class="px-4 py-3 font-semibold text-gray-600">Fecha</th>
                             <th class="px-4 py-3 font-semibold text-gray-600">Tipo</th>
+                            @if ($branches->count() > 1) <th class="px-4 py-3 font-semibold text-gray-600">Sucursal</th> @endif
                             <th class="px-4 py-3 font-semibold text-gray-600 text-right">Cantidad</th>
                             <th class="px-4 py-3 font-semibold text-gray-600">Detalle</th>
                             <th class="px-4 py-3 font-semibold text-gray-600">Usuario</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($part->movements->take(100) as $movement)
+                        @forelse ($movements as $movement)
                             @php $signed = $movement->type === 'out' ? -$movement->quantity : $movement->quantity; @endphp
                             <tr class="border-b">
                                 <td class="px-4 py-2 text-gray-500 whitespace-nowrap">{{ $movement->moved_at->format('d/m/Y H:i') }}</td>
                                 <td class="px-4 py-2">
                                     <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $typeBadge[$movement->type] }}">{{ \App\Models\SparePartMovement::types()[$movement->type] }}</span>
                                 </td>
+                                @if ($branches->count() > 1) <td class="px-4 py-2 text-gray-600">{{ $movement->branch?->code }}</td> @endif
                                 <td class="px-4 py-2 text-right font-medium {{ $signed < 0 ? 'text-red-600' : 'text-green-700' }}">{{ $signed > 0 ? '+' : '' }}{{ $signed }}</td>
                                 <td class="px-4 py-2">
                                     @if ($movement->order)

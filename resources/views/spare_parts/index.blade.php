@@ -50,8 +50,13 @@
                             <td class="px-6 py-3">{{ $part->category ?? '—' }}</td>
                             <td class="px-6 py-3">{{ trim($part->compatible_brand . ' ' . $part->compatible_model) ?: '—' }}</td>
                             <td class="px-6 py-3 text-right">
-                                <span class="font-semibold {{ $part->isLowStock() ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stock_quantity }}</span>
+                                <span class="font-semibold {{ $part->isLowStock($branch) ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stockIn($branch) }}</span>
                                 <span class="text-xs text-gray-400">/ mín. {{ $part->min_stock }}</span>
+                                @if ($branch === null && $part->stocks->count() > 1)
+                                    <span class="block text-[11px] text-gray-400">
+                                        @foreach ($part->stocks as $stock){{ $stock->branch?->code }}: {{ $stock->quantity }}{{ $loop->last ? '' : ' · ' }}@endforeach
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-3 text-right">{{ money($part->sale_price) }}</td>
                             <td class="px-6 py-3 text-gray-500">{{ $part->location ?? '—' }}</td>

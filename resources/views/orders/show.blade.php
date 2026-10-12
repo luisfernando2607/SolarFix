@@ -367,7 +367,7 @@
                             var q = input.value.trim();
                             if (q.length < 2) { results.classList.add('hidden'); return; }
                             timer = setTimeout(function () {
-                                fetch(url + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                                fetch(url + '?branch_id={{ $order->branch_id }}&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
                                     .then(function (r) { return r.ok ? r.json() : []; })
                                     .then(function (items) {
                                         if (input.value.trim() !== q) return;

@@ -13,6 +13,7 @@ use App\Models\SparePart;
 use App\Models\User;
 use App\Models\Warranty;
 use App\Services\BusinessMetrics;
+use App\Support\BranchContext;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -77,7 +78,7 @@ class DashboardController extends Controller
         }
 
         $lowStockParts = $user->can('receive-inventory')
-            ? SparePart::lowStock()->orderByRaw('stock_quantity - min_stock')->take(10)->get()
+            ? SparePart::with('stocks.branch:id,code')->lowStock(BranchContext::current())->orderBy('name')->take(10)->get()
             : collect();
 
         $todayAppointments = Appointment::with(['client', 'user'])

@@ -353,8 +353,7 @@ class ModuleImprovementsTest extends TestCase
     public function test_labor_only_warranty_charges_parts(): void
     {
         $part = \App\Models\SparePart::create(['name' => 'Batería', 'cost_price' => 10, 'sale_price' => 25, 'min_stock' => 0]);
-        $part->stock_quantity = 5;
-        $part->save();
+        $part->setBranchStock(\App\Models\Branch::mainId(), 5);
         $admin = $this->admin();
 
         foreach (['labor' => 25, 'parts' => 0, 'full' => 0] as $type => $expected) {

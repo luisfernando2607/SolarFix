@@ -32,8 +32,7 @@ class InventoryTest extends TestCase
             'sale_price' => 45,
             'min_stock' => 2,
         ]);
-        $part->stock_quantity = $stock;
-        $part->save();
+        $part->setBranchStock(\App\Models\Branch::mainId(), $stock);
 
         return $part;
     }

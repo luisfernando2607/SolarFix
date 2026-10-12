@@ -80,8 +80,7 @@ class AdminInsightsTest extends TestCase
         $this->makeOrder(['status' => 'delivered', 'total_amount' => 80, 'balance_due' => 0]);
         $this->makeOrder(['status' => 'ready', 'balance_due' => 99]); // aún no entregada: no es cuenta por cobrar
         $part = SparePart::create(['name' => 'Batería', 'cost_price' => 12.5, 'sale_price' => 30, 'min_stock' => 0]);
-        $part->stock_quantity = 4;
-        $part->save();
+        $part->setBranchStock(\App\Models\Branch::mainId(), 4);
 
         $m = app(BusinessMetrics::class)->forMonth(now());
 

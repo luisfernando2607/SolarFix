@@ -14,7 +14,8 @@ class SparePart extends Model
         'cost_price', 'sale_price', 'min_stock', 'location', 'is_active',
     ];
 
-    // stock_quantity no es asignable: solo cambia a través de InventoryService (con su movimiento).
+    // stock_quantity (total de todas las sucursales) no es asignable: solo cambia a través de
+    // InventoryService, junto con el stock de la sucursal y su movimiento.
 
     protected function casts(): array
     {
@@ -27,14 +28,53 @@ class SparePart extends Model
         ];
     }
 
-    public function isLowStock(): bool
+    /**
+     * Stock en una sucursal; con null (todas las sucursales), el total.
+     */
+    public function stockIn(?int $branchId): int
     {
-        return $this->stock_quantity <= $this->min_stock;
+        if ($branchId === null) {
+            return (int) $this->stock_quantity;
+        }
+
+        return (int) ($this->relationLoaded('stocks')
+            ? $this->stocks->firstWhere('branch_id', $branchId)?->quantity
+            : $this->stocks()->where('branch_id', $branchId)->value('quantity'));
     }
 
-    public function scopeLowStock($query)
+    /**
+     * Stock bajo en la sucursal (o en alguna, con null). Solo cuenta donde el repuesto se maneja
+     * (tiene registro de stock), para no alertar por repuestos que una sucursal nunca tuvo.
+     */
+    public function isLowStock(?int $branchId = null): bool
     {
-        return $query->where('is_active', true)->whereColumn('stock_quantity', '<=', 'min_stock');
+        $stocks = $this->relationLoaded('stocks') ? $this->stocks : $this->stocks()->get();
+
+        return $stocks->when($branchId !== null, fn ($s) => $s->where('branch_id', $branchId))
+            ->contains(fn ($stock) => $stock->quantity <= $this->min_stock);
+    }
+
+    public function scopeLowStock($query, ?int $branchId = null)
+    {
+        return $query->where('is_active', true)->whereHas('stocks', fn ($q) => $q
+            ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereColumn('spare_part_stocks.quantity', '<=', 'spare_parts.min_stock'));
+    }
+
+    /**
+     * Fija el stock de una sucursal sin registrar movimiento (cargas iniciales y pruebas).
+     * Para cambios del día a día usar InventoryService.
+     */
+    public function setBranchStock(int $branchId, int $quantity): void
+    {
+        $this->stocks()->updateOrCreate(['branch_id' => $branchId], ['quantity' => $quantity]);
+        $this->stock_quantity = (int) $this->stocks()->sum('quantity');
+        $this->save();
+    }
+
+    public function stocks()
+    {
+        return $this->hasMany(SparePartStock::class);
     }
 
     public function scopeSearch($query, ?string $term)

@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\OrderStatusHistory;
-use App\Models\SparePart;
+use App\Models\SparePartStock;
 use Illuminate\Support\Carbon;
 
 /**
@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
  */
 class BusinessMetrics
 {
-    public function forMonth(Carbon $month): array
+    public function forMonth(Carbon $month, ?int $branchId = null): array
     {
         $from = $month->copy()->startOfMonth();
         $to = $month->copy()->endOfMonth();
@@ -25,8 +25,13 @@ class BusinessMetrics
             'current' => $this->period($from, $to),
             'previous' => $this->period($previousFrom, $previousTo),
             'receivables' => $this->receivables(),
-            'inventory_value' => round((float) SparePart::where('is_active', true)->where('stock_quantity', '>', 0)
-                ->get(['stock_quantity', 'cost_price'])->sum(fn ($p) => $p->stock_quantity * (float) $p->cost_price), 2),
+            'inventory_value' => round((float) SparePartStock::query()
+                ->join('spare_parts', 'spare_parts.id', '=', 'spare_part_stocks.spare_part_id')
+                ->where('spare_parts.is_active', true)
+                ->where('spare_part_stocks.quantity', '>', 0)
+                ->when($branchId, fn ($q) => $q->where('spare_part_stocks.branch_id', $branchId))
+                ->get(['spare_part_stocks.quantity', 'spare_parts.cost_price'])
+                ->sum(fn ($row) => $row->quantity * (float) $row->cost_price), 2),
         ];
     }
 
