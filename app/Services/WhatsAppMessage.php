@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Appointment;
 use App\Models\Order;
 use App\Models\Setting;
 
@@ -145,6 +146,37 @@ class WhatsAppMessage
         $lines[] = "Conserve su número de orden ({$order->order_number}) para cualquier consulta.";
 
         return $lines;
+    }
+
+    public const APPOINTMENT_TYPES = [
+        'appointment_confirmation' => 'Confirmación de cita',
+        'appointment_reminder' => 'Recordatorio de cita',
+    ];
+
+    public static function buildAppointment(string $type, Appointment $appointment): string
+    {
+        $appointment->loadMissing(['client', 'user']);
+
+        $company = Setting::get('company_name', 'SolarFix');
+        $client = $appointment->client?->name ?? 'cliente';
+        $service = strtolower(Appointment::types()[$appointment->type] ?? 'visita');
+        $when = $appointment->scheduled_at->translatedFormat('l d \\d\\e F') . ' a las ' . $appointment->scheduled_at->format('H:i');
+
+        $lines = $type === 'appointment_reminder'
+            ? ["Hola {$client}, le recordamos de *{$company}* su cita de {$service} para *mañana {$when}*."]
+            : ["Hola {$client}, le saludamos de *{$company}*.", "Su cita de {$service} quedó agendada para el *{$when}*."];
+
+        if ($appointment->address) {
+            $lines[] = "Dirección: {$appointment->address}";
+        }
+        if ($appointment->user) {
+            $lines[] = "Técnico: {$appointment->user->name}";
+        }
+
+        $lines[] = '';
+        $lines[] = 'Si necesita reprogramar, responda a este mensaje. ¡Gracias!';
+
+        return implode("\n", $lines);
     }
 
     private static function money($amount): string

@@ -18,6 +18,12 @@
 
     <form method="POST" action="{{ $formAction }}" @if(!$editing) enctype="multipart/form-data" @endif>
         @csrf
+        @if (! $editing && ! empty($appointment))
+            <input type="hidden" name="appointment_id" value="{{ $appointment->id }}">
+            <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm text-blue-900">
+                Orden desde la cita <strong>{{ $appointment->title }}</strong> del {{ $appointment->scheduled_at->format('d/m/Y H:i') }}.
+            </div>
+        @endif
         @if($editing) @method('PUT') @endif
 
         @if($editing)
@@ -710,6 +716,10 @@
     clientInput.addEventListener('input', function() {
         if (!this.value) selectClient(null);
     });
+
+    // Cliente precargado (orden creada desde una cita).
+    var prefillClient = @json($prefillClient ?? null);
+    if (prefillClient && !clientHidden.value) selectClient(prefillClient);
     @else
     buildAutocomplete(clientInput, clientHidden, null, function(item) {
         if (item) {

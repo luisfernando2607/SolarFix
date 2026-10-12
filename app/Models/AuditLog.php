@@ -65,6 +65,7 @@ class AuditLog extends Model
             'SparePart' => 'Repuesto',
             'OrderPart' => 'Repuesto en orden',
             'Commission' => 'Comisión',
+            'Appointment' => 'Cita',
         ];
     }
 

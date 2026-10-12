@@ -36,7 +36,7 @@ class ClientController extends Controller
                 ->orWhere('phone', 'like', $search))
             ->orderBy('name')
             ->take(15)
-            ->get(['id', 'name', 'id_document', 'phone', 'email'])
+            ->get(['id', 'name', 'id_document', 'phone', 'email', 'address'])
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,
@@ -44,6 +44,7 @@ class ClientController extends Controller
                 'id_document' => $c->id_document,
                 'phone' => $c->phone,
                 'email' => $c->email,
+                'address' => $c->address,
             ]);
     }
 

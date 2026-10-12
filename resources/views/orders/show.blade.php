@@ -463,6 +463,26 @@
             </div>
             @endif
 
+            @if ($order->appointments->count() || Gate::allows('manage-appointments'))
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Visitas</h3>
+                @forelse ($order->appointments as $visit)
+                    <a href="{{ route('appointments.show', $visit) }}" class="block text-sm py-1.5 hover:text-blue-700">
+                        <span class="font-medium">{{ $visit->scheduled_at->format('d/m/Y H:i') }}</span>
+                        · {{ \App\Models\Appointment::types()[$visit->type] ?? $visit->type }}
+                        <span class="text-xs text-gray-500">({{ strtolower(\App\Models\Appointment::statuses()[$visit->status]) }}{{ $visit->user ? ', ' . $visit->user->name : '' }})</span>
+                    </a>
+                @empty
+                    <p class="text-sm text-gray-400">Sin visitas agendadas.</p>
+                @endforelse
+                @can('manage-appointments')
+                    @unless (in_array($order->status, ['delivered', 'closed_no_repair']))
+                        <a href="{{ route('appointments.create', ['order_id' => $order->id]) }}" class="mt-3 w-full inline-flex justify-center px-4 py-2 rounded-lg text-sm font-medium bg-white hover:bg-gray-50 text-gray-700 border">Agendar visita</a>
+                    @endunless
+                @endcan
+            </div>
+            @endif
+
             <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Firmas</h3>
                 @php $isAdmin = Auth::user()->isAdmin() || Auth::user()->isSuperAdmin(); @endphp

@@ -291,6 +291,11 @@ class Order extends Model
         return $this->hasMany(OrderSignature::class);
     }
 
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class)->orderBy('scheduled_at');
+    }
+
     public function commission()
     {
         return $this->hasOne(Commission::class);

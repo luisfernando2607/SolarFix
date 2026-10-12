@@ -125,6 +125,28 @@
     </div>
     @endif
 
+    @if ($todayAppointments->count() || $unassignedAppointments)
+    <div class="mt-6 bg-white rounded-xl shadow-sm border border-blue-200">
+        <div class="px-6 py-4 border-b bg-blue-50 flex items-center justify-between">
+            <h3 class="text-base font-semibold text-blue-900">Citas de hoy ({{ $todayAppointments->count() }})</h3>
+            <a href="{{ route('appointments.index') }}" class="text-sm text-blue-800 hover:underline font-medium">Ver agenda →</a>
+        </div>
+        @if ($unassignedAppointments)
+            <p class="px-6 py-2 text-sm text-red-700 bg-red-50 border-b">{{ $unassignedAppointments }} citas próximas sin técnico asignado.</p>
+        @endif
+        <ul class="divide-y">
+            @foreach ($todayAppointments as $appointment)
+            <li>
+                <a href="{{ route('appointments.show', $appointment) }}" class="px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-sm hover:bg-gray-50">
+                    <span><span class="font-semibold">{{ $appointment->scheduled_at->format('H:i') }}</span> · {{ $appointment->title }} · {{ $appointment->client?->name }}</span>
+                    <span class="text-xs text-gray-500">{{ $appointment->address ?? '' }}{{ $appointment->user ? ' · ' . $appointment->user->name : '' }}</span>
+                </a>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     @if ($lowStockParts->count())
     <div class="mt-6 bg-white rounded-xl shadow-sm border border-red-200">
         <div class="px-6 py-4 border-b bg-red-50 flex items-center justify-between">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Accessory;
+use App\Models\Appointment;
 use App\Models\AuditLog;
 use App\Models\Checklist;
 use App\Models\Client;
@@ -56,9 +57,22 @@ class OrderController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('orders.create', $this->formData());
+        $data = $this->formData();
+
+        // Orden creada desde una cita de la agenda: se precarga el cliente.
+        if ($request->filled('appointment_id')) {
+            $appointment = $this->linkableAppointment($request->appointment_id);
+            $client = $appointment->client;
+            $data['appointment'] = $appointment;
+            $data['prefillClient'] = $client ? [
+                'id' => $client->id, 'name' => $client->name, 'id_document' => $client->id_document,
+                'phone' => $client->phone, 'email' => $client->email,
+            ] : null;
+        }
+
+        return view('orders.create', $data);
     }
 
     public function store(Request $request)
@@ -92,7 +106,15 @@ class OrderController extends Controller
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'warranty_days' => ['nullable', 'integer', 'min:0'],
             'user_id' => ['nullable', Rule::in($this->assignableTechnicians()->pluck('id'))],
+            'appointment_id' => ['nullable', 'integer'],
         ]);
+
+        $appointment = ! empty($validated['appointment_id']) ? $this->linkableAppointment($validated['appointment_id']) : null;
+        unset($validated['appointment_id']);
+        // La visita la atiende el técnico de la cita.
+        if ($appointment?->user_id && empty($validated['user_id']) && ! Auth::user()->isTechnician()) {
+            $validated['user_id'] = $appointment->user_id;
+        }
 
         if (!empty($validated['client_id']) && !Client::where('id', $validated['client_id'])->exists()) {
             return back()->withErrors(['client_id' => 'El cliente seleccionado no existe.'])->withInput();
@@ -163,6 +185,8 @@ class OrderController extends Controller
             'changed_by' => Auth::id(),
         ]);
 
+        $appointment?->update(['order_id' => $order->id]);
+
         return redirect()->route('orders.show', $order)
             ->with('success', 'Orden #' . $order->order_number . ' creada exitosamente.');
     }
@@ -187,6 +211,7 @@ class OrderController extends Controller
             'signatures',
             'parentOrder',
             'childOrders',
+            'appointments.user',
         ]);
 
         return view('orders.show', [
@@ -439,6 +464,18 @@ class OrderController extends Controller
                 $q->orWhere('id', $order->user_id);
             }
         })->orderBy('name')->get(['id', 'name']);
+    }
+
+    /**
+     * Cita abierta y sin orden, visible para el usuario (un técnico solo las suyas).
+     */
+    private function linkableAppointment($id): Appointment
+    {
+        $appointment = Appointment::with('client')->findOrFail($id);
+        abort_if(Auth::user()->isTechnician() && $appointment->user_id !== Auth::id(), 403, 'Esta cita está asignada a otro técnico.');
+        abort_if($appointment->order_id || ! $appointment->isOpen(), 422, 'La cita ya tiene una orden o está cerrada.');
+
+        return $appointment;
     }
 
     private function authorizeOrder(Order $order): void

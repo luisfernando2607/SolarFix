@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\OrderStatusHistory;
@@ -76,6 +77,17 @@ class DashboardController extends Controller
             ? SparePart::lowStock()->orderByRaw('stock_quantity - min_stock')->take(10)->get()
             : collect();
 
+        $todayAppointments = Appointment::with(['client', 'user'])
+            ->visibleTo($user)
+            ->whereDate('scheduled_at', today())
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->orderBy('scheduled_at')
+            ->get();
+
+        $unassignedAppointments = $user->can('manage-appointments')
+            ? Appointment::whereNull('user_id')->whereIn('status', ['pending', 'confirmed'])->where('scheduled_at', '>=', now())->count()
+            : 0;
+
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])
             ->orderBy('created_at', 'desc')
@@ -91,6 +103,8 @@ class DashboardController extends Controller
             'approvalHours' => $approvalHours,
             'expiringWarranties' => $expiringWarranties,
             'lowStockParts' => $lowStockParts,
+            'todayAppointments' => $todayAppointments,
+            'unassignedAppointments' => $unassignedAppointments,
             'warrantyAlertDays' => Warranty::alertDays(),
             'statuses' => Order::statuses(),
         ]);

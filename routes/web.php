@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessoryController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CashClosingController;
@@ -64,6 +65,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
         Route::get('/clients-search', [ClientController::class, 'search'])->name('clients.search');
         Route::get('/commissions', [CommissionController::class, 'index'])->name('commissions.index');
+        Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+        Route::get('/appointments/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show')->whereNumber('appointment');
+        Route::patch('/appointments/{appointment}/status', [AppointmentController::class, 'status'])->name('appointments.status');
+        Route::post('/appointments/{appointment}/whatsapp/{type}', [AppointmentController::class, 'whatsapp'])->name('appointments.whatsapp');
         Route::get('/spare-parts', [SparePartController::class, 'index'])->name('spare-parts.index');
         Route::get('/spare-parts-search', [SparePartController::class, 'search'])->name('spare-parts.search');
         Route::get('/spare-parts/{spare_part}', [SparePartController::class, 'show'])->name('spare-parts.show')->whereNumber('spare_part');
@@ -99,6 +104,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
             Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
             Route::get('/cash', [CashClosingController::class, 'index'])->name('cash.index');
+            Route::get('/appointments/create', [AppointmentController::class, 'create'])->name('appointments.create');
+            Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
+            Route::get('/appointments/{appointment}/edit', [AppointmentController::class, 'edit'])->name('appointments.edit');
+            Route::put('/appointments/{appointment}', [AppointmentController::class, 'update'])->name('appointments.update');
             Route::get('/warranties', [WarrantyController::class, 'index'])->name('warranties.index');
             Route::patch('/warranties/{warranty}', [WarrantyController::class, 'update'])->name('warranties.update');
             Route::get('/orders/{order}/warranty-claim', [WarrantyController::class, 'createClaim'])->name('warranties.claim.create');
