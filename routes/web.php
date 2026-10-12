@@ -113,6 +113,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/orders/{order}/warranty-claim', [WarrantyController::class, 'createClaim'])->name('warranties.claim.create');
             Route::post('/orders/{order}/warranty-claim', [WarrantyController::class, 'storeClaim'])->name('warranties.claim.store');
             Route::post('/cash', [CashClosingController::class, 'store'])->name('cash.store');
+            Route::post('/cash/movements', [CashClosingController::class, 'storeMovement'])->name('cash.movements.store');
+            Route::delete('/cash/movements/{movement}', [CashClosingController::class, 'destroyMovement'])->name('cash.movements.destroy');
         });
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');

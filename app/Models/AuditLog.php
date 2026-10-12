@@ -66,6 +66,7 @@ class AuditLog extends Model
             'OrderPart' => 'Repuesto en orden',
             'Commission' => 'Comisión',
             'Appointment' => 'Cita',
+            'CashMovement' => 'Movimiento de caja',
         ];
     }
 

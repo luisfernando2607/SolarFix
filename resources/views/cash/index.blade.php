@@ -72,9 +72,64 @@
             @endif
         </div>
 
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border overflow-hidden lg:order-3">
+            <div class="px-6 py-4 border-b bg-gray-50/50">
+                <h3 class="text-base font-semibold text-gray-800">Movimientos de efectivo</h3>
+                <p class="text-xs text-gray-500">Fondo inicial, gastos, retiros y otros ingresos que no vienen de una orden.</p>
+            </div>
+            @if ($movements->count())
+                <ul class="divide-y">
+                    @foreach ($movements as $movement)
+                        <li class="px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+                            <span>
+                                <span class="font-medium">{{ \App\Models\CashMovement::types()[$movement->type] }}</span>
+                                · {{ $movement->description }}
+                                <span class="text-xs text-gray-400">· {{ $movement->registeredBy?->name }} {{ $movement->created_at->format('H:i') }}</span>
+                            </span>
+                            <span class="flex items-center gap-3">
+                                <span class="font-semibold {{ $movement->signedAmount() < 0 ? 'text-red-600' : 'text-green-700' }}">{{ $movement->signedAmount() < 0 ? '−' : '+' }}${{ number_format($movement->amount, 2) }}</span>
+                                @if (Auth::user()->isAdmin() || Auth::user()->isSuperAdmin())
+                                    <form method="POST" action="{{ route('cash.movements.destroy', $movement) }}" onsubmit="return confirm('¿Eliminar este movimiento?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700">Eliminar</button>
+                                    </form>
+                                @endif
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+            <form method="POST" action="{{ route('cash.movements.store') }}" class="px-6 py-4 border-t flex flex-wrap items-end gap-2">
+                @csrf
+                <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+                <select name="type" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                    @foreach (\App\Models\CashMovement::types() as $key => $label)
+                        <option value="{{ $key }}" {{ old('type', $movements->where('type', 'opening')->isEmpty() ? 'opening' : 'expense') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <input type="number" name="amount" step="0.01" min="0.01" required placeholder="Monto" value="{{ old('amount') }}"
+                    class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm @error('amount') border-red-500 @enderror">
+                <input type="text" name="description" maxlength="255" required placeholder="Detalle (ej. compra de pegamento)" value="{{ old('description') }}"
+                    class="flex-1 min-w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm @error('description') border-red-500 @enderror">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Registrar</button>
+            </form>
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm border p-6 h-fit">
             <h3 class="text-base font-semibold text-gray-800 mb-1">Cuadre de caja</h3>
-            <p class="text-xs text-gray-500 mb-4">Cuenta el efectivo físico y compáralo con el sistema (${{ number_format($totals['cash'], 2) }}).</p>
+            <p class="text-xs text-gray-500 mb-3">Cuenta el efectivo físico y compáralo con lo que debería haber.</p>
+            <dl class="mb-4 text-sm space-y-1">
+                @foreach ([
+                    ['Fondo inicial', $cash['opening'], ''],
+                    ['Cobros en efectivo', $cash['payments'], '+'],
+                    ['Otros ingresos', $cash['income'], '+'],
+                    ['Gastos', $cash['expenses'], '−'],
+                    ['Retiros / depósitos', $cash['withdrawals'], '−'],
+                ] as [$label, $value, $sign])
+                    <div class="flex justify-between"><dt class="text-gray-500">{{ $sign }} {{ $label }}</dt><dd class="text-gray-800">${{ number_format($value, 2) }}</dd></div>
+                @endforeach
+                <div class="flex justify-between border-t pt-1 font-semibold"><dt>Efectivo esperado</dt><dd>${{ number_format($cash['expected'], 2) }}</dd></div>
+            </dl>
 
             @if ($closing)
                 <div class="mb-4 rounded-lg border p-3 text-sm {{ (float) $closing->difference == 0 ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200' }}">
@@ -85,8 +140,8 @@
                     @if ($closing->notes)
                         <p class="mt-1 text-gray-600">{{ $closing->notes }}</p>
                     @endif
-                    @if ((float) $closing->expected_cash != $totals['cash'])
-                        <p class="mt-2 text-xs text-red-700">Se registraron pagos en efectivo después del cierre (esperado al cerrar: ${{ number_format($closing->expected_cash, 2) }}). Vuelve a cerrar la caja.</p>
+                    @if ((float) $closing->expected_cash != $cash['expected'])
+                        <p class="mt-2 text-xs text-red-700">Hubo movimientos de efectivo después del cierre (esperado al cerrar: ${{ number_format($closing->expected_cash, 2) }}). Vuelve a cerrar la caja.</p>
                     @endif
                 </div>
             @endif

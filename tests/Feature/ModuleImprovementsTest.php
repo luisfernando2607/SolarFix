@@ -99,4 +99,49 @@ class ModuleImprovementsTest extends TestCase
         $this->actingAs($admin)->get(route('appointments.create', ['client_id' => $client->id]))
             ->assertOk()->assertSee('Calle Larga 123');
     }
+
+    // --- 3. Egresos y fondo inicial en la caja ---
+
+    public function test_expected_cash_includes_opening_expenses_and_withdrawals(): void
+    {
+        $receptionist = User::factory()->role('receptionist')->create();
+        $order = $this->makeOrder();
+        \App\Models\OrderPayment::create(['order_id' => $order->id, 'amount' => 100, 'method' => 'cash', 'paid_at' => now()]);
+        \App\Models\OrderPayment::create(['order_id' => $order->id, 'amount' => 40, 'method' => 'transfer', 'paid_at' => now()]);
+
+        foreach ([['opening', 50, 'Fondo'], ['expense', 15, 'Pegamento'], ['withdrawal', 60, 'Depósito banco'], ['income', 5, 'Venta de funda']] as [$type, $amount, $description]) {
+            $this->actingAs($receptionist)->post(route('cash.movements.store'), compact('type', 'amount', 'description'))->assertSessionHasNoErrors();
+        }
+
+        // 50 + 100 + 5 − 15 − 60 = 80 (la transferencia no cuenta como efectivo)
+        $this->actingAs($receptionist)->get(route('cash.index'))
+            ->assertOk()
+            ->assertViewHas('cash', fn ($c) => $c['expected'] == 80 && $c['expenses'] == 15 && $c['opening'] == 50);
+
+        $this->actingAs($receptionist)->post(route('cash.store'), ['counted_cash' => 80])->assertSessionHasNoErrors();
+
+        $closing = \App\Models\CashClosing::first();
+        $this->assertEquals(80, $closing->expected_cash);
+        $this->assertEquals(0, $closing->difference);
+        $this->assertEquals(15, $closing->expenses);
+        $this->assertEquals(100, $closing->cash_payments);
+    }
+
+    public function test_only_admin_deletes_cash_movements(): void
+    {
+        $receptionist = User::factory()->role('receptionist')->create();
+        $this->actingAs($receptionist)->post(route('cash.movements.store'), ['type' => 'expense', 'amount' => 10, 'description' => 'Taxi']);
+        $movement = \App\Models\CashMovement::first();
+
+        $this->actingAs($receptionist)->delete(route('cash.movements.destroy', $movement))->assertForbidden();
+        $this->actingAs($this->admin())->delete(route('cash.movements.destroy', $movement))->assertRedirect();
+        $this->assertModelMissing($movement);
+        $this->assertTrue(\App\Models\AuditLog::where('auditable_type', 'CashMovement')->where('event', 'deleted')->exists());
+    }
+
+    public function test_cash_movement_validation(): void
+    {
+        $this->actingAs($this->admin())->post(route('cash.movements.store'), ['type' => 'robo', 'amount' => 0, 'description' => ''])
+            ->assertSessionHasErrors(['type', 'amount', 'description']);
+    }
 }
