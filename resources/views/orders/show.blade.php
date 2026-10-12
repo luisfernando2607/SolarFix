@@ -15,6 +15,9 @@
             </a>
             <div class="flex items-center gap-3 mt-2">
                 <h2 class="text-2xl font-bold text-gray-800">Orden #{{ $order->order_number }}</h2>
+                @if (\App\Models\Branch::count() > 1 && $order->branch)
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ $order->branch->name }}</span>
+                @endif
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                     {{ $order->status === 'received' ? 'bg-blue-100 text-blue-800' : '' }}
                     {{ $order->status === 'diagnosing' ? 'bg-amber-100 text-amber-800' : '' }}

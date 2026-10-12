@@ -50,7 +50,7 @@ class ConfigurationTest extends TestCase
 
         $this->actingAs($admin)->post(route('orders.store'), $this->orderPayload());
         $order = Order::latest('id')->first();
-        $this->assertSame('SF-' . now()->format('Ymd') . '-0001', $order->order_number);
+        $this->assertSame('SF-MAT-' . now()->format('Ymd') . '-0001', $order->order_number);
 
         $invoice = Invoice::createWithUniqueNumber(['client_name' => 'X', 'subtotal' => 1, 'issued_at' => now(), 'status' => 'emitida']);
         $this->assertSame('FE-0001', $invoice->invoice_number);

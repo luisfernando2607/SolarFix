@@ -96,6 +96,7 @@ class SolarFixTest extends TestCase
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role,
+            'branch_id' => $user->branch_id,
             'is_active' => '0', // lo que envía el input hidden cuando el checkbox está desmarcado
         ])->assertRedirect(route('users.index'));
 

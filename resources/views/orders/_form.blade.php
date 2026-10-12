@@ -271,6 +271,17 @@
                         </div>
                         @endif
 
+                        @if (! $editing && $branches->count() > 1)
+                        <div class="flex-1" style="min-width:160px">
+                            <label for="branch_id" class="block text-sm font-medium text-gray-700 mb-1">Sucursal *</label>
+                            <select id="branch_id" name="branch_id" required
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white">
+                                @foreach ($branches as $branchOption)
+                                    <option value="{{ $branchOption->id }}" {{ (string) old('branch_id', \App\Support\BranchContext::forCreate()) === (string) $branchOption->id ? 'selected' : '' }}>{{ $branchOption->name }} ({{ $branchOption->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
                         @unless(Auth::user()->isTechnician())
                         <div class="flex-1" style="min-width:160px">
                             <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">Técnico asignado</label>
@@ -278,7 +289,7 @@
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white @error('user_id') border-red-500 @enderror">
                                 <option value="">Sin asignar</option>
                                 @foreach ($technicians as $technician)
-                                    <option value="{{ $technician->id }}" {{ (string) old('user_id', $editing ? $order->user_id : '') === (string) $technician->id ? 'selected' : '' }}>{{ $technician->name }}</option>
+                                    <option value="{{ $technician->id }}" {{ (string) old('user_id', $editing ? $order->user_id : '') === (string) $technician->id ? 'selected' : '' }}>{{ $technician->name }}{{ $branches->count() > 1 && $technician->branch ? ' (' . $technician->branch->code . ')' : '' }}</option>
                                 @endforeach
                             </select>
                             @error('user_id') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror

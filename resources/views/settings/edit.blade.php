@@ -41,7 +41,7 @@
                     <label for="order_prefix" class="block text-sm font-medium text-gray-700 mb-1">Prefijo de orden *</label>
                     <input id="order_prefix" name="order_prefix" type="text" maxlength="6" style="text-transform:uppercase" value="{{ old('order_prefix', $settings['order_prefix']) }}" required
                         class="{{ $input }} @error('order_prefix') border-red-500 @enderror">
-                    <p class="text-xs text-gray-500 mt-1">Ej. SF → SF-20261012-0001</p>
+                    <p class="text-xs text-gray-500 mt-1">Ej. SF → SF-GYE-20261012-0001 (GYE = código de la sucursal)</p>
                     @error('order_prefix') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>

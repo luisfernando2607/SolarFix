@@ -30,7 +30,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'branch_id' => ['nullable', 'exists:branches,id'],
+            'branch_id' => ['required_unless:role,super_admin,admin', 'nullable', 'exists:branches,id'],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:180', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -64,7 +64,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'branch_id' => ['nullable', 'exists:branches,id'],
+            'branch_id' => ['required_unless:role,super_admin,admin', 'nullable', 'exists:branches,id'],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:180', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],

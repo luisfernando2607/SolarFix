@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessoryController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ClientController;
@@ -71,6 +72,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/spare-parts/{spare_part}', [SparePartController::class, 'destroy'])->name('spare-parts.destroy');
         Route::post('/spare-parts/{spare_part}/adjust', [SparePartController::class, 'adjust'])->name('spare-parts.adjust');
         Route::resource('checklists', ChecklistController::class)->except(['show', 'destroy']);
+        Route::resource('branches', BranchController::class)->except(['show', 'destroy']);
+        Route::post('/branch-context', [BranchController::class, 'switch'])->name('branch-context');
         Route::post('/commissions/pay', [CommissionController::class, 'pay'])->name('commissions.pay');
         Route::get('/clients-duplicates', [ClientMergeController::class, 'duplicates'])->name('clients.duplicates');
         Route::post('/clients/{client}/merge', [ClientMergeController::class, 'merge'])->name('clients.merge');

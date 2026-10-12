@@ -133,13 +133,13 @@ class DashboardController extends Controller
         $since = fn ($order, string $status) => $order->statusHistory->where('to_status', $status)->max('changed_at') ?? $order->updated_at;
 
         return [
-            'ready' => Order::with($with)->where('status', 'ready')->get()
+            'ready' => Order::visibleTo(Auth::user())->with($with)->where('status', 'ready')->get()
                 ->each(fn ($o) => $o->status_since = $since($o, 'ready'))
                 ->sortBy('status_since')->values(),
-            'waiting' => Order::with($with)->where('status', 'waiting_approval')->get()
+            'waiting' => Order::visibleTo(Auth::user())->with($with)->where('status', 'waiting_approval')->get()
                 ->each(fn ($o) => $o->status_since = $since($o, 'waiting_approval'))
                 ->sortBy('status_since')->values(),
-            'today' => Order::with(['client', 'brand', 'deviceModel', 'user'])->whereDate('created_at', today())->latest('id')->get(),
+            'today' => Order::visibleTo(Auth::user())->with(['client', 'brand', 'deviceModel', 'user'])->whereDate('created_at', today())->latest('id')->get(),
         ];
     }
 
@@ -165,7 +165,7 @@ class DashboardController extends Controller
 
         return [
             'stages' => collect($stages)->map(fn ($statuses) => $orders->whereIn('status', $statuses)->values()),
-            'available' => Order::with(['client', 'brand', 'deviceModel'])
+            'available' => Order::visibleTo($user)->with(['client', 'brand', 'deviceModel'])
                 ->whereNull('user_id')
                 ->whereNotIn('status', ['delivered', 'closed_no_repair'])
                 ->orderBy('entry_date')

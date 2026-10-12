@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Accessory;
 use App\Models\Appointment;
 use App\Models\AuditLog;
+use App\Models\Branch;
 use App\Models\Checklist;
 use App\Models\Client;
 use App\Models\Commission;
@@ -19,6 +20,7 @@ use App\Models\User;
 use App\Notifications\AssignmentNotification;
 use App\Services\InventoryService;
 use App\Services\OrderWorkflow;
+use App\Support\BranchContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -114,7 +116,16 @@ class OrderController extends Controller
             'warranty_days' => ['nullable', 'integer', 'min:0'],
             'user_id' => ['nullable', Rule::in($this->assignableTechnicians()->pluck('id'))],
             'appointment_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('is_active', true)],
         ]);
+
+        // Sucursal: los administradores la eligen; los demás usan la suya.
+        $validated['branch_id'] = BranchContext::seesAllBranches() && ! empty($validated['branch_id'])
+            ? (int) $validated['branch_id']
+            : BranchContext::forCreate();
+        if (! empty($validated['user_id']) && (int) User::whereKey($validated['user_id'])->value('branch_id') !== $validated['branch_id']) {
+            return back()->withInput()->withErrors(['user_id' => 'El técnico elegido no pertenece a esa sucursal.']);
+        }
 
         $appointment = ! empty($validated['appointment_id']) ? $this->linkableAppointment($validated['appointment_id']) : null;
         unset($validated['appointment_id']);
@@ -461,6 +472,9 @@ class OrderController extends Controller
 
         return [
             'technicians' => $this->assignableTechnicians($order),
+            'branches' => BranchContext::seesAllBranches() && ! $order
+                ? Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])
+                : collect(),
             'brands' => $brands,
             'brandsData' => $brands->map(fn ($b) => [
                 'id' => $b->id,
@@ -485,12 +499,16 @@ class OrderController extends Controller
      */
     private function assignableTechnicians(?Order $order = null)
     {
-        return User::where(function ($q) use ($order) {
-            $q->where('role', 'technician')->where('is_active', true);
+        // Técnicos de la sucursal de la orden (o de la sucursal activa al crear); con "todas", de cualquiera.
+        $branch = $order?->branch_id ?? BranchContext::current();
+
+        return User::with('branch:id,code')->where(function ($q) use ($order, $branch) {
+            $q->where('role', 'technician')->where('is_active', true)
+                ->when($branch, fn ($q) => $q->where('branch_id', $branch));
             if ($order?->user_id) {
                 $q->orWhere('id', $order->user_id);
             }
-        })->orderBy('name')->get(['id', 'name']);
+        })->orderBy('name')->get(['id', 'name', 'branch_id']);
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\UniqueConstraintViolationException;
+use App\Support\BranchContext;
 use Illuminate\Support\Str;
 
 class Order extends Model
@@ -100,6 +101,7 @@ class Order extends Model
     {
         static::creating(function (Order $order) {
             $order->tracking_token ??= Str::random(32);
+            $order->branch_id ??= BranchContext::forCreate();
         });
     }
 
@@ -118,7 +120,9 @@ class Order extends Model
     {
         for ($attempt = 1; ; $attempt++) {
             try {
-                return self::create($attributes + ['order_number' => self::nextOrderNumber()]);
+                $attributes['branch_id'] ??= BranchContext::forCreate();
+
+                return self::create($attributes + ['order_number' => self::nextOrderNumber($attributes['branch_id'])]);
             } catch (UniqueConstraintViolationException $e) {
                 if ($attempt >= 5) {
                     throw $e;
@@ -127,9 +131,13 @@ class Order extends Model
         }
     }
 
-    private static function nextOrderNumber(): string
+    /**
+     * Prefijo-CÓDIGO-AAAAMMDD-0001: cada sucursal lleva su propia secuencia diaria.
+     */
+    private static function nextOrderNumber(?int $branchId): string
     {
-        $prefix = Setting::get('order_prefix', 'ORD') . '-' . now()->format('Ymd') . '-';
+        $code = $branchId ? Branch::whereKey($branchId)->value('code') : null;
+        $prefix = Setting::get('order_prefix', 'ORD') . '-' . ($code ? $code . '-' : '') . now()->format('Ymd') . '-';
         // withTrashed: las órdenes anuladas conservan su número.
         $last = self::withTrashed()
             ->where('order_number', 'like', $prefix . '%')
@@ -261,6 +269,12 @@ class Order extends Model
      */
     public function scopeVisibleTo($query, User $user)
     {
+        // Sucursal: la propia (recepción y técnicos) o la elegida en el selector (administradores).
+        $branch = BranchContext::current($user);
+        if ($branch) {
+            $query->where('branch_id', $branch);
+        }
+
         if ($user->isTechnician()) {
             $query->where(fn ($q) => $q->where('user_id', $user->id)->orWhereNull('user_id'));
         }
@@ -270,6 +284,10 @@ class Order extends Model
 
     public function isVisibleTo(User $user): bool
     {
+        if (! BranchContext::allows($this->branch_id, $user)) {
+            return false;
+        }
+
         return ! $user->isTechnician() || $this->user_id === null || (int) $this->user_id === $user->id;
     }
 

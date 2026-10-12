@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderNote;
 use App\Services\OrderWorkflow;
+use App\Support\BranchContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -45,6 +46,8 @@ class OrderWorkController extends Controller
     public function take(Order $order)
     {
         abort_unless(Auth::user()->isTechnician(), 403, 'Solo un técnico puede tomar una orden.');
+
+        abort_unless(BranchContext::allows($order->branch_id), 403, 'La orden es de otra sucursal.');
 
         if ($order->user_id) {
             return back()->with('error', 'Esta orden ya tiene técnico asignado.');
