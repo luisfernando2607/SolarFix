@@ -142,7 +142,7 @@ class OrderController extends Controller
 
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('order_photos', 'public');
+                $path = $photo->store('order_photos', 'local');
                 OrderPhoto::create([
                     'order_id' => $order->id,
                     'stage' => 'reception',
@@ -328,7 +328,7 @@ class OrderController extends Controller
             'caption' => ['nullable', 'string', 'max:200'],
         ]);
 
-        $path = $request->file('photo')->store('order_photos', 'public');
+        $path = $request->file('photo')->store('order_photos', 'local');
 
         OrderPhoto::create([
             'order_id' => $order->id,
@@ -342,6 +342,20 @@ class OrderController extends Controller
             ->with('success', 'Foto agregada.');
     }
 
+    public function showPhoto(Order $order, OrderPhoto $photo)
+    {
+        $this->authorizeOrder($order);
+
+        if ($photo->order_id !== $order->id) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('local')->exists($photo->file_path) ? Storage::disk('local') : Storage::disk('public');
+        abort_unless($disk->exists($photo->file_path), 404);
+
+        return $disk->response($photo->file_path, null, ['Cache-Control' => 'private, max-age=86400']);
+    }
+
     public function deletePhoto(Order $order, OrderPhoto $photo)
     {
         $this->authorizeOrder($order);
@@ -350,6 +364,8 @@ class OrderController extends Controller
             abort(404);
         }
 
+        // Las fotos anteriores a la migración a almacenamiento privado pueden seguir en el disco público.
+        Storage::disk('local')->delete($photo->file_path);
         Storage::disk('public')->delete($photo->file_path);
         $photo->delete();
 
@@ -362,19 +378,10 @@ class OrderController extends Controller
      */
     private function formData(?Order $order = null): array
     {
-        $clients = Client::orderBy('name')->get();
         $brands = DeviceBrand::where('is_active', true)->orderBy('name')->get();
 
         return [
             'technicians' => $this->assignableTechnicians($order),
-            'clients' => $clients,
-            'clientsData' => $clients->map(fn ($c) => [
-                'id' => $c->id,
-                'name' => $c->name,
-                'id_document' => $c->id_document,
-                'phone' => $c->phone,
-                'email' => $c->email,
-            ]),
             'brands' => $brands,
             'brandsData' => $brands->map(fn ($b) => [
                 'id' => $b->id,

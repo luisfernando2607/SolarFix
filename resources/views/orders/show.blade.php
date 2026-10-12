@@ -167,8 +167,8 @@
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                     @foreach ($order->photos as $photo)
-                        <a href="{{ Storage::url($photo->file_path) }}" target="_blank" class="block aspect-square rounded-lg overflow-hidden border bg-gray-100 hover:opacity-90 transition">
-                            <img src="{{ Storage::url($photo->file_path) }}" class="w-full h-full object-cover" alt="{{ $photo->caption ?? 'Foto' }}" loading="lazy">
+                        <a href="{{ route('orders.photo.show', [$order, $photo]) }}" target="_blank" class="block aspect-square rounded-lg overflow-hidden border bg-gray-100 hover:opacity-90 transition">
+                            <img src="{{ route('orders.photo.show', [$order, $photo]) }}" class="w-full h-full object-cover" alt="{{ $photo->caption ?? 'Foto' }}" loading="lazy">
                         </a>
                     @endforeach
                 </div>

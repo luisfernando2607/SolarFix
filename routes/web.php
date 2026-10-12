@@ -45,9 +45,11 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
+        Route::get('/clients-search', [ClientController::class, 'search'])->name('clients.search');
         Route::resource('orders', OrderController::class)->except(['destroy']);
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');
+        Route::get('/orders/{order}/photos/{photo}', [OrderController::class, 'showPhoto'])->name('orders.photo.show');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');
         Route::post('/orders/{order}/whatsapp/{type}', [WhatsAppController::class, 'send'])->name('orders.whatsapp');
         Route::controller(SignatureController::class)->where(['stage' => 'reception|delivery'])->group(function () {

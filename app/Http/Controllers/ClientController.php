@@ -23,6 +23,30 @@ class ClientController extends Controller
         return view('clients.index', compact('clients'));
     }
 
+    /**
+     * Búsqueda para el autocompletado del formulario de órdenes.
+     */
+    public function search(Request $request)
+    {
+        $request->validate(['q' => ['required', 'string', 'max:100']]);
+        $search = '%' . $request->q . '%';
+
+        return Client::where(fn ($q) => $q->where('name', 'like', $search)
+                ->orWhere('id_document', 'like', $search)
+                ->orWhere('phone', 'like', $search))
+            ->orderBy('name')
+            ->take(15)
+            ->get(['id', 'name', 'id_document', 'phone', 'email'])
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'label' => $c->name . ($c->id_document ? ' · ' . $c->id_document : ''),
+                'id_document' => $c->id_document,
+                'phone' => $c->phone,
+                'email' => $c->email,
+            ]);
+    }
+
     public function create()
     {
         return view('clients.create');

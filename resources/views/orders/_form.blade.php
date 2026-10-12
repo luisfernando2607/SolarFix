@@ -150,7 +150,7 @@
                             <div class="grid grid-cols-4 gap-2 mb-4">
                                 @foreach ($order->photos as $photo)
                                     <div class="relative group rounded-lg overflow-hidden border bg-gray-100" style="width:100%;aspect-ratio:1">
-                                        <img src="{{ Storage::url($photo->file_path) }}" style="width:100%;height:100%;object-fit:cover" alt="Foto" loading="lazy">
+                                        <img src="{{ route('orders.photo.show', [$order, $photo]) }}" style="width:100%;height:100%;object-fit:cover" alt="Foto" loading="lazy">
                                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                                             <button type="button" onclick="deletePhoto({{ $photo->id }}, this)" class="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition" title="Eliminar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -567,7 +567,22 @@
 
     var brandsData = @json($brandsData);
     var modelsData = @json($modelsByBrand);
-    var clientsData = @json($clientsData);
+    var clientSearchUrl = @json(route('clients.search'));
+
+    // Busca clientes en el servidor (nombre, cédula o teléfono) en lugar de cargarlos todos en la página.
+    var clientSearchTimer;
+    function searchClients(q) {
+        return new Promise(function (resolve) {
+            clearTimeout(clientSearchTimer);
+            if (!q || q.trim().length < 2) return resolve([]);
+            clientSearchTimer = setTimeout(function () {
+                fetch(clientSearchUrl + '?q=' + encodeURIComponent(q.trim()), { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .then(resolve)
+                    .catch(function () { resolve([]); });
+            }, 250);
+        });
+    }
     var deviceTypesData = @json($deviceTypesData);
 
     var clientInput = document.getElementById('client_input');
@@ -579,7 +594,7 @@
     var deviceTypeInput = document.getElementById('device_type_input');
     var deviceTypeHidden = document.getElementById('device_type');
 
-    function buildAutocomplete(input, hidden, getItems, onSelect) {
+    function buildAutocomplete(input, hidden, getItems, onSelect, remoteSearch) {
         var container = input.parentElement;
         var dropdown = document.createElement('div');
         dropdown.className = 'absolute z-50 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg max-h-48 overflow-y-auto hidden';
@@ -605,7 +620,7 @@
             results.forEach(function(item, i) {
                 var div = document.createElement('div');
                 div.className = 'px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700';
-                div.textContent = item.name;
+                div.textContent = item.label || item.name;
                 div.dataset.id = item.id;
                 div.addEventListener('mousedown', function(e) {
                     e.preventDefault();
@@ -628,14 +643,21 @@
             items[selectedIdx].classList.add('bg-blue-50', 'text-blue-700');
         }
 
+        function update(q) {
+            if (!remoteSearch) return render(filter(q));
+            remoteSearch(q).then(function (results) {
+                if (input.value === q) render(results);
+            });
+        }
+
         input.addEventListener('input', function() {
             hidden.value = '';
-            render(filter(this.value));
+            update(this.value);
             if (onSelect) onSelect(null);
         });
 
         input.addEventListener('focus', function() {
-            if (this.value) render(filter(this.value));
+            if (this.value && !hidden.value) update(this.value);
         });
 
         input.addEventListener('blur', function() {
@@ -676,30 +698,22 @@
         }
     }
 
-    buildAutocomplete(clientInput, clientHidden, function() {
-        var q = (clientInput.value || '').toLowerCase().trim();
-        if (!q) return [];
-        return clientsData.filter(function(c) {
-            return c.name.toLowerCase().includes(q) || (c.id_document && c.id_document.includes(q));
-        }).slice(0, 15);
-    }, function(item) {
+    buildAutocomplete(clientInput, clientHidden, null, function(item) {
         selectClient(item);
-    });
+    }, searchClients);
 
     clientInput.addEventListener('input', function() {
         if (!this.value) selectClient(null);
     });
     @else
-    buildAutocomplete(clientInput, clientHidden, function() {
-        return clientsData;
-    }, function(item) {
+    buildAutocomplete(clientInput, clientHidden, null, function(item) {
         if (item) {
             document.getElementById('display_name').textContent = item.name;
             document.getElementById('display_document').textContent = item.id_document || '—';
             document.getElementById('display_phone').textContent = item.phone || '—';
             document.getElementById('display_email').textContent = item.email || '—';
         }
-    });
+    }, searchClients);
     @endif
 
     buildAutocomplete(deviceTypeInput, deviceTypeHidden, function() {

@@ -11,7 +11,8 @@
 <body class="bg-gray-100 font-sans antialiased">
     <div class="min-h-screen flex">
         @auth
-            <aside class="sticky top-0 h-screen w-64 bg-gray-900 text-white hidden md:flex flex-col">
+            <div id="sidebarOverlay" class="fixed inset-0 z-30 bg-black/50 hidden md:hidden"></div>
+            <aside id="sidebar" class="fixed md:sticky inset-y-0 left-0 top-0 z-40 h-screen w-64 bg-gray-900 text-white flex flex-col -translate-x-full md:translate-x-0 transition-transform duration-200">
                 <div class="px-6 py-5 border-b border-gray-700">
                     <h1 class="text-xl font-bold tracking-tight">{{ config('app.name') }}</h1>
                     <p class="text-xs text-gray-400 mt-0.5">Sistema de Reparaciones</p>
@@ -104,11 +105,16 @@
             </aside>
         @endauth
 
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col min-w-0">
             @auth
-                <header class="bg-white shadow-sm border-b md:hidden">
+                <header class="sticky top-0 z-20 bg-white shadow-sm border-b md:hidden">
                     <div class="px-4 py-3 flex items-center justify-between">
-                        <h1 class="text-lg font-bold">{{ config('app.name') }}</h1>
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="sidebarToggle" class="p-1 -ml-1 text-gray-700" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                            </button>
+                            <h1 class="text-lg font-bold">{{ config('app.name') }}</h1>
+                        </div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-600">{{ Auth::user()->name }}</span>
                             <form method="POST" action="{{ route('logout') }}">
@@ -161,6 +167,27 @@
         </script>
     @endif
     <script>
+        // Menú lateral deslizable en pantallas pequeñas.
+        (function () {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
+            var toggle = document.getElementById('sidebarToggle');
+            if (!sidebar || !toggle) return;
+
+            function setOpen(open) {
+                sidebar.classList.toggle('-translate-x-full', !open);
+                overlay.classList.toggle('hidden', !open);
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+
+            toggle.addEventListener('click', function () { setOpen(true); });
+            overlay.addEventListener('click', function () { setOpen(false); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+            sidebar.querySelectorAll('nav a').forEach(function (link) {
+                link.addEventListener('click', function () { setOpen(false); });
+            });
+        })();
+
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('[data-table]').forEach(function (table) {
                 var wrapper = table.closest('.overflow-x-auto') || table.parentElement;
