@@ -269,6 +269,18 @@ class Order extends Model
             : null;
     }
 
+    /**
+     * Agrega status_since: cuándo entró la orden por última vez al estado (calculado en SQL,
+     * para ordenar y filtrar sin cargar el historial completo).
+     */
+    public function scopeWithStatusSince($query, string $status)
+    {
+        return $query->addSelect(['status_since' => OrderStatusHistory::selectRaw('max(changed_at)')
+            ->whereColumn('order_id', 'orders.id')
+            ->where('to_status', $status)])
+            ->withCasts(['status_since' => 'datetime']);
+    }
+
     public function isWarrantyOrder(): bool
     {
         return $this->parent_order_id !== null;

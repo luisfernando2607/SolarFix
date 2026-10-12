@@ -31,7 +31,7 @@
                             @endif
                         </a>
                 </div>
-                @php $activeBranches = \App\Models\Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']); @endphp
+                @php $activeBranches = \App\Models\Branch::activeList(); $currentBranch = \App\Support\BranchContext::current(); @endphp
                 @if (\App\Support\BranchContext::seesAllBranches() && $activeBranches->count() > 1)
                     <form method="POST" action="{{ route('branch-context') }}" class="px-4 pt-4">
                         @csrf
@@ -40,7 +40,7 @@
                             class="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none">
                             <option value="">Todas las sucursales</option>
                             @foreach ($activeBranches as $option)
-                                <option value="{{ $option->id }}" {{ \App\Support\BranchContext::current() === $option->id ? 'selected' : '' }}>{{ $option->name }} ({{ $option->code }})</option>
+                                <option value="{{ $option->id }}" {{ $currentBranch === $option->id ? 'selected' : '' }}>{{ $option->name }} ({{ $option->code }})</option>
                             @endforeach
                         </select>
                     </form>

@@ -93,7 +93,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
         Route::get('/clients-search', [ClientController::class, 'search'])->middleware('throttle:60,1')->name('clients.search');
-        Route::get('/commissions', [CommissionController::class, 'index'])->name('commissions.index');
+        Route::get('/commissions', [CommissionController::class, 'index'])->middleware('role:super_admin,admin,technician')->name('commissions.index');
         Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
         Route::get('/appointments/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show')->whereNumber('appointment');
         Route::patch('/appointments/{appointment}/status', [AppointmentController::class, 'status'])->name('appointments.status');

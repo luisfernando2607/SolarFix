@@ -80,6 +80,7 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-6">
+        <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
                 <tr class="bg-gray-50 border-b">
@@ -116,6 +117,7 @@
                 </tr>
             </tfoot>
         </table>
+        </div>
     </div>
 
     @if ($invoicePayments->count())

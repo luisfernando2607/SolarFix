@@ -58,12 +58,9 @@ class InvoiceController extends Controller
             $client = $order->client;
         }
 
-        $clients = Client::orderBy('name')->get();
-
         return view('invoices.create', [
             'order' => $order,
             'client' => $client,
-            'clients' => $clients,
             'statuses' => Invoice::statuses(),
         ]);
     }

@@ -90,7 +90,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div class="bg-white rounded-xl shadow-sm border border-green-200">
                 <div class="px-4 py-3 border-b bg-green-50 flex justify-between text-sm font-semibold text-green-900">
-                    <span>Listos para entregar</span><span>{{ $counter['ready']->count() }}</span>
+                    <span>Listos para entregar</span><span>{{ $counter['ready_count'] }}</span>
                 </div>
                 <ul class="divide-y">
                     @forelse ($counter['ready'] as $order)
@@ -121,7 +121,7 @@
 
             <div class="bg-white rounded-xl shadow-sm border border-orange-200">
                 <div class="px-4 py-3 border-b bg-orange-50 flex justify-between text-sm font-semibold text-orange-900">
-                    <span>Esperando aprobación</span><span>{{ $counter['waiting']->count() }}</span>
+                    <span>Esperando aprobación</span><span>{{ $counter['waiting_count'] }}</span>
                 </div>
                 <ul class="divide-y">
                     @forelse ($counter['waiting'] as $order)
@@ -393,7 +393,7 @@
                 <a href="{{ route('spare-parts.show', $part) }}" class="text-blue-600 hover:underline font-medium">{{ $part->name }}</a>
                 <span class="text-xs text-red-700 whitespace-nowrap">
                     @foreach ($part->stocks->filter(fn ($s) => $s->quantity <= $part->min_stock && (\App\Support\BranchContext::current() === null || $s->branch_id === \App\Support\BranchContext::current())) as $stock)
-                        {{ \App\Models\Branch::count() > 1 ? $stock->branch?->code . ': ' : 'stock ' }}{{ $stock->quantity }}{{ $loop->last ? '' : ' · ' }}
+                        {{ \App\Models\Branch::isMultiple() ? $stock->branch?->code . ': ' : 'stock ' }}{{ $stock->quantity }}{{ $loop->last ? '' : ' · ' }}
                     @endforeach
                     / mín. {{ $part->min_stock }}
                 </span>

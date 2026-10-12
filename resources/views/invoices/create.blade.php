@@ -32,21 +32,13 @@
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Cliente</h3>
             <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="block text-sm font-medium text-gray-600 mb-1">Seleccionar Cliente</label>
-                    <select name="client_id" id="client_select" class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                        <option value="">— Cliente existente —</option>
-                        @foreach ($clients as $c)
-                            <option value="{{ $c->id }}" {{ $client?->id === $c->id ? 'selected' : '' }}
-                                data-name="{{ $c->name }}"
-                                data-document="{{ $c->id_document }}"
-                                data-phone="{{ $c->phone }}"
-                                data-email="{{ $c->email }}"
-                                data-address="{{ $c->address }}">
-                                {{ $c->name }} {{ $c->id_document ? '- ' . $c->id_document : '' }}
-                            </option>
-                        @endforeach
-                    </select>
+                <div class="col-span-2 relative">
+                    <label for="invoiceClientSearch" class="block text-sm font-medium text-gray-600 mb-1">Buscar cliente existente</label>
+                    <input type="hidden" name="client_id" id="invoiceClientId" value="{{ old('client_id', $client?->id) }}">
+                    <input type="search" id="invoiceClientSearch" autocomplete="off" placeholder="Nombre, cédula o teléfono…" value="{{ $client?->name }}"
+                        class="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <div id="invoiceClientResults" class="hidden absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto"></div>
+                    <p class="text-xs text-gray-500 mt-1">O escribe los datos de un cliente ocasional abajo.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">Nombre *</label>
@@ -240,16 +232,50 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('iva_percent').addEventListener('input', recalc);
     recalc();
 
-    document.getElementById('client_select').addEventListener('change', function () {
-        const opt = this.options[this.selectedIndex];
-        if (opt.value) {
-            document.querySelector('[name="client_name"]').value = opt.dataset.name || '';
-            document.querySelector('[name="client_document"]').value = opt.dataset.document || '';
-            document.querySelector('[name="client_phone"]').value = opt.dataset.phone || '';
-            document.querySelector('[name="client_email"]').value = opt.dataset.email || '';
-            document.querySelector('[name="client_address"]').value = opt.dataset.address || '';
-        }
-    });
+    // Cliente existente: búsqueda en el servidor (no se cargan todos los clientes en la página).
+    (function () {
+        var input = document.getElementById('invoiceClientSearch');
+        var hidden = document.getElementById('invoiceClientId');
+        var results = document.getElementById('invoiceClientResults');
+        var url = @json(route('clients.search'));
+        var fields = { name: 'client_name', id_document: 'client_document', phone: 'client_phone', email: 'client_email', address: 'client_address' };
+        var timer;
+
+        input.addEventListener('input', function () {
+            hidden.value = '';
+            clearTimeout(timer);
+            var q = input.value.trim();
+            if (q.length < 2) { results.classList.add('hidden'); return; }
+            timer = setTimeout(function () {
+                fetch(url + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .then(function (items) {
+                        if (input.value.trim() !== q) return;
+                        results.innerHTML = '';
+                        if (!items.length) {
+                            results.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">Sin resultados</div>';
+                        }
+                        items.forEach(function (item) {
+                            var div = document.createElement('div');
+                            div.className = 'px-3 py-2 text-sm cursor-pointer hover:bg-blue-50';
+                            div.textContent = item.label + (item.phone ? ' · ' + item.phone : '');
+                            div.addEventListener('mousedown', function (e) {
+                                e.preventDefault();
+                                input.value = item.name;
+                                hidden.value = item.id;
+                                Object.keys(fields).forEach(function (key) {
+                                    document.querySelector('[name="' + fields[key] + '"]').value = item[key] || '';
+                                });
+                                results.classList.add('hidden');
+                            });
+                            results.appendChild(div);
+                        });
+                        results.classList.remove('hidden');
+                    });
+            }, 250);
+        });
+        input.addEventListener('blur', function () { setTimeout(function () { results.classList.add('hidden'); }, 200); });
+    })();
 });
 </script>
 @endsection

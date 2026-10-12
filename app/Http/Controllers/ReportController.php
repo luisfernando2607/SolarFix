@@ -11,6 +11,7 @@ use App\Models\OrderStatusHistory;
 use App\Support\BranchContext;
 use App\Support\PaymentMethods;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
@@ -26,16 +27,23 @@ class ReportController extends Controller
         $from = $request->filled('from') ? Carbon::parse($request->from)->startOfDay() : now()->startOfMonth();
         $to = $request->filled('to') ? Carbon::parse($request->to)->endOfDay() : now()->endOfDay();
 
-        $payments = BranchContext::applyThroughOrder(OrderPayment::whereBetween('paid_at', [$from, $to]))->get(['amount', 'method']);
+        // Totales por método sumados en la base (no se cargan los pagos uno por uno).
+        $byMethod = BranchContext::applyThroughOrder(OrderPayment::whereBetween('paid_at', [$from, $to]))
+            ->selectRaw('method, sum(amount) as total')
+            ->groupBy('method')
+            ->pluck('total', 'method');
 
         // Órdenes entregadas en el rango: según la fecha en que pasaron a "Entregado".
-        $deliveredIds = OrderStatusHistory::where('to_status', 'delivered')
-            ->whereBetween('changed_at', [$from, $to])
-            ->distinct()
-            ->pluck('order_id');
-        $delivered = BranchContext::apply(Order::with('user'))->whereIn('id', $deliveredIds)->where('status', 'delivered')->get();
+        $deliveredIds = OrderStatusHistory::select('order_id')
+            ->where('to_status', 'delivered')
+            ->whereBetween('changed_at', [$from, $to]);
+        $delivered = BranchContext::apply(Order::with('user:id,name'))->whereIn('id', $deliveredIds)->where('status', 'delivered')
+            ->get(['id', 'user_id', 'total_amount', 'entry_date', 'delivery_date']);
 
-        $received = BranchContext::apply(Order::whereBetween('created_at', [$from, $to]))->get(['id', 'device_type', 'total_amount']);
+        $received = BranchContext::apply(Order::whereBetween('created_at', [$from, $to]))
+            ->selectRaw('device_type, count(*) as orders, sum(total_amount) as total')
+            ->groupBy('device_type')
+            ->get();
 
         $repairDays = $delivered->filter(fn ($o) => $o->entry_date && $o->delivery_date)
             ->map(fn ($o) => $o->entry_date->diffInDays($o->delivery_date));
@@ -47,15 +55,15 @@ class ReportController extends Controller
             'from' => $from,
             'to' => $to,
             'kpis' => [
-                'revenue' => round((float) $payments->sum('amount'), 2),
-                'received' => $received->count(),
+                'revenue' => round((float) $byMethod->sum(), 2),
+                'received' => (int) $received->sum('orders'),
                 'delivered' => $delivered->count(),
                 'avg_ticket' => $delivered->count() ? round((float) $delivered->avg('total_amount'), 2) : null,
                 'avg_days' => $repairDays->count() ? round($repairDays->avg(), 1) : null,
             ],
-            'byMethod' => collect(PaymentMethods::withHistorical($payments->pluck('method')->unique()))->map(fn ($label, $key) => [
+            'byMethod' => collect(PaymentMethods::withHistorical($byMethod->keys()))->map(fn ($label, $key) => [
                 'label' => $label,
-                'amount' => round((float) $payments->where('method', $key)->sum('amount'), 2),
+                'amount' => round((float) ($byMethod[$key] ?? 0), 2),
             ])->values(),
             'monthly' => $this->monthlyRevenue(),
             'byTechnician' => $delivered->groupBy('user_id')->map(fn ($orders, $userId) => [
@@ -64,23 +72,23 @@ class ReportController extends Controller
                 'total' => round((float) $orders->sum('total_amount'), 2),
                 'commission' => round((float) ($commissions[$userId] ?? collect())->sum('commission_amount'), 2),
             ])->sortByDesc('total')->values(),
-            'byDevice' => $received->groupBy('device_type')->map(fn ($orders, $type) => [
-                'label' => Order::deviceTypes()[$type] ?? $type,
-                'orders' => $orders->count(),
-                'total' => round((float) $orders->sum('total_amount'), 2),
+            'byDevice' => $received->map(fn ($row) => [
+                'label' => Order::deviceTypes()[$row->device_type] ?? $row->device_type,
+                'orders' => (int) $row->orders,
+                'total' => round((float) $row->total, 2),
             ])->sortByDesc('orders')->values(),
-            'topParts' => OrderPart::with('sparePart')
+            'topParts' => OrderPart::with('sparePart:id,name')
                 ->whereIn('order_id', BranchContext::apply(Order::whereBetween('created_at', [$from, $to]))->select('id'))
-                ->get()
+                ->selectRaw('spare_part_id, sum(quantity) as quantity, sum(subtotal) as total')
                 ->groupBy('spare_part_id')
-                ->map(fn ($rows) => [
-                    'name' => $rows->first()->sparePart?->name ?? '—',
-                    'quantity' => (int) $rows->sum('quantity'),
-                    'total' => round((float) $rows->sum('subtotal'), 2),
-                ])
-                ->sortByDesc('quantity')
+                ->orderByDesc('quantity')
                 ->take(10)
-                ->values(),
+                ->get()
+                ->map(fn ($row) => [
+                    'name' => $row->sparePart?->name ?? '—',
+                    'quantity' => (int) $row->quantity,
+                    'total' => round((float) $row->total, 2),
+                ]),
         ]);
     }
 
@@ -112,10 +120,11 @@ class ReportController extends Controller
     private function orderRows(Carbon $from, Carbon $to): array
     {
         $statuses = Order::statuses();
+        // lazy(): se escribe por bloques, sin cargar todo el período en memoria.
         $orders = BranchContext::apply(Order::with(['client', 'user', 'brand', 'deviceModel', 'branch']))
             ->whereBetween('created_at', [$from, $to])
             ->orderBy('id')
-            ->get();
+            ->lazy(500);
 
         return [
             ['Orden', 'Sucursal', 'Fecha ingreso', 'Cliente', 'Cédula', 'Teléfono', 'Equipo', 'Marca', 'Modelo', 'Estado', 'Técnico',
@@ -135,7 +144,8 @@ class ReportController extends Controller
         $payments = BranchContext::applyThroughOrder(OrderPayment::with(['order.client', 'order.branch', 'registeredBy']))
             ->whereBetween('paid_at', [$from, $to])
             ->orderBy('paid_at')
-            ->get();
+            ->orderBy('id')
+            ->lazy(500);
 
         return [
             ['Fecha', 'Hora', 'Sucursal', 'Orden', 'Cliente', 'Método', 'Referencia', 'Monto', 'Registrado por'],
@@ -173,9 +183,12 @@ class ReportController extends Controller
     private function monthlyRevenue()
     {
         $start = now()->startOfMonth()->subMonths(11);
-        $totals = BranchContext::applyThroughOrder(OrderPayment::where('paid_at', '>=', $start))->get(['amount', 'paid_at'])
-            ->groupBy(fn ($p) => $p->paid_at->format('Y-m'))
-            ->map(fn ($rows) => round((float) $rows->sum('amount'), 2));
+        $month = DB::connection()->getDriverName() === 'sqlite' ? "strftime('%Y-%m', paid_at)" : "DATE_FORMAT(paid_at, '%Y-%m')";
+        $totals = BranchContext::applyThroughOrder(OrderPayment::where('paid_at', '>=', $start))
+            ->selectRaw("{$month} as month, sum(amount) as total")
+            ->groupByRaw($month)
+            ->pluck('total', 'month')
+            ->map(fn ($total) => round((float) $total, 2));
 
         return collect(range(0, 11))->map(function ($i) use ($start, $totals) {
             $month = $start->copy()->addMonths($i);

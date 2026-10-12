@@ -15,6 +15,7 @@ use App\Models\Warranty;
 use App\Services\BusinessMetrics;
 use App\Support\BranchContext;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -26,7 +27,7 @@ class DashboardController extends Controller
 
         if ($user->isSuperAdmin() || $user->isAdmin()) {
             $stats['users_count'] = User::count();
-            $stats['revenue'] = OrderPayment::sum('amount');
+            $stats['revenue'] = BranchContext::applyThroughOrder(OrderPayment::query())->sum('amount');
         }
 
         $ordersQuery = Order::visibleTo($user);
@@ -36,9 +37,10 @@ class DashboardController extends Controller
         $stats['orders_ready'] = (clone $ordersQuery)->where('status', 'ready')->count();
         $stats['orders_delivered'] = (clone $ordersQuery)->where('status', 'delivered')->count();
 
-        $stats['orders_today'] = (clone $ordersQuery)->whereDate('created_at', today())->count();
+        $today = [today(), today()->endOfDay()];
+        $stats['orders_today'] = (clone $ordersQuery)->whereBetween('created_at', $today)->count();
         $stats['delivered_today'] = OrderStatusHistory::where('to_status', 'delivered')
-            ->whereDate('changed_at', today())
+            ->whereBetween('changed_at', $today)
             ->whereIn('order_id', (clone $ordersQuery)->select('id'))
             ->distinct()
             ->count('order_id');
@@ -54,19 +56,20 @@ class DashboardController extends Controller
             ->get();
 
         $approvalHours = (int) Setting::get('approval_alert_hours', 72);
+        // Las que entraron a "esperando aprobación" antes del límite (filtrado y orden en SQL).
+        $approvalLimit = now()->subHours($approvalHours);
         $awaitingApproval = (clone $ordersQuery)
-            ->with(['client', 'statusHistory'])
+            ->with('client')
+            ->withStatusSince('waiting_approval')
             ->where('status', 'waiting_approval')
+            ->whereDoesntHave('statusHistory', fn ($q) => $q->where('to_status', 'waiting_approval')->where('changed_at', '>=', $approvalLimit))
+            // Sin historial (datos antiguos) se usa la última modificación.
+            ->where(fn ($q) => $q->whereHas('statusHistory', fn ($h) => $h->where('to_status', 'waiting_approval'))
+                ->orWhere('updated_at', '<', $approvalLimit))
+            ->orderBy('status_since')
+            ->take(10)
             ->get()
-            ->map(function ($order) {
-                $order->waiting_since = $order->statusHistory->where('to_status', 'waiting_approval')->max('changed_at')
-                    ?? $order->updated_at;
-
-                return $order;
-            })
-            ->filter(fn ($order) => $order->waiting_since->lt(now()->subHours($approvalHours)))
-            ->sortBy('waiting_since')
-            ->take(10);
+            ->each(fn ($order) => $order->waiting_since = $order->status_since ?? $order->updated_at);
 
         $expiringWarranties = collect();
         if (! $user->isTechnician()) {
@@ -83,7 +86,7 @@ class DashboardController extends Controller
 
         $todayAppointments = Appointment::with(['client', 'user'])
             ->visibleTo($user)
-            ->whereDate('scheduled_at', today())
+            ->whereBetween('scheduled_at', $today)
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('scheduled_at')
             ->get();
@@ -96,7 +99,11 @@ class DashboardController extends Controller
 
         $myWork = $user->isTechnician() ? $this->technicianQueue($user) : null;
         $counter = $user->can('manage-invoices') ? $this->counterPanel() : null;
-        $metrics = $user->can('manage-commissions') ? app(BusinessMetrics::class)->forMonth(now(), BranchContext::current()) : null;
+        // Indicadores del mes: se recalculan cada 5 minutos (son varias consultas sobre todo el historial).
+        $metrics = $user->can('manage-commissions')
+            ? Cache::remember('metrics:' . now()->format('Y-m') . ':' . (BranchContext::current() ?? 'all'), now()->addMinutes(5),
+                fn () => app(BusinessMetrics::class)->forMonth(now(), BranchContext::current()))
+            : null;
 
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])
@@ -130,17 +137,20 @@ class DashboardController extends Controller
      */
     private function counterPanel(): array
     {
-        $with = ['client', 'brand', 'deviceModel', 'statusHistory'];
-        $since = fn ($order, string $status) => $order->statusHistory->where('to_status', $status)->max('changed_at') ?? $order->updated_at;
+        $with = ['client', 'brand', 'deviceModel'];
+        // Las más antiguas primero; se muestran hasta 50 por columna (el total va aparte).
+        $column = fn (string $status) => Order::visibleTo(Auth::user())->where('status', $status);
+        $list = fn (string $status) => $column($status)->with($with)->withStatusSince($status)
+            ->orderBy('status_since')->orderBy('id')->take(50)->get()
+            ->each(fn ($o) => $o->status_since ??= $o->updated_at);
 
         return [
-            'ready' => Order::visibleTo(Auth::user())->with($with)->where('status', 'ready')->get()
-                ->each(fn ($o) => $o->status_since = $since($o, 'ready'))
-                ->sortBy('status_since')->values(),
-            'waiting' => Order::visibleTo(Auth::user())->with($with)->where('status', 'waiting_approval')->get()
-                ->each(fn ($o) => $o->status_since = $since($o, 'waiting_approval'))
-                ->sortBy('status_since')->values(),
-            'today' => Order::visibleTo(Auth::user())->with(['client', 'brand', 'deviceModel', 'user'])->whereDate('created_at', today())->latest('id')->get(),
+            'ready' => $list('ready'),
+            'ready_count' => $column('ready')->count(),
+            'waiting' => $list('waiting_approval'),
+            'waiting_count' => $column('waiting_approval')->count(),
+            'today' => Order::visibleTo(Auth::user())->with(['client', 'brand', 'deviceModel', 'user'])
+                ->whereBetween('created_at', [today(), today()->endOfDay()])->latest('id')->get(),
         ];
     }
 

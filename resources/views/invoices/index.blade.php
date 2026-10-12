@@ -96,6 +96,7 @@
             <h3 class="text-sm font-semibold text-gray-700">Pagos Recientes</h3>
             <a href="{{ route('invoices.payments') }}" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Ver todos</a>
         </div>
+        <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
                 <tr class="border-b bg-gray-50/50">
@@ -128,6 +129,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
     @endif
 </div>

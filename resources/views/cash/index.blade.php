@@ -6,7 +6,7 @@
 <div class="p-6">
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Caja del día{{ \App\Models\Branch::count() > 1 ? ' · ' . $branch->name : '' }}</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Caja del día{{ \App\Models\Branch::isMultiple() ? ' · ' . $branch->name : '' }}</h2>
             <p class="text-gray-500">Ingresos registrados el {{ $date->translatedFormat('l d \d\e F \d\e Y') }}</p>
         </div>
         <form method="GET" action="{{ route('cash.index') }}" class="flex items-center gap-2">

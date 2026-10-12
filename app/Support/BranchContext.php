@@ -38,7 +38,7 @@ class BranchContext
 
         $selected = session(self::SESSION_KEY);
 
-        return $selected && Branch::whereKey($selected)->exists() ? (int) $selected : null;
+        return $selected && Branch::existsId((int) $selected) ? (int) $selected : null;
     }
 
     /**

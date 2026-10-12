@@ -163,7 +163,7 @@ class CashClosingController extends Controller
     {
         return OrderPayment::with(['order.client', 'registeredBy'])
             ->whereHas('order', fn ($q) => $q->withTrashed()->where('branch_id', $branch))
-            ->whereDate('paid_at', $date)
+            ->whereBetween('paid_at', [$date->copy()->startOfDay(), $date->copy()->endOfDay()])
             ->orderBy('paid_at')
             ->get();
     }

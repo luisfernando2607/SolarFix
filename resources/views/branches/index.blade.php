@@ -12,6 +12,7 @@
         <a href="{{ route('branches.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Nueva sucursal</a>
     </div>
     <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead><tr class="border-b bg-gray-50/50 text-left text-gray-600">
                 <th class="px-5 py-3 font-semibold">Sucursal</th><th class="px-3 py-3 font-semibold">Código</th>
@@ -31,6 +32,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 @endsection

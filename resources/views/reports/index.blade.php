@@ -78,11 +78,13 @@
             </div>
             <details class="mt-3">
                 <summary class="text-xs text-blue-600 cursor-pointer">Ver como tabla</summary>
+                <div class="overflow-x-auto">
                 <table class="mt-2 w-full text-sm">
                     @foreach ($monthly as $month)
                         <tr class="border-b"><td class="py-1 text-gray-600">{{ $month['full'] }}</td><td class="py-1 text-right text-gray-800">{{ $money($month['amount']) }}</td></tr>
                     @endforeach
                 </table>
+                </div>
             </details>
         </div>
 
@@ -107,6 +109,7 @@
                 <p class="text-xs text-gray-500">Órdenes entregadas en el período</p>
             </div>
             @php $maxTech = max(1, $byTechnician->max('total')); @endphp
+            <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead><tr class="border-b text-left text-gray-600"><th class="px-6 py-2 font-semibold">Técnico</th><th class="px-3 py-2 font-semibold text-right">Órdenes</th><th class="px-3 py-2 font-semibold text-right">Total</th><th class="px-6 py-2 font-semibold text-right">Comisión</th></tr></thead>
                 <tbody>
@@ -125,6 +128,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -133,6 +137,7 @@
                 <p class="text-xs text-gray-500">Órdenes recibidas en el período</p>
             </div>
             @php $maxDevice = max(1, $byDevice->max('orders')); @endphp
+            <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead><tr class="border-b text-left text-gray-600"><th class="px-6 py-2 font-semibold">Tipo</th><th class="px-3 py-2 font-semibold text-right">Órdenes</th><th class="px-6 py-2 font-semibold text-right">Total presupuestado</th></tr></thead>
                 <tbody>
@@ -150,6 +155,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 
@@ -158,6 +164,7 @@
             <h3 class="text-base font-semibold text-gray-800">Repuestos más usados</h3>
             <p class="text-xs text-gray-500">En órdenes recibidas en el período</p>
         </div>
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead><tr class="border-b text-left text-gray-600"><th class="px-6 py-2 font-semibold">Repuesto</th><th class="px-3 py-2 font-semibold text-right">Unidades</th><th class="px-6 py-2 font-semibold text-right">Vendido</th></tr></thead>
             <tbody>
@@ -168,6 +175,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 @endsection

@@ -47,15 +47,14 @@ class BusinessMetrics
                 ->where('spare_parts.is_active', true)
                 ->where('spare_part_stocks.quantity', '>', 0)
                 ->when($branchId, fn ($q) => $q->where('spare_part_stocks.branch_id', $branchId))
-                ->get(['spare_part_stocks.quantity', 'spare_parts.cost_price'])
-                ->sum(fn ($row) => $row->quantity * (float) $row->cost_price), 2),
+                ->sum(\Illuminate\Support\Facades\DB::raw('spare_part_stocks.quantity * spare_parts.cost_price')), 2),
         ];
     }
 
     private function period(Carbon $from, Carbon $to): array
     {
-        $deliveredIds = $this->ordersReaching('delivered', $from, $to);
-        $delivered = $this->orders()->whereIn('id', $deliveredIds)->get(['id', 'total_amount', 'entry_date', 'delivery_date']);
+        $delivered = $this->orders()->whereIn('id', $this->ordersReaching('delivered', $from, $to))
+            ->get(['id', 'total_amount', 'entry_date', 'delivery_date']);
         $repairDays = $delivered->filter(fn ($o) => $o->entry_date && $o->delivery_date)
             ->map(fn ($o) => $o->entry_date->diffInDays($o->delivery_date));
 
@@ -63,8 +62,11 @@ class BusinessMetrics
         $decisions = $this->throughOrder(OrderStatusHistory::query())->where('from_status', 'waiting_approval')
             ->whereIn('to_status', ['repairing', 'closed_no_repair'])
             ->whereBetween('changed_at', [$from, $to])
-            ->get(['to_status']);
-        $approved = $decisions->where('to_status', 'repairing')->count();
+            ->selectRaw('to_status, count(*) as total')
+            ->groupBy('to_status')
+            ->pluck('total', 'to_status');
+        $approved = (int) ($decisions['repairing'] ?? 0);
+        $decisionCount = (int) $decisions->sum();
 
         $warrantyClaims = $this->orders()->whereNotNull('parent_order_id')->whereBetween('created_at', [$from, $to])->count();
 
@@ -74,9 +76,9 @@ class BusinessMetrics
             'delivered' => $delivered->count(),
             'avg_ticket' => $delivered->count() ? round((float) $delivered->avg('total_amount'), 2) : null,
             'avg_days' => $repairDays->count() ? round($repairDays->avg(), 1) : null,
-            'approval_rate' => $decisions->count() ? round($approved / $decisions->count() * 100) : null,
+            'approval_rate' => $decisionCount ? round($approved / $decisionCount * 100) : null,
             'approved' => $approved,
-            'rejected' => $decisions->count() - $approved,
+            'rejected' => $decisionCount - $approved,
             'rework_rate' => $delivered->count() ? round($warrantyClaims / $delivered->count() * 100) : null,
             'warranty_claims' => $warrantyClaims,
         ];
@@ -87,10 +89,10 @@ class BusinessMetrics
      */
     private function ordersReaching(string $status, Carbon $from, Carbon $to)
     {
-        return OrderStatusHistory::where('to_status', $status)
-            ->whereBetween('changed_at', [$from, $to])
-            ->distinct()
-            ->pluck('order_id');
+        // Subconsulta (no una lista de IDs en memoria): crece bien con muchas órdenes.
+        return OrderStatusHistory::select('order_id')
+            ->where('to_status', $status)
+            ->whereBetween('changed_at', [$from, $to]);
     }
 
     /**
@@ -98,16 +100,12 @@ class BusinessMetrics
      */
     private function receivables(): array
     {
-        $orders = $this->orders()->with('client')
-            ->where('status', 'delivered')
-            ->where('balance_due', '>', 0)
-            ->orderBy('delivery_date')
-            ->get();
+        $pending = fn () => $this->orders()->where('status', 'delivered')->where('balance_due', '>', 0);
 
         return [
-            'total' => round((float) $orders->sum('balance_due'), 2),
-            'count' => $orders->count(),
-            'orders' => $orders->take(10),
+            'total' => round((float) $pending()->sum('balance_due'), 2),
+            'count' => $pending()->count(),
+            'orders' => $pending()->with('client')->orderBy('delivery_date')->take(10)->get(),
         ];
     }
 }

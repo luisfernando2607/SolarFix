@@ -22,36 +22,40 @@
     <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div class="px-6 py-3 border-b bg-gray-50/50">
             <form method="GET" action="{{ route('invoices.payments') }}" class="flex flex-wrap items-center gap-2">
-                <input type="text" name="client" value="{{ request('client') }}" placeholder="Cliente"
-                    class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-48">
-                <input type="text" name="order_number" value="{{ request('order_number') }}" placeholder="N° Orden"
-                    class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-32">
-                <select name="method" class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="client" value="{{ request('client') }}" placeholder="Cliente" aria-label="Cliente"
+                    class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-48">
+                <input type="text" name="order_number" value="{{ request('order_number') }}" placeholder="N° Orden" aria-label="N° Orden"
+                    class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-32">
+                <select name="method" aria-label="Método de pago" class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Método</option>
                     @foreach (\App\Support\PaymentMethods::all() as $methodKey => $methodLabel)
                         <option value="{{ $methodKey }}" {{ request('method') === $methodKey ? 'selected' : '' }}>{{ $methodLabel }}</option>
                     @endforeach
                 </select>
-                <input type="text" name="reference" value="{{ request('reference') }}" placeholder="Referencia"
-                    class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-36">
-                <input type="number" step="0.01" name="amount_min" value="{{ request('amount_min') }}" placeholder="Monto mín."
-                    class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-28">
-                <input type="number" step="0.01" name="amount_max" value="{{ request('amount_max') }}" placeholder="Monto máx."
-                    class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-28">
-                <input type="date" name="date_from" value="{{ request('date_from') }}" placeholder="Desde"
-                    class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="date" name="date_to" value="{{ request('date_to') }}" placeholder="Hasta"
-                    class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                <select name="registered_by" class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="reference" value="{{ request('reference') }}" placeholder="Referencia" aria-label="Referencia"
+                    class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-36">
+                <input type="number" step="0.01" name="amount_min" value="{{ request('amount_min') }}" placeholder="Monto mín." aria-label="Monto mín."
+                    class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-28">
+                <input type="number" step="0.01" name="amount_max" value="{{ request('amount_max') }}" placeholder="Monto máx." aria-label="Monto máx."
+                    class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-28">
+                <label for="date_from" class="flex items-center gap-1 text-xs text-gray-500">Desde
+                    <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
+                        class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                </label>
+                <label for="date_to" class="flex items-center gap-1 text-xs text-gray-500">Hasta
+                    <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}"
+                        class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                </label>
+                <select name="registered_by" aria-label="Registrado por" class="px-3 py-1.5 text-base sm:text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Registrado por</option>
                     @foreach ($users ?? [] as $u)
                         <option value="{{ $u->id }}" {{ request('registered_by') == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
                     @endforeach
                 </select>
-                <button type="submit" class="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <button type="submit" class="px-3 py-1.5 text-base sm:text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     Filtrar
                 </button>
-                <a href="{{ route('invoices.payments') }}" class="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 {{ request()->anyFilled(['method', 'date_from', 'date_to', 'client', 'order_number', 'reference', 'amount_min', 'amount_max', 'registered_by']) ? '' : 'hidden' }}">
+                <a href="{{ route('invoices.payments') }}" class="px-3 py-1.5 text-base sm:text-xs text-gray-600 hover:text-gray-800 {{ request()->anyFilled(['method', 'date_from', 'date_to', 'client', 'order_number', 'reference', 'amount_min', 'amount_max', 'registered_by']) ? '' : 'hidden' }}">
                     Limpiar
                 </a>
             </form>

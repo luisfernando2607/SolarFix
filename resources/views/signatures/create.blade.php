@@ -114,15 +114,21 @@
                 <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
                     <p class="text-sm font-semibold text-amber-900 mb-3">Cobrar el saldo antes de entregar</p>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label class="block text-xs font-medium text-amber-900">Monto
                         <input type="number" name="payment_amount" step="0.01" min="0" max="{{ $order->balance_due }}" inputmode="decimal"
-                            value="{{ old('payment_amount', $order->balance_due) }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm @error('payment_amount') border-red-500 @enderror">
-                        <select name="payment_method" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white @error('payment_method') border-red-500 @enderror">
+                            value="{{ old('payment_amount', $order->balance_due) }}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm @error('payment_amount') border-red-500 @enderror">
+                        </label>
+                        <label class="block text-xs font-medium text-amber-900">Método
+                        <select name="payment_method" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm bg-white @error('payment_method') border-red-500 @enderror">
                             @foreach (\App\Support\PaymentMethods::all() as $methodKey => $methodLabel)
                                 <option value="{{ $methodKey }}" {{ old('payment_method', 'cash') === $methodKey ? 'selected' : '' }}>{{ $methodLabel }}</option>
                             @endforeach
                         </select>
-                        <input type="text" name="payment_reference" maxlength="100" placeholder="Referencia (opcional)" value="{{ old('payment_reference') }}"
-                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        </label>
+                        <label class="block text-xs font-medium text-amber-900">Referencia (opcional)
+                        <input type="text" name="payment_reference" maxlength="100" placeholder="N° de transferencia…" value="{{ old('payment_reference') }}"
+                            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm">
+                        </label>
                     </div>
                     @error('payment_amount') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                     @error('payment_method') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
