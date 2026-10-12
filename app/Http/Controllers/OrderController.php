@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Accessory;
 use App\Models\AuditLog;
+use App\Models\Checklist;
 use App\Models\Client;
 use App\Models\DeviceBrand;
 use App\Models\DeviceModel;
@@ -188,6 +189,7 @@ class OrderController extends Controller
         ]);
 
         return view('orders.show', [
+            'checklists' => collect(Checklist::stages())->map(fn ($label, $stage) => $order->checklistProgress($stage))->filter(),
             'activity' => Gate::allows('manage-users')
                 ? AuditLog::with('user')->where('order_id', $order->id)->orderByDesc('id')->take(30)->get()
                 : collect(),
@@ -214,6 +216,13 @@ class OrderController extends Controller
             'parts.sparePart',
         ]);
 
+        $receptionChecklist = Checklist::for($order->device_type, 'reception');
+        $receptionResults = $receptionChecklist
+            ? $order->checklistResults()->with('item')
+                ->whereIn('checklist_item_id', $receptionChecklist->items()->pluck('id'))
+                ->where('result', '!=', 'pending')->get()
+            : collect();
+
         // Las firmas están en almacenamiento privado: se insertan en el PDF como data URI.
         $signatureImages = $order->signatures->mapWithKeys(function ($signature) {
             $disk = Storage::disk('local');
@@ -227,6 +236,7 @@ class OrderController extends Controller
             'order' => $order,
             'statuses' => Order::statuses(),
             'signatureImages' => $signatureImages,
+            'receptionResults' => $receptionResults,
         ]);
 
         return $pdf->download('orden-' . $order->order_number . '.pdf');

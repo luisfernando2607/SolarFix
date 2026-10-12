@@ -433,6 +433,36 @@
                 @endif
             </div>
 
+            @if ($checklists->isNotEmpty())
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Checklists</h3>
+                @if ($order->status === 'ready' && isset($checklists['delivery']) && ! $checklists['delivery']['complete'])
+                    <div class="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                        La orden está lista pero falta el control de calidad.
+                    </div>
+                @endif
+                <ul class="space-y-3">
+                    @foreach ($checklists as $stageKey => $progress)
+                        <li class="flex items-center justify-between gap-2 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-800">{{ \App\Models\Checklist::stages()[$stageKey] }}</p>
+                                <p class="text-xs {{ $progress['complete'] ? 'text-green-700' : 'text-gray-500' }}">
+                                    {{ $progress['answered'] }}/{{ $progress['total'] }}{{ $progress['complete'] ? ' · completo' : '' }}
+                                    @if ($progress['damaged'])
+                                        · <span class="text-red-600 font-medium">{{ $progress['damaged'] }} con daño</span>
+                                    @endif
+                                </p>
+                            </div>
+                            <a href="{{ route('orders.checklists.edit', [$order, $stageKey]) }}"
+                                class="px-3 py-1.5 rounded-lg text-xs font-medium border {{ $progress['complete'] ? 'bg-white text-gray-700 hover:bg-gray-50' : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' }}">
+                                {{ $progress['answered'] ? 'Ver / editar' : 'Completar' }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
             <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Firmas</h3>
                 @php $isAdmin = Auth::user()->isAdmin() || Auth::user()->isSuperAdmin(); @endphp

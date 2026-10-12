@@ -159,6 +159,19 @@
     </tr>
 </table>
 
+@if ($receptionResults->isNotEmpty())
+<table>
+    <tr><th colspan="3">Checklist de recepción</th></tr>
+    @foreach ($receptionResults->sortBy(fn ($r) => $r->item?->sort_order) as $result)
+    <tr>
+        <td style="width:45%">{{ $result->item?->label }}</td>
+        <td style="width:15%" class="c {{ $result->result === 'damaged' ? 'b' : '' }}">{{ \App\Models\Checklist::results()[$result->result] ?? $result->result }}</td>
+        <td style="width:40%">{{ $result->notes }}</td>
+    </tr>
+    @endforeach
+</table>
+@endif
+
 @if ($order->warranty)
 <table>
     <tr><th colspan="4">Garantía</th></tr>

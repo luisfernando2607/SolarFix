@@ -21,9 +21,13 @@ class SignatureController extends Controller
             return redirect()->route('orders.show', $order)->with('error', $error);
         }
 
-        $order->load(['client', 'brand', 'deviceModel', 'accessories']);
+        $order->load(['client', 'brand', 'deviceModel', 'accessories', 'checklistResults.item']);
 
-        return view('signatures.create', ['order' => $order, 'stage' => $stage]);
+        return view('signatures.create', [
+            'order' => $order,
+            'stage' => $stage,
+            'damagedItems' => $order->checklistResults->where('result', 'damaged')->filter(fn ($r) => $r->item),
+        ]);
     }
 
     public function store(Request $request, Order $order, string $stage)

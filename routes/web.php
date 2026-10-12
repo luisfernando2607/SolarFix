@@ -4,11 +4,13 @@ use App\Http\Controllers\AccessoryController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CashClosingController;
+use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceBrandController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\DeviceModelController;
+use App\Http\Controllers\OrderChecklistController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPartController;
 use App\Http\Controllers\PaymentController;
@@ -46,6 +48,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/spare-parts/{spare_part}', [SparePartController::class, 'update'])->name('spare-parts.update');
         Route::delete('/spare-parts/{spare_part}', [SparePartController::class, 'destroy'])->name('spare-parts.destroy');
         Route::post('/spare-parts/{spare_part}/adjust', [SparePartController::class, 'adjust'])->name('spare-parts.adjust');
+        Route::resource('checklists', ChecklistController::class)->except(['show', 'destroy']);
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
@@ -62,6 +65,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/spare-parts/{spare_part}/receive', [SparePartController::class, 'receive'])
             ->name('spare-parts.receive')->middleware('role:super_admin,admin,technician');
         Route::post('/orders/{order}/parts', [OrderPartController::class, 'store'])->name('orders.parts.store');
+        Route::controller(OrderChecklistController::class)->where(['stage' => 'reception|diagnosis|delivery'])->group(function () {
+            Route::get('/orders/{order}/checklists/{stage}', 'edit')->name('orders.checklists.edit');
+            Route::put('/orders/{order}/checklists/{stage}', 'update')->name('orders.checklists.update');
+        });
         Route::delete('/orders/{order}/parts/{part}', [OrderPartController::class, 'destroy'])->name('orders.parts.destroy');
         Route::resource('orders', OrderController::class)->except(['destroy']);
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');

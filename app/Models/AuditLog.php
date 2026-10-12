@@ -47,6 +47,7 @@ class AuditLog extends Model
             'login' => 'Inició sesión',
             'login_failed' => 'Intento de acceso fallido',
             'logout' => 'Cerró sesión',
+            'checklist' => 'Completó checklist',
         ];
     }
 

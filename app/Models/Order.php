@@ -290,6 +290,34 @@ class Order extends Model
         return $this->hasMany(OrderSignature::class);
     }
 
+    public function checklistResults()
+    {
+        return $this->hasMany(OrderChecklistResult::class);
+    }
+
+    /**
+     * Avance del checklist de una etapa para el tipo de equipo de la orden (null si no hay checklist).
+     */
+    public function checklistProgress(string $stage): ?array
+    {
+        $checklist = Checklist::for($this->device_type, $stage);
+        if (! $checklist) {
+            return null;
+        }
+
+        $items = $checklist->activeItems()->get();
+        $results = $this->checklistResults()->whereIn('checklist_item_id', $items->pluck('id'))->get()->keyBy('checklist_item_id');
+        $answered = $results->where('result', '!=', 'pending');
+
+        return [
+            'checklist' => $checklist,
+            'total' => $items->count(),
+            'answered' => $answered->count(),
+            'damaged' => $answered->where('result', 'damaged')->count(),
+            'complete' => $items->where('is_required', true)->every(fn ($item) => isset($results[$item->id]) && $results[$item->id]->result !== 'pending'),
+        ];
+    }
+
     public function whatsappLogs()
     {
         return $this->hasMany(WhatsappLog::class)->latest('sent_at');

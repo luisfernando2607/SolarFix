@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call(CatalogSeeder::class);
+        $this->call(ChecklistSeeder::class);
 
         // Only seed test data if no orders exist yet
         if (Order::count() === 0) {

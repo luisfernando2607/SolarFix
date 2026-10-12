@@ -37,6 +37,18 @@
                     <dt class="text-gray-500">Estado físico</dt>
                     <dd class="text-gray-800">{{ $order->physical_condition ?: '—' }}</dd>
                 </div>
+                @if ($damagedItems->isNotEmpty())
+                    <div class="sm:col-span-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+                        <dt class="text-amber-800 font-medium">Daños registrados en la revisión</dt>
+                        <dd class="text-amber-900 mt-1">
+                            <ul class="list-disc list-inside">
+                                @foreach ($damagedItems as $result)
+                                    <li>{{ $result->item->label }}{{ $result->notes ? ': ' . $result->notes : '' }}</li>
+                                @endforeach
+                            </ul>
+                        </dd>
+                    </div>
+                @endif
                 <div class="sm:col-span-2">
                     <dt class="text-gray-500">Accesorios recibidos</dt>
                     <dd class="text-gray-800">{{ $order->accessories->pluck('name')->join(', ') ?: 'Ninguno' }}</dd>
