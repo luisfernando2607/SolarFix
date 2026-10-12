@@ -60,11 +60,11 @@
                 </div>
                 <div>
                     <dt class="text-gray-500">Costo de diagnóstico</dt>
-                    <dd class="font-medium text-gray-800">${{ number_format($order->diagnosis_cost, 2) }}</dd>
+                    <dd class="font-medium text-gray-800">{{ money($order->diagnosis_cost) }}</dd>
                 </div>
                 @if ($order->balance_due > 0)
                     <div class="sm:col-span-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700">
-                        Hay un saldo pendiente de <strong>${{ number_format($order->balance_due, 2) }}</strong>. Cobra el diagnóstico antes de devolver el equipo.
+                        Hay un saldo pendiente de <strong>{{ money($order->balance_due) }}</strong>. Cobra el diagnóstico antes de devolver el equipo.
                     </div>
                 @endif
             @else
@@ -74,7 +74,7 @@
                 </div>
                 <div>
                     <dt class="text-gray-500">Total</dt>
-                    <dd class="font-medium text-gray-800">${{ number_format($order->total_amount, 2) }}</dd>
+                    <dd class="font-medium text-gray-800">{{ money($order->total_amount) }}</dd>
                 </div>
                 <div>
                     <dt class="text-gray-500">Garantía</dt>
@@ -82,7 +82,7 @@
                 </div>
                 @if ($order->balance_due > 0)
                     <div class="sm:col-span-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700">
-                        Hay un saldo pendiente de <strong>${{ number_format($order->balance_due, 2) }}</strong>. Regístralo antes de entregar el equipo.
+                        Hay un saldo pendiente de <strong>{{ money($order->balance_due) }}</strong>. Regístralo antes de entregar el equipo.
                     </div>
                 @endif
             @endif

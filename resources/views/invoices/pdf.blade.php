@@ -71,21 +71,21 @@
         <td class="c">{{ $i + 1 }}</td>
         <td>{{ $item->description }}</td>
         <td class="c">{{ $item->quantity }}</td>
-        <td class="r">${{ number_format($item->unit_price, 2) }}</td>
-        <td class="r">${{ number_format($item->subtotal, 2) }}</td>
+        <td class="r">{{ money($item->unit_price) }}</td>
+        <td class="r">{{ money($item->subtotal) }}</td>
     </tr>
     @endforeach
 </table>
 
 <table class="totals">
-    <tr><td style="width:70%"></td><td style="width:15%" class="r">Subtotal:</td><td style="width:15%" class="r">${{ number_format($invoice->subtotal, 2) }}</td></tr>
+    <tr><td style="width:70%"></td><td style="width:15%" class="r">Subtotal:</td><td style="width:15%" class="r">{{ money($invoice->subtotal) }}</td></tr>
     @if ($invoice->iva_percent > 0)
-    <tr><td></td><td class="r">IVA {{ $invoice->iva_percent }}%:</td><td class="r">${{ number_format($invoice->iva_amount, 2) }}</td></tr>
+    <tr><td></td><td class="r">IVA {{ $invoice->iva_percent }}%:</td><td class="r">{{ money($invoice->iva_amount) }}</td></tr>
     @endif
     <tr style="font-weight:bold;font-size:11pt">
         <td></td>
         <td class="r">TOTAL:</td>
-        <td class="r">${{ number_format($invoice->total, 2) }}</td>
+        <td class="r">{{ money($invoice->total) }}</td>
     </tr>
 </table>
 
@@ -104,12 +104,12 @@
     <table style="margin-top:2pt;width:auto">
         @foreach ($invoicePayments as $payment)
         <tr>
-            <td style="padding:1pt 4pt;font-size:8pt">${{ number_format($payment->amount, 2) }}</td>
+            <td style="padding:1pt 4pt;font-size:8pt">{{ money($payment->amount) }}</td>
             <td style="padding:1pt 4pt;font-size:8pt;color:#666">{{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transf.' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}</td>
             <td style="padding:1pt 4pt;font-size:8pt;color:#666">{{ $payment->paid_at?->format('d/m/Y') ?? '' }}</td>
         </tr>
         @endforeach
-        <tr style="font-weight:bold"><td style="padding:1pt 4pt;font-size:8pt;border-top:0.5pt solid #000" colspan="2">Total pagado: ${{ number_format($invoicePayments->sum('amount'), 2) }}</td></tr>
+        <tr style="font-weight:bold"><td style="padding:1pt 4pt;font-size:8pt;border-top:0.5pt solid #000" colspan="2">Total pagado: {{ money($invoicePayments->sum('amount')) }}</td></tr>
     </table>
 </div>
 @endif

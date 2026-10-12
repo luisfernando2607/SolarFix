@@ -85,8 +85,8 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             @foreach ([
                 ['Órdenes', $stats['orders'], 'text-gray-800'],
-                ['Total pagado', '$' . number_format($stats['paid'], 2), 'text-gray-800'],
-                ['Saldo pendiente', '$' . number_format($stats['balance'], 2), $stats['balance'] > 0 ? 'text-red-600' : 'text-gray-800'],
+                ['Total pagado', money($stats['paid']), 'text-gray-800'],
+                ['Saldo pendiente', money($stats['balance']), $stats['balance'] > 0 ? 'text-red-600' : 'text-gray-800'],
                 ['Garantías vigentes', $warranties->count(), 'text-gray-800'],
             ] as [$label, $value, $color])
                 <div class="bg-white rounded-xl shadow-sm border p-4">
@@ -164,8 +164,8 @@
                                     </td>
                                     <td class="px-3 py-2">{{ \App\Models\Order::deviceTypes()[$order->device_type] ?? $order->device_type }} {{ $order->brand?->name ?? $order->brand_text }} {{ $order->deviceModel?->name ?? $order->model_text }}</td>
                                     <td class="px-3 py-2">{{ $statuses[$order->status] ?? $order->status }}</td>
-                                    <td class="px-3 py-2 text-right">${{ number_format($order->total_amount, 2) }}</td>
-                                    <td class="px-6 py-2 text-right {{ $order->balance_due > 0 ? 'text-red-600 font-medium' : 'text-gray-500' }}">${{ number_format($order->balance_due, 2) }}</td>
+                                    <td class="px-3 py-2 text-right">{{ money($order->total_amount) }}</td>
+                                    <td class="px-6 py-2 text-right {{ $order->balance_due > 0 ? 'text-red-600 font-medium' : 'text-gray-500' }}">{{ money($order->balance_due) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

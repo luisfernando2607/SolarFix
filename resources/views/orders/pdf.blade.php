@@ -97,18 +97,18 @@
     <div class="w50">
         <table>
             <tr><th style="width:10%">#</th><th style="width:60%">Concepto</th><th style="width:30%">Valor</th></tr>
-            <tr><td class="c">1</td><td>Diagnóstico</td><td class="r">${{ number_format($order->diagnosis_cost, 2) }}</td></tr>
-            <tr><td class="c">2</td><td>Mano de Obra</td><td class="r">${{ number_format($order->labor_cost, 2) }}</td></tr>
-            <tr><td class="c">3</td><td>Repuestos</td><td class="r">${{ number_format($order->parts_cost, 2) }}</td></tr>
+            <tr><td class="c">1</td><td>Diagnóstico</td><td class="r">{{ money($order->diagnosis_cost) }}</td></tr>
+            <tr><td class="c">2</td><td>Mano de Obra</td><td class="r">{{ money($order->labor_cost) }}</td></tr>
+            <tr><td class="c">3</td><td>Repuestos</td><td class="r">{{ money($order->parts_cost) }}</td></tr>
             @foreach ($order->parts as $orderPart)
-            <tr><td></td><td style="font-size:7pt;color:#444">&nbsp;&nbsp;{{ $orderPart->sparePart?->name }} × {{ $orderPart->quantity }}</td><td class="r" style="font-size:7pt;color:#444">${{ number_format($orderPart->subtotal, 2) }}</td></tr>
+            <tr><td></td><td style="font-size:7pt;color:#444">&nbsp;&nbsp;{{ $orderPart->sparePart?->name }} × {{ $orderPart->quantity }}</td><td class="r" style="font-size:7pt;color:#444">{{ money($orderPart->subtotal) }}</td></tr>
             @endforeach
             @if ($order->surcharge_amount > 0)
-            <tr><td class="c">4</td><td>Recargo ({{ $order->surcharge_percent }}%)</td><td class="r">${{ number_format($order->surcharge_amount, 2) }}</td></tr>
+            <tr><td class="c">4</td><td>Recargo ({{ $order->surcharge_percent }}%)</td><td class="r">{{ money($order->surcharge_amount) }}</td></tr>
             @endif
-            <tr><td></td><td class="b">TOTAL</td><td class="r b">${{ number_format($order->total_amount, 2) }}</td></tr>
-            <tr><td></td><td>Pagado</td><td class="r">${{ number_format($order->amount_paid, 2) }}</td></tr>
-            <tr><td></td><td class="b">SALDO</td><td class="r b">${{ number_format($order->balance_due, 2) }}</td></tr>
+            <tr><td></td><td class="b">TOTAL</td><td class="r b">{{ money($order->total_amount) }}</td></tr>
+            <tr><td></td><td>Pagado</td><td class="r">{{ money($order->amount_paid) }}</td></tr>
+            <tr><td></td><td class="b">SALDO</td><td class="r b">{{ money($order->balance_due) }}</td></tr>
         </table>
     </div>
     <div class="w50">
@@ -118,7 +118,7 @@
             @if ($order->payments->count())
                 @foreach ($order->payments as $payment)
                 <tr>
-                    <td class="r">${{ number_format($payment->amount, 2) }}</td>
+                    <td class="r">{{ money($payment->amount) }}</td>
                     <td>{{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}</td>
                 </tr>
                 @endforeach

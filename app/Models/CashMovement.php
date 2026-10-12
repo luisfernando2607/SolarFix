@@ -44,6 +44,6 @@ class CashMovement extends Model
 
     public function auditDescription(): string
     {
-        return (self::types()[$this->type] ?? $this->type) . ' de $' . number_format((float) $this->amount, 2) . ': ' . $this->description;
+        return (self::types()[$this->type] ?? $this->type) . ' de ' . money($this->amount) . ': ' . $this->description;
     }
 }

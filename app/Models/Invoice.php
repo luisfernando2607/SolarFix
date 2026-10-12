@@ -101,7 +101,7 @@ class Invoice extends Model
 
     private static function generateInvoiceNumber(): string
     {
-        $prefix = 'FAC-';
+        $prefix = Setting::get('invoice_prefix', 'FAC') . '-';
         $last = self::withTrashed()->where('invoice_number', 'like', $prefix . '%')
             ->orderBy('id', 'desc')
             ->value('invoice_number');

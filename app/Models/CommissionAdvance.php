@@ -27,6 +27,6 @@ class CommissionAdvance extends Model
 
     public function auditDescription(): string
     {
-        return 'Adelanto de comisión de $' . number_format((float) $this->amount, 2) . ' (' . $this->period . ')';
+        return 'Adelanto de comisión de ' . money($this->amount) . ' (' . $this->period . ')';
     }
 }

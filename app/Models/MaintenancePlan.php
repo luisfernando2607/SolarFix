@@ -10,8 +10,6 @@ class MaintenancePlan extends Model
 {
     use Auditable;
 
-    public const DUE_SOON_DAYS = 15;
-
     protected $fillable = ['client_id', 'title', 'address', 'interval_months', 'next_due_date', 'last_done_at', 'is_active', 'notes'];
 
     protected function casts(): array
@@ -33,18 +31,26 @@ class MaintenancePlan extends Model
         ];
     }
 
+    /**
+     * Con cuántos días de anticipación se avisa un mantenimiento (Configuración).
+     */
+    public static function dueSoonDays(): int
+    {
+        return (int) Setting::get('maintenance_due_days', 15);
+    }
+
     public function dueStatus(): string
     {
         if ($this->next_due_date->lt(today())) {
             return 'overdue';
         }
 
-        return $this->next_due_date->lte(today()->addDays(self::DUE_SOON_DAYS)) ? 'due_soon' : 'ok';
+        return $this->next_due_date->lte(today()->addDays(self::dueSoonDays())) ? 'due_soon' : 'ok';
     }
 
     public function scopeDue($query)
     {
-        return $query->where('is_active', true)->whereDate('next_due_date', '<=', today()->addDays(self::DUE_SOON_DAYS));
+        return $query->where('is_active', true)->whereDate('next_due_date', '<=', today()->addDays(self::dueSoonDays()));
     }
 
     /**

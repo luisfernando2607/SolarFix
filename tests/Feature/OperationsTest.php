@@ -182,6 +182,11 @@ class OperationsTest extends TestCase
             'stale_order_days' => 7,
             'approval_alert_hours' => 48,
             'commission_base' => 'total',
+            'order_prefix' => 'ORD',
+            'invoice_prefix' => 'FAC',
+            'currency_symbol' => '$',
+            'diagnosis_cost_default' => 0,
+            'maintenance_due_days' => 15,
         ])->assertRedirect(route('settings.edit'));
 
         Setting::flushCache();

@@ -150,7 +150,7 @@ class SparePartController extends Controller
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
-                'label' => trim($p->name . ($p->code ? ' · ' . $p->code : '')) . ' — stock ' . $p->stock_quantity . ' — $' . number_format((float) $p->sale_price, 2),
+                'label' => trim($p->name . ($p->code ? ' · ' . $p->code : '')) . ' — stock ' . $p->stock_quantity . ' — ' . money($p->sale_price),
                 'stock' => $p->stock_quantity,
                 'sale_price' => (float) $p->sale_price,
             ]);

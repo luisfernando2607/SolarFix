@@ -413,8 +413,8 @@
                         <div>
                             <label for="diagnosis_cost" class="block text-sm font-medium text-gray-700 mb-1">Costo Diagnóstico</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                                <input type="number" step="0.01" min="0" id="diagnosis_cost" name="diagnosis_cost" value="{{ old('diagnosis_cost', $editing ? $order->diagnosis_cost : '0') }}"
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
+                                <input type="number" step="0.01" min="0" id="diagnosis_cost" name="diagnosis_cost" value="{{ old('diagnosis_cost', $editing ? $order->diagnosis_cost : \App\Models\Setting::get('diagnosis_cost_default', 0)) }}"
                                     class="w-full pl-7 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cost-input">
                             </div>
                         </div>
@@ -422,7 +422,7 @@
                         <div>
                             <label for="labor_cost" class="block text-sm font-medium text-gray-700 mb-1">Mano de Obra</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
                                 <input type="number" step="0.01" min="0" id="labor_cost" name="labor_cost" value="{{ old('labor_cost', $editing ? $order->labor_cost : '0') }}"
                                     class="w-full pl-7 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cost-input">
                             </div>
@@ -431,7 +431,7 @@
                         <div>
                             <label for="parts_cost" class="block text-sm font-medium text-gray-700 mb-1">Repuestos</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
                                 @php $partsFromInventory = $editing && $order->parts()->exists(); @endphp
                                 <input type="number" step="0.01" min="0" id="parts_cost" name="parts_cost" value="{{ $partsFromInventory ? $order->parts_cost : old('parts_cost', $editing ? $order->parts_cost : '0') }}"
                                     {{ $partsFromInventory ? 'readonly' : '' }}
@@ -456,7 +456,7 @@
                         <div>
                             <label for="total_amount" class="block text-sm font-medium text-gray-700 mb-1">Total</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
                                 <input type="number" step="0.01" min="0" id="total_amount" name="total_amount" value="0" readonly
                                     class="w-full pl-7 pr-4 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-gray-700 font-semibold outline-none cursor-not-allowed">
                             </div>
@@ -465,7 +465,7 @@
                         <div>
                             <label for="amount_paid" class="block text-sm font-medium text-gray-700 mb-1">{{ $editing ? 'Monto Pagado' : 'Anticipo' }}</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
                                 @if ($editing)
                                     <input type="number" id="amount_paid" value="{{ $order->amount_paid }}" readonly
                                         class="w-full pl-7 pr-4 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-gray-700 outline-none cursor-not-allowed">
@@ -482,7 +482,7 @@
                         <div>
                             <label for="balance_due" class="block text-sm font-medium text-gray-700 mb-1">Saldo Pendiente</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
                                 <input type="number" step="0.01" min="0" id="balance_due" name="balance_due" value="0" readonly
                                     class="w-full pl-7 pr-4 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-gray-700 font-semibold outline-none cursor-not-allowed">
                             </div>
@@ -545,6 +545,8 @@
     });
     @endif
 
+    var currency = @json(\App\Models\Setting::get('currency_symbol', '$'));
+
     function calcCosts() {
         var diag = parseFloat(document.getElementById('diagnosis_cost').value) || 0;
         var labor = parseFloat(document.getElementById('labor_cost').value) || 0;
@@ -557,7 +559,7 @@
         var total = sub + surchAmt;
         var balance = total - paid;
 
-        document.getElementById('surcharge_amount_display').innerHTML = 'Recargo: <span class="font-semibold text-gray-700">$' + surchAmt.toFixed(2) + '</span>';
+        document.getElementById('surcharge_amount_display').innerHTML = 'Recargo: <span class="font-semibold text-gray-700">' + currency + ' + surchAmt.toFixed(2) + '</span>';
         document.getElementById('total_amount').value = total.toFixed(2);
         document.getElementById('balance_due').value = Math.max(0, balance).toFixed(2);
 

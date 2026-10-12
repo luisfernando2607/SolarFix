@@ -103,7 +103,7 @@ class Commission extends Model
 
     public function auditDescription(): string
     {
-        return 'Comisión de $' . number_format((float) $this->commission_amount, 2)
+        return 'Comisión de ' . money($this->commission_amount)
             . ' · orden ' . Order::withTrashed()->whereKey($this->order_id)->value('order_number');
     }
 }

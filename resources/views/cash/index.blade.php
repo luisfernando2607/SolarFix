@@ -20,12 +20,12 @@
         @foreach ($methods as $key => $label)
             <div class="bg-white rounded-xl shadow-sm border p-5">
                 <p class="text-sm font-medium text-gray-500">{{ $label }}</p>
-                <p class="text-2xl font-bold text-gray-800 mt-1">${{ number_format($totals[$key], 2) }}</p>
+                <p class="text-2xl font-bold text-gray-800 mt-1">{{ money($totals[$key]) }}</p>
             </div>
         @endforeach
         <div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-5">
             <p class="text-sm font-medium text-emerald-700">Total del día</p>
-            <p class="text-2xl font-bold text-emerald-600 mt-1">${{ number_format($totals['total'], 2) }}</p>
+            <p class="text-2xl font-bold text-emerald-600 mt-1">{{ money($totals['total']) }}</p>
         </div>
     </div>
 
@@ -61,7 +61,7 @@
                             <td class="px-6 py-3">{{ $payment->order?->client?->name ?? '—' }}</td>
                             <td class="px-6 py-3">{{ $methods[$payment->method] ?? $payment->method }}</td>
                             <td class="px-6 py-3 text-gray-500">{{ $payment->reference ?: '—' }}</td>
-                            <td class="px-6 py-3 text-right font-medium">${{ number_format($payment->amount, 2) }}</td>
+                            <td class="px-6 py-3 text-right font-medium">{{ money($payment->amount) }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -87,7 +87,7 @@
                                 <span class="text-xs text-gray-400">· {{ $movement->registeredBy?->name }} {{ $movement->created_at->format('H:i') }}</span>
                             </span>
                             <span class="flex items-center gap-3">
-                                <span class="font-semibold {{ $movement->signedAmount() < 0 ? 'text-red-600' : 'text-green-700' }}">{{ $movement->signedAmount() < 0 ? '−' : '+' }}${{ number_format($movement->amount, 2) }}</span>
+                                <span class="font-semibold {{ $movement->signedAmount() < 0 ? 'text-red-600' : 'text-green-700' }}">{{ $movement->signedAmount() < 0 ? '−' : '+' }}{{ money($movement->amount) }}</span>
                                 @if (Auth::user()->isAdmin() || Auth::user()->isSuperAdmin())
                                     <form method="POST" action="{{ route('cash.movements.destroy', $movement) }}" onsubmit="return confirm('¿Eliminar este movimiento?')">
                                         @csrf @method('DELETE')
@@ -126,22 +126,22 @@
                     ['Gastos', $cash['expenses'], '−'],
                     ['Retiros / depósitos', $cash['withdrawals'], '−'],
                 ] as [$label, $value, $sign])
-                    <div class="flex justify-between"><dt class="text-gray-500">{{ $sign }} {{ $label }}</dt><dd class="text-gray-800">${{ number_format($value, 2) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-gray-500">{{ $sign }} {{ $label }}</dt><dd class="text-gray-800">{{ money($value) }}</dd></div>
                 @endforeach
-                <div class="flex justify-between border-t pt-1 font-semibold"><dt>Efectivo esperado</dt><dd>${{ number_format($cash['expected'], 2) }}</dd></div>
+                <div class="flex justify-between border-t pt-1 font-semibold"><dt>Efectivo esperado</dt><dd>{{ money($cash['expected']) }}</dd></div>
             </dl>
 
             @if ($closing)
                 <div class="mb-4 rounded-lg border p-3 text-sm {{ (float) $closing->difference == 0 ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200' }}">
                     <p class="font-medium text-gray-800">Cerrada por {{ $closing->closedBy?->name ?? '—' }} · {{ $closing->updated_at->format('d/m/Y H:i') }}</p>
-                    <p class="mt-1">Contado: ${{ number_format($closing->counted_cash, 2) }} · Diferencia:
-                        <span class="font-semibold {{ (float) $closing->difference == 0 ? 'text-green-700' : 'text-amber-700' }}">${{ number_format($closing->difference, 2) }}</span>
+                    <p class="mt-1">Contado: {{ money($closing->counted_cash) }} · Diferencia:
+                        <span class="font-semibold {{ (float) $closing->difference == 0 ? 'text-green-700' : 'text-amber-700' }}">{{ money($closing->difference) }}</span>
                     </p>
                     @if ($closing->notes)
                         <p class="mt-1 text-gray-600">{{ $closing->notes }}</p>
                     @endif
                     @if ((float) $closing->expected_cash != $cash['expected'])
-                        <p class="mt-2 text-xs text-red-700">Hubo movimientos de efectivo después del cierre (esperado al cerrar: ${{ number_format($closing->expected_cash, 2) }}). Vuelve a cerrar la caja.</p>
+                        <p class="mt-2 text-xs text-red-700">Hubo movimientos de efectivo después del cierre (esperado al cerrar: {{ money($closing->expected_cash) }}). Vuelve a cerrar la caja.</p>
                     @endif
                 </div>
             @endif
@@ -152,7 +152,7 @@
                 <div class="mb-4">
                     <label for="counted_cash" class="block text-sm font-medium text-gray-700 mb-1">Efectivo contado *</label>
                     <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{{ \App\Models\Setting::get('currency_symbol', '$') }}</span>
                         <input type="number" step="0.01" min="0" id="counted_cash" name="counted_cash" required
                             value="{{ old('counted_cash', $closing?->counted_cash) }}"
                             class="w-full pl-7 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('counted_cash') border-red-500 @enderror">
@@ -169,7 +169,7 @@
                     {{ $closing ? 'Actualizar cierre' : 'Cerrar caja' }}
                 </button>
             </form>
-            <p class="text-xs text-gray-500 mt-3">Para el depósito: transferencias y tarjeta ya están en banco (${{ number_format($totals['transfer'] + $totals['card'], 2) }}).</p>
+            <p class="text-xs text-gray-500 mt-3">Para el depósito: transferencias y tarjeta ya están en banco ({{ money($totals['transfer'] + $totals['card']) }}).</p>
         </div>
     </div>
 
@@ -196,9 +196,9 @@
                         <td class="px-6 py-3">
                             <a href="{{ route('cash.index', ['date' => $row->closing_date->toDateString()]) }}" class="text-blue-600 hover:underline">{{ $row->closing_date->format('d/m/Y') }}</a>
                         </td>
-                        <td class="px-6 py-3 text-right">${{ number_format($row->expected_cash, 2) }}</td>
-                        <td class="px-6 py-3 text-right">${{ number_format($row->counted_cash, 2) }}</td>
-                        <td class="px-6 py-3 text-right font-medium {{ (float) $row->difference == 0 ? 'text-green-700' : 'text-amber-700' }}">${{ number_format($row->difference, 2) }}</td>
+                        <td class="px-6 py-3 text-right">{{ money($row->expected_cash) }}</td>
+                        <td class="px-6 py-3 text-right">{{ money($row->counted_cash) }}</td>
+                        <td class="px-6 py-3 text-right font-medium {{ (float) $row->difference == 0 ? 'text-green-700' : 'text-amber-700' }}">{{ money($row->difference) }}</td>
                         <td class="px-6 py-3">{{ $row->closedBy?->name ?? '—' }}</td>
                         <td class="px-6 py-3 text-gray-500">{{ $row->notes ?: '—' }}</td>
                     </tr>

@@ -55,7 +55,7 @@
                     <li class="px-6 py-2 flex flex-wrap justify-between gap-2 text-sm">
                         <span>{{ $advance->user?->name }} · {{ $advance->created_at->format('d/m/Y') }}{{ $advance->notes ? ' · ' . $advance->notes : '' }}</span>
                         <span class="{{ $advance->is_settled ? 'text-gray-400' : 'font-medium text-gray-800' }}">
-                            ${{ number_format($advance->amount, 2) }} {{ $advance->is_settled ? '(descontado)' : '' }}
+                            {{ money($advance->amount) }} {{ $advance->is_settled ? '(descontado)' : '' }}
                         </span>
                     </li>
                 @endforeach
@@ -78,21 +78,21 @@
                     <p class="text-xs text-gray-500">{{ $row['orders'] }} órdenes entregadas</p>
                     <div class="mt-3 flex justify-between text-sm">
                         <span class="text-gray-500">Pendiente</span>
-                        <span class="font-bold text-amber-600">${{ number_format($row['pending'], 2) }}</span>
+                        <span class="font-bold text-amber-600">{{ money($row['pending']) }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-500">Pagado</span>
-                        <span class="font-semibold text-green-700">${{ number_format($row['paid'], 2) }}</span>
+                        <span class="font-semibold text-green-700">{{ money($row['paid']) }}</span>
                     </div>
                     @if ($row['advances'] > 0)
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-500">Adelantos</span>
-                            <span class="font-semibold text-gray-700">−${{ number_format($row['advances'], 2) }}</span>
+                            <span class="font-semibold text-gray-700">−{{ money($row['advances']) }}</span>
                         </div>
                         @if ($row['pending'] > 0)
                             <div class="flex justify-between text-sm border-t mt-1 pt-1">
                                 <span class="text-gray-700 font-medium">A pagar</span>
-                                <span class="font-bold text-gray-900">${{ number_format($row['to_pay'], 2) }}</span>
+                                <span class="font-bold text-gray-900">{{ money($row['to_pay']) }}</span>
                             </div>
                         @endif
                     @endif
@@ -103,7 +103,7 @@
                             <input type="hidden" name="user_id" value="{{ $userId }}">
                             <input type="hidden" name="period" value="{{ $period }}">
                             <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                                Pagar ${{ number_format($row['to_pay'], 2) }}
+                                Pagar {{ money($row['to_pay']) }}
                             </button>
                         </form>
                     @endif
@@ -137,11 +137,11 @@
                                 </td>
                                 @if ($canManage) <td class="px-4 py-3">{{ $commission->user?->name }}</td> @endif
                                 <td class="px-4 py-3">{{ $commission->order?->client?->name ?? '—' }}</td>
-                                <td class="px-4 py-3 text-right">${{ number_format($commission->order_total, 2) }}</td>
+                                <td class="px-4 py-3 text-right">{{ money($commission->order_total) }}</td>
                                 <td class="px-4 py-3 text-gray-500">
-                                    {{ $commission->commission_type === 'percent' ? rtrim(rtrim(number_format($commission->commission_value, 2), '0'), '.') . '%' : '$' . number_format($commission->commission_value, 2) . ' fijo' }}
+                                    {{ $commission->commission_type === 'percent' ? rtrim(rtrim(number_format($commission->commission_value, 2), '0'), '.') . '%' : money($commission->commission_value) . ' fijo' }}
                                 </td>
-                                <td class="px-4 py-3 text-right font-semibold">${{ number_format($commission->commission_amount, 2) }}</td>
+                                <td class="px-4 py-3 text-right font-semibold">{{ money($commission->commission_amount) }}</td>
                                 <td class="px-4 py-3">
                                     @if ($commission->is_paid)
                                         <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Pagada {{ $commission->paid_at?->format('d/m') }}</span>

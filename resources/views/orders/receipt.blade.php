@@ -38,7 +38,7 @@
 <div class="line"></div>
 
 <table>
-    <tr><td style="width:50%" class="label">Monto Pagado</td><td class="r val">${{ number_format($payment->amount, 2) }}</td></tr>
+    <tr><td style="width:50%" class="label">Monto Pagado</td><td class="r val">{{ money($payment->amount) }}</td></tr>
     <tr><td class="label">Método</td><td class="r">{{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}</td></tr>
     @if ($payment->reference)
     <tr><td class="label">Referencia</td><td class="r">{{ $payment->reference }}</td></tr>
@@ -50,16 +50,16 @@
 <div class="line"></div>
 
 <table>
-    <tr><td style="width:50%" class="label">Total Orden</td><td class="r">${{ number_format($order->total_amount, 2) }}</td></tr>
-    <tr><td class="label">Total Pagado</td><td class="r">${{ number_format($order->amount_paid, 2) }}</td></tr>
-    <tr><td class="label">Saldo Pendiente</td><td class="r {{ $order->balance_due > 0 ? 'val' : '' }}">${{ number_format($order->balance_due, 2) }}</td></tr>
+    <tr><td style="width:50%" class="label">Total Orden</td><td class="r">{{ money($order->total_amount) }}</td></tr>
+    <tr><td class="label">Total Pagado</td><td class="r">{{ money($order->amount_paid) }}</td></tr>
+    <tr><td class="label">Saldo Pendiente</td><td class="r {{ $order->balance_due > 0 ? 'val' : '' }}">{{ money($order->balance_due) }}</td></tr>
 </table>
 
 <div class="total">
     @if ($order->balance_due <= 0)
         CANCELADO
     @else
-        SALDO: ${{ number_format($order->balance_due, 2) }}
+        SALDO: {{ money($order->balance_due) }}
     @endif
 </div>
 

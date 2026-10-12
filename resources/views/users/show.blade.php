@@ -55,7 +55,7 @@
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Valor Comisión</p>
-                    <p class="text-sm font-medium text-gray-800 mt-1">{{ $user->commission_value ? '$ ' . number_format($user->commission_value, 2) : '—' }}</p>
+                    <p class="text-sm font-medium text-gray-800 mt-1">{{ $user->commission_value ? ($user->commission_type === 'percent' ? rtrim(rtrim(number_format($user->commission_value, 2), '0'), '.') . '%' : money($user->commission_value) . ' por orden') : '—' }}</p>
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Registrado</p>

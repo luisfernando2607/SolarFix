@@ -122,8 +122,8 @@ class CommissionController extends Controller
 
         $name = User::withTrashed()->find($validated['user_id'])->name;
         $message = $result
-            ? "Pago a {$name}: \$" . number_format($result['paid'], 2) . " ({$result['count']} comisiones por \$" . number_format($result['earned'], 2)
-                . ($result['advanced'] > 0 ? ' menos adelantos por $' . number_format($result['advanced'], 2) : '') . ').'
+            ? "Pago a {$name}: " . money($result['paid']) . " ({$result['count']} comisiones por " . money($result['earned'])
+                . ($result['advanced'] > 0 ? ' menos adelantos por ' . money($result['advanced']) : '') . ').'
             : 'No había comisiones pendientes.';
 
         return redirect()->route('commissions.index', ['period' => $validated['period']])->with('success', $message);
@@ -141,6 +141,6 @@ class CommissionController extends Controller
         CommissionAdvance::create($validated + ['registered_by' => Auth::id()]);
 
         return redirect()->route('commissions.index', ['period' => $validated['period']])
-            ->with('success', 'Adelanto de $' . number_format((float) $validated['amount'], 2) . ' registrado.');
+            ->with('success', 'Adelanto de ' . money($validated['amount']) . ' registrado.');
     }
 }

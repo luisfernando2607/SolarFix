@@ -22,8 +22,8 @@ class PaymentController extends Controller
 
         // No se cobra más que el saldo de la orden.
         if ((float) $validated['amount'] > (float) $order->balance_due + 0.004) {
-            return back()->withInput()->with('error', 'El pago ($' . number_format((float) $validated['amount'], 2)
-                . ') supera el saldo pendiente ($' . number_format((float) $order->balance_due, 2) . ').');
+            return back()->withInput()->with('error', 'El pago (' . money($validated['amount'])
+                . ') supera el saldo pendiente (' . money($order->balance_due) . ').');
         }
 
         $invoiceId = $order->invoices()->where('status', '!=', 'anulada')->value('id');
@@ -42,7 +42,7 @@ class PaymentController extends Controller
         $order->recalculateTotals();
 
         return redirect()->route('orders.show', $order)
-            ->with('success', 'Pago de $' . number_format($validated['amount'], 2) . ' registrado.');
+            ->with('success', 'Pago de ' . money($validated['amount']) . ' registrado.');
     }
 
     public function destroy(Order $order, OrderPayment $payment)

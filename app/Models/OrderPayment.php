@@ -47,6 +47,6 @@ class OrderPayment extends Model
 
     public function auditDescription(): string
     {
-        return 'Pago de $' . number_format((float) $this->amount, 2) . ($this->order_id ? ' · orden ' . Order::withTrashed()->whereKey($this->order_id)->value('order_number') : '');
+        return 'Pago de ' . money($this->amount) . ($this->order_id ? ' · orden ' . Order::withTrashed()->whereKey($this->order_id)->value('order_number') : '');
     }
 }

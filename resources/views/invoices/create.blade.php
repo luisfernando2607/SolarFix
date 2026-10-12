@@ -127,7 +127,7 @@
                         class="w-20 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center">
                     <input type="number" name="items[{{ $i }}][unit_price]" step="0.01" min="0" value="{{ $item[2] }}" required
                         class="item-price w-28 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-right">
-                    <span class="item-subtotal text-sm font-medium text-gray-700 w-20 text-right">${{ number_format($item[1] * $item[2], 2) }}</span>
+                    <span class="item-subtotal text-sm font-medium text-gray-700 w-20 text-right">{{ money($item[1] * $item[2]) }}</span>
                     <button type="button" class="remove-item p-1.5 text-red-400 hover:text-red-600 {{ count($defaultItems) <= 1 ? 'hidden' : '' }}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
@@ -138,7 +138,7 @@
             <div class="border-t pt-3 mt-3 space-y-1 text-sm">
                 <div class="flex justify-between text-gray-600">
                     <span>Subtotal</span>
-                    <span id="subtotal_display">$0.00</span>
+                    <span id="subtotal_display">{{ money(0) }}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-gray-600">IVA</span>
@@ -146,12 +146,12 @@
                         <input type="number" name="iva_percent" step="0.01" min="0" max="100" value="{{ old('iva_percent', \App\Models\Setting::get('iva_percent', 0)) }}"
                             class="w-16 px-2 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-right" id="iva_percent">
                         <span>%</span>
-                        <span id="iva_amount_display" class="ml-2 w-20 text-right">$0.00</span>
+                        <span id="iva_amount_display" class="ml-2 w-20 text-right">{{ money(0) }}</span>
                     </div>
                 </div>
                 <div class="flex justify-between text-base font-bold text-gray-800 border-t pt-2">
                     <span>Total</span>
-                    <span id="total_display">$0.00</span>
+                    <span id="total_display">{{ money(0) }}</span>
                 </div>
             </div>
         </div>
@@ -181,6 +181,7 @@
 </div>
 
 <script>
+    var currency = @json(\App\Models\Setting::get('currency_symbol', '$'));
 document.addEventListener('DOMContentLoaded', function () {
     let itemIndex = {{ count($defaultItems) }};
 
@@ -190,16 +191,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const qty = parseFloat(row.querySelector('[name$="[quantity]"]').value) || 0;
             const price = parseFloat(row.querySelector('.item-price').value) || 0;
             const st = qty * price;
-            row.querySelector('.item-subtotal').textContent = '$' + st.toFixed(2);
+            row.querySelector('.item-subtotal').textContent = currency + st.toFixed(2);
             subtotal += st;
         });
-        document.getElementById('subtotal_display').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('subtotal_display').textContent = currency + subtotal.toFixed(2);
         document.getElementById('subtotal_input').value = subtotal.toFixed(2);
 
         const ivaPct = parseFloat(document.getElementById('iva_percent').value) || 0;
         const ivaAmt = subtotal * ivaPct / 100;
-        document.getElementById('iva_amount_display').textContent = '$' + ivaAmt.toFixed(2);
-        document.getElementById('total_display').textContent = '$' + (subtotal + ivaAmt).toFixed(2);
+        document.getElementById('iva_amount_display').textContent = currency + ivaAmt.toFixed(2);
+        document.getElementById('total_display').textContent = currency + (subtotal + ivaAmt).toFixed(2);
     }
 
     document.getElementById('add_item').addEventListener('click', function () {
@@ -213,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 class="w-20 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center">
             <input type="number" name="items[${itemIndex}][unit_price]" step="0.01" min="0" value="0" required
                 class="item-price w-28 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-right">
-            <span class="item-subtotal text-sm font-medium text-gray-700 w-20 text-right">$0.00</span>
+            <span class="item-subtotal text-sm font-medium text-gray-700 w-20 text-right">{{ money(0) }}</span>
             <button type="button" class="remove-item p-1.5 text-red-400 hover:text-red-600">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>

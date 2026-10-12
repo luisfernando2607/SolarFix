@@ -43,11 +43,11 @@
         </div>
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <p class="text-sm text-gray-500">Precio de venta</p>
-            <p class="text-2xl font-bold text-gray-800">${{ number_format($part->sale_price, 2) }}</p>
+            <p class="text-2xl font-bold text-gray-800">{{ money($part->sale_price) }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <p class="text-sm text-gray-500">Costo promedio</p>
-            <p class="text-2xl font-bold text-gray-800">${{ number_format($part->cost_price, 2) }}</p>
+            <p class="text-2xl font-bold text-gray-800">{{ money($part->cost_price) }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <p class="text-sm text-gray-500">Ubicación</p>
@@ -143,7 +143,7 @@
                                         <span class="text-xs text-gray-500">· <a href="{{ route('suppliers.show', $movement->supplier) }}" class="hover:underline">{{ $movement->supplier->name }}</a></span>
                                     @endif
                                     @if ($movement->unit_cost !== null && $movement->type === 'in')
-                                        <span class="text-xs text-gray-400">· ${{ number_format($movement->unit_cost, 2) }} c/u</span>
+                                        <span class="text-xs text-gray-400">· {{ money($movement->unit_cost) }} c/u</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-gray-500">{{ $movement->registeredBy?->name ?? '—' }}</td>

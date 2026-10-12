@@ -26,7 +26,7 @@
     <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div class="px-6 py-4 border-b bg-gray-50/50 flex items-center justify-between">
             <h3 class="text-base font-semibold text-gray-800">Compras</h3>
-            <span class="text-sm text-gray-600">Total comprado: <strong>${{ number_format($total, 2) }}</strong></span>
+            <span class="text-sm text-gray-600">Total comprado: <strong>{{ money($total) }}</strong></span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -46,7 +46,7 @@
                             <td class="px-6 py-2 text-gray-500 whitespace-nowrap">{{ $purchase->moved_at->format('d/m/Y') }}</td>
                             <td class="px-3 py-2"><a href="{{ route('spare-parts.show', $purchase->spare_part_id) }}" class="text-blue-600 hover:underline">{{ $purchase->sparePart?->name }}</a></td>
                             <td class="px-3 py-2 text-right">{{ $purchase->quantity }}</td>
-                            <td class="px-3 py-2 text-right">${{ number_format($purchase->unit_cost, 2) }}</td>
+                            <td class="px-3 py-2 text-right">{{ money($purchase->unit_cost) }}</td>
                             <td class="px-3 py-2 text-gray-600">{{ $purchase->reason }}</td>
                             <td class="px-6 py-2 text-gray-500">{{ $purchase->registeredBy?->name }}</td>
                         </tr>

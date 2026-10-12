@@ -53,7 +53,7 @@
                                 <span class="font-semibold {{ $part->isLowStock() ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stock_quantity }}</span>
                                 <span class="text-xs text-gray-400">/ mín. {{ $part->min_stock }}</span>
                             </td>
-                            <td class="px-6 py-3 text-right">${{ number_format($part->sale_price, 2) }}</td>
+                            <td class="px-6 py-3 text-right">{{ money($part->sale_price) }}</td>
                             <td class="px-6 py-3 text-gray-500">{{ $part->location ?? '—' }}</td>
                         </tr>
                     @empty

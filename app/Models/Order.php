@@ -113,7 +113,7 @@ class Order extends Model
 
     private static function nextOrderNumber(): string
     {
-        $prefix = 'ORD-' . now()->format('Ymd') . '-';
+        $prefix = Setting::get('order_prefix', 'ORD') . '-' . now()->format('Ymd') . '-';
         // withTrashed: las órdenes anuladas conservan su número.
         $last = self::withTrashed()
             ->where('order_number', 'like', $prefix . '%')

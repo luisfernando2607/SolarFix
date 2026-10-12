@@ -53,7 +53,7 @@ class CashClosingController extends Controller
 
         if ($difference != 0 && blank($validated['notes'] ?? null)) {
             return back()->withInput()->withErrors([
-                'notes' => 'Hay una diferencia de $' . number_format($difference, 2) . '. Escribe la justificación.',
+                'notes' => 'Hay una diferencia de ' . money($difference) . '. Escribe la justificación.',
             ]);
         }
 

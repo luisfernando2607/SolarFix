@@ -208,8 +208,8 @@
                                             <a href="{{ route('spare-parts.show', $orderPart->spare_part_id) }}" class="text-blue-600 hover:underline">{{ $orderPart->sparePart?->name }}</a>
                                         </td>
                                         <td class="py-2 text-right">{{ $orderPart->quantity }}</td>
-                                        <td class="py-2 text-right">${{ number_format($orderPart->unit_price, 2) }}</td>
-                                        <td class="py-2 text-right font-medium">${{ number_format($orderPart->subtotal, 2) }}</td>
+                                        <td class="py-2 text-right">{{ money($orderPart->unit_price) }}</td>
+                                        <td class="py-2 text-right font-medium">{{ money($orderPart->subtotal) }}</td>
                                         <td class="py-2 text-right">
                                             @unless ($partsLocked)
                                                 <form method="POST" action="{{ route('orders.parts.destroy', [$order, $orderPart]) }}" onsubmit="return confirm('¿Quitar este repuesto? Las unidades vuelven al stock.')">
@@ -381,12 +381,12 @@
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Costos</h3>
                 @if ($order->total_amount > 0)
                     <div class="text-center mb-4">
-                        <p class="text-2xl font-bold text-gray-800">${{ number_format($order->total_amount, 2) }}</p>
+                        <p class="text-2xl font-bold text-gray-800">{{ money($order->total_amount) }}</p>
                         <p class="text-xs text-gray-500">total</p>
                         @if ($order->balance_due > 0)
                             <span class="inline-flex items-center gap-1 mt-1 text-xs font-medium text-red-600">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
-                                Debe ${{ number_format($order->balance_due, 2) }}
+                                Debe {{ money($order->balance_due) }}
                             </span>
                         @else
                             <span class="inline-flex items-center gap-1 mt-1 text-xs font-medium text-green-600">
@@ -399,33 +399,33 @@
                 <dl class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <dt class="text-gray-500">Diagnóstico</dt>
-                        <dd class="font-medium">${{ number_format($order->diagnosis_cost, 2) }}</dd>
+                        <dd class="font-medium">{{ money($order->diagnosis_cost) }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-gray-500">Mano de Obra</dt>
-                        <dd class="font-medium">${{ number_format($order->labor_cost, 2) }}</dd>
+                        <dd class="font-medium">{{ money($order->labor_cost) }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-gray-500">Repuestos</dt>
-                        <dd class="font-medium">${{ number_format($order->parts_cost, 2) }}</dd>
+                        <dd class="font-medium">{{ money($order->parts_cost) }}</dd>
                     </div>
                     @if ($order->surcharge_amount > 0)
                     <div class="flex justify-between">
                         <dt class="text-gray-500">Recargo ({{ $order->surcharge_percent }}%)</dt>
-                        <dd class="font-medium">${{ number_format($order->surcharge_amount, 2) }}</dd>
+                        <dd class="font-medium">{{ money($order->surcharge_amount) }}</dd>
                     </div>
                     @endif
                     <div class="flex justify-between border-t pt-2 font-semibold">
                         <dt class="text-gray-700">Total</dt>
-                        <dd class="text-gray-800">${{ number_format($order->total_amount, 2) }}</dd>
+                        <dd class="text-gray-800">{{ money($order->total_amount) }}</dd>
                     </div>
                     <div class="flex justify-between text-green-700">
                         <dt>Pagado</dt>
-                        <dd>${{ number_format($order->amount_paid, 2) }}</dd>
+                        <dd>{{ money($order->amount_paid) }}</dd>
                     </div>
                     <div class="flex justify-between border-t pt-2 font-semibold {{ $order->balance_due > 0 ? 'text-red-600' : 'text-green-600' }}">
                         <dt>Saldo</dt>
-                        <dd>${{ number_format($order->balance_due, 2) }}</dd>
+                        <dd>{{ money($order->balance_due) }}</dd>
                     </div>
                 </dl>
                 @if ($order->total_amount > 0 && Gate::allows('manage-invoices'))
@@ -653,7 +653,7 @@
                     @foreach ($order->payments as $payment)
                         <div class="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
                             <div class="flex items-center gap-2">
-                                <span class="font-medium text-gray-800">${{ number_format($payment->amount, 2) }}</span>
+                                <span class="font-medium text-gray-800">{{ money($payment->amount) }}</span>
                                 <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
                                     {{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}
                                 </span>
@@ -670,7 +670,7 @@
                                 @endcan
                                 @can('manage-payments')
                                 <form method="POST" action="{{ route('orders.payments.destroy', [$order, $payment]) }}" class="inline"
-                                    onsubmit="return confirm('¿Eliminar este pago de ${{ number_format($payment->amount, 2) }}?')">
+                                    onsubmit="return confirm('¿Eliminar este pago de {{ money($payment->amount) }}?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="text-red-500 hover:text-red-700">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>

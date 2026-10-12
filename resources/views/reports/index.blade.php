@@ -3,7 +3,7 @@
 @section('title', 'Reportes')
 
 @php
-    $money = fn ($v) => '$' . number_format((float) $v, 2);
+    $money = fn ($v) => money($v);
     $field = 'px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white';
     $maxMonth = max(1, $monthly->max('amount'));
     $peakKey = $monthly->sortByDesc('amount')->first()['key'] ?? null;

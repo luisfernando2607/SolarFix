@@ -119,6 +119,11 @@ class AuditLogTest extends TestCase
             'stale_order_days' => 5,
             'approval_alert_hours' => 72,
             'commission_base' => 'service',
+            'order_prefix' => 'ORD',
+            'invoice_prefix' => 'FAC',
+            'currency_symbol' => '$',
+            'diagnosis_cost_default' => 0,
+            'maintenance_due_days' => 15,
         ]);
 
         $this->assertTrue(AuditLog::where('auditable_type', 'Setting')->where('description', 'Configuración: iva_percent')->exists());

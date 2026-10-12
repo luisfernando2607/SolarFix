@@ -20,6 +20,11 @@ class SettingController extends Controller
         'approval_alert_hours' => 'alerts',
         'commission_base' => 'commissions',
         'require_quality_check' => 'orders',
+        'order_prefix' => 'orders',
+        'invoice_prefix' => 'billing',
+        'currency_symbol' => 'general',
+        'diagnosis_cost_default' => 'orders',
+        'maintenance_due_days' => 'alerts',
     ];
 
     public function edit()
@@ -34,6 +39,12 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
+        // Los prefijos se guardan en mayúsculas.
+        $request->merge([
+            'order_prefix' => strtoupper(trim((string) $request->input('order_prefix'))),
+            'invoice_prefix' => strtoupper(trim((string) $request->input('invoice_prefix'))),
+        ]);
+
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:120'],
             'company_phone' => ['nullable', 'string', 'max:30'],
@@ -47,6 +58,15 @@ class SettingController extends Controller
             'approval_alert_hours' => ['required', 'integer', 'min:1', 'max:720'],
             'commission_base' => ['required', 'in:service,total'],
             'require_quality_check' => ['boolean'],
+            // El número de orden (prefijo-AAAAMMDD-0001) cabe en 20 caracteres con hasta 6 de prefijo.
+            'order_prefix' => ['required', 'regex:/^[A-Z0-9]{1,6}$/'],
+            'invoice_prefix' => ['required', 'regex:/^[A-Z0-9]{1,8}$/'],
+            'currency_symbol' => ['required', 'string', 'max:4'],
+            'diagnosis_cost_default' => ['required', 'numeric', 'min:0', 'max:99999'],
+            'maintenance_due_days' => ['required', 'integer', 'min:1', 'max:90'],
+        ], [
+            'order_prefix.regex' => 'El prefijo de orden debe tener de 1 a 6 letras o números, sin espacios.',
+            'invoice_prefix.regex' => 'El prefijo de factura debe tener de 1 a 8 letras o números, sin espacios.',
         ]);
 
         foreach (self::FIELDS as $key => $group) {

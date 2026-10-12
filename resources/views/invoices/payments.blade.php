@@ -84,7 +84,7 @@
                             </a>
                         </td>
                         <td class="px-6 py-3 text-sm text-gray-700">{{ $payment->order->client->name ?? '—' }}</td>
-                        <td class="px-6 py-3 text-sm text-gray-800 text-right font-medium">${{ number_format($payment->amount, 2) }}</td>
+                        <td class="px-6 py-3 text-sm text-gray-800 text-right font-medium">{{ money($payment->amount) }}</td>
                         <td class="px-6 py-3 text-center">
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                                 {{ $payment->method === 'cash' ? 'bg-green-100 text-green-800' : '' }}

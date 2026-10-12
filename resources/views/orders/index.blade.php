@@ -93,7 +93,7 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-right text-sm font-semibold text-gray-800">
-                                    ${{ number_format($order->total_amount, 2) }}
+                                    {{ money($order->total_amount) }}
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     @if ($order->total_amount > 0)
@@ -104,7 +104,7 @@
                                             </span>
                                         @else
                                             <span class="text-xs font-medium text-red-600">
-                                                Debe ${{ number_format($order->balance_due, 2) }}
+                                                Debe {{ money($order->balance_due) }}
                                             </span>
                                         @endif
                                     @else

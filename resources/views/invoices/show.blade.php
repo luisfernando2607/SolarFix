@@ -94,25 +94,25 @@
                 <tr>
                     <td class="px-6 py-3 text-sm text-gray-800">{{ $item->description }}</td>
                     <td class="px-6 py-3 text-sm text-gray-600 text-center">{{ $item->quantity }}</td>
-                    <td class="px-6 py-3 text-sm text-gray-600 text-right">${{ number_format($item->unit_price, 2) }}</td>
-                    <td class="px-6 py-3 text-sm text-gray-800 text-right font-medium">${{ number_format($item->subtotal, 2) }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-600 text-right">{{ money($item->unit_price) }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-800 text-right font-medium">{{ money($item->subtotal) }}</td>
                 </tr>
                 @endforeach
             </tbody>
             <tfoot class="border-t bg-gray-50/50">
                 <tr>
                     <td colspan="3" class="px-6 py-2 text-sm text-gray-600 text-right">Subtotal</td>
-                    <td class="px-6 py-2 text-sm text-gray-800 text-right">${{ number_format($invoice->subtotal, 2) }}</td>
+                    <td class="px-6 py-2 text-sm text-gray-800 text-right">{{ money($invoice->subtotal) }}</td>
                 </tr>
                 @if ($invoice->iva_percent > 0)
                 <tr>
                     <td colspan="3" class="px-6 py-2 text-sm text-gray-600 text-right">IVA {{ $invoice->iva_percent }}%</td>
-                    <td class="px-6 py-2 text-sm text-gray-800 text-right">${{ number_format($invoice->iva_amount, 2) }}</td>
+                    <td class="px-6 py-2 text-sm text-gray-800 text-right">{{ money($invoice->iva_amount) }}</td>
                 </tr>
                 @endif
                 <tr class="border-t font-bold">
                     <td colspan="3" class="px-6 py-3 text-sm text-gray-800 text-right">TOTAL</td>
-                    <td class="px-6 py-3 text-sm text-gray-800 text-right">${{ number_format($invoice->total, 2) }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-800 text-right">{{ money($invoice->total) }}</td>
                 </tr>
             </tfoot>
         </table>
@@ -125,7 +125,7 @@
             @foreach ($invoicePayments as $payment)
             <div class="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
                 <div class="flex items-center gap-2">
-                    <span class="font-medium text-gray-800">${{ number_format($payment->amount, 2) }}</span>
+                    <span class="font-medium text-gray-800">{{ money($payment->amount) }}</span>
                     <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
                         {{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}
                     </span>
@@ -139,7 +139,7 @@
         </div>
         <div class="mt-3 text-sm text-gray-600 border-t pt-2 flex justify-between">
             <span>Total pagado</span>
-            <span class="font-medium text-gray-800">${{ number_format($invoicePayments->sum('amount'), 2) }}</span>
+            <span class="font-medium text-gray-800">{{ money($invoicePayments->sum('amount')) }}</span>
         </div>
     </div>
     @endif

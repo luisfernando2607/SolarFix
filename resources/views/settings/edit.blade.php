@@ -34,6 +34,41 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Numeración y montos</h3>
+            <p class="text-xs text-gray-500 mb-4">Al cambiar un prefijo, la numeración de los nuevos documentos empieza con él.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="order_prefix" class="block text-sm font-medium text-gray-700 mb-1">Prefijo de orden *</label>
+                    <input id="order_prefix" name="order_prefix" type="text" maxlength="6" style="text-transform:uppercase" value="{{ old('order_prefix', $settings['order_prefix']) }}" required
+                        class="{{ $input }} @error('order_prefix') border-red-500 @enderror">
+                    <p class="text-xs text-gray-500 mt-1">Ej. SF → SF-20261012-0001</p>
+                    @error('order_prefix') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="invoice_prefix" class="block text-sm font-medium text-gray-700 mb-1">Prefijo de factura *</label>
+                    <input id="invoice_prefix" name="invoice_prefix" type="text" maxlength="8" style="text-transform:uppercase" value="{{ old('invoice_prefix', $settings['invoice_prefix']) }}" required
+                        class="{{ $input }} @error('invoice_prefix') border-red-500 @enderror">
+                    <p class="text-xs text-gray-500 mt-1">Ej. FAC → FAC-0001</p>
+                    @error('invoice_prefix') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="currency_symbol" class="block text-sm font-medium text-gray-700 mb-1">Símbolo de moneda *</label>
+                    <input id="currency_symbol" name="currency_symbol" type="text" maxlength="4" value="{{ old('currency_symbol', $settings['currency_symbol']) }}" required
+                        class="{{ $input }} @error('currency_symbol') border-red-500 @enderror">
+                    
+                    @error('currency_symbol') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="diagnosis_cost_default" class="block text-sm font-medium text-gray-700 mb-1">Costo de diagnóstico por defecto *</label>
+                    <input id="diagnosis_cost_default" name="diagnosis_cost_default" type="number" step="0.01" min="0" value="{{ old('diagnosis_cost_default', $settings['diagnosis_cost_default']) }}" required
+                        class="{{ $input }} @error('diagnosis_cost_default') border-red-500 @enderror">
+                    <p class="text-xs text-gray-500 mt-1">Se propone al crear una orden.</p>
+                    @error('diagnosis_cost_default') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-4">Facturación y órdenes</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -104,6 +139,13 @@
                         value="{{ old('warranty_alert_days', $settings['warranty_alert_days']) }}" required
                         class="{{ $input }} @error('warranty_alert_days') border-red-500 @enderror">
                     @error('warranty_alert_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="maintenance_due_days" class="block text-sm font-medium text-gray-700 mb-1">Avisar mantenimientos con (días) de anticipación *</label>
+                    <input id="maintenance_due_days" name="maintenance_due_days" type="number" min="1" max="90" value="{{ old('maintenance_due_days', $settings['maintenance_due_days']) }}" required
+                        class="{{ $input }} @error('maintenance_due_days') border-red-500 @enderror">
+                    
+                    @error('maintenance_due_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="approval_alert_hours" class="block text-sm font-medium text-gray-700 mb-1">Horas esperando aprobación *</label>
