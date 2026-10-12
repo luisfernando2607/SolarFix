@@ -279,6 +279,25 @@ class OrderController extends Controller
         return $pdf->download('orden-' . $order->order_number . '.pdf');
     }
 
+    /**
+     * Ticket de 80 mm para impresora térmica (se imprime al abrir).
+     */
+    public function ticket(Order $order)
+    {
+        $this->authorizeOrder($order);
+        $order->load(['client', 'brand', 'deviceModel', 'accessories']);
+
+        return view('orders.ticket', [
+            'order' => $order,
+            'company' => [
+                'name' => Setting::get('company_name', 'SolarFix'),
+                'phone' => Setting::get('company_phone'),
+                'address' => Setting::get('company_address'),
+                'terms' => Setting::get('ticket_terms'),
+            ],
+        ]);
+    }
+
     public function edit(Order $order)
     {
         $this->authorizeOrder($order);

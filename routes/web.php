@@ -20,6 +20,7 @@ use App\Http\Controllers\OrderPartController;
 use App\Http\Controllers\OrderWorkController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\SparePartController;
@@ -50,6 +51,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    Route::get('/search', [SearchController::class, 'index'])->name('search');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/{id}', [NotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
@@ -105,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/orders/{order}/parts/{part}', [OrderPartController::class, 'destroy'])->name('orders.parts.destroy');
         Route::resource('orders', OrderController::class)->except(['destroy']);
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
+        Route::get('/orders/{order}/ticket', [OrderController::class, 'ticket'])->name('orders.ticket');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');
         Route::get('/orders/{order}/photos/{photo}', [OrderController::class, 'showPhoto'])->name('orders.photo.show');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');

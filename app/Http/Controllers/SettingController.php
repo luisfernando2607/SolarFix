@@ -29,6 +29,7 @@ class SettingController extends Controller
         'currency_symbol' => 'general',
         'diagnosis_cost_default' => 'orders',
         'maintenance_due_days' => 'alerts',
+        'ticket_terms' => 'orders',
     ];
 
     public function edit()
@@ -127,6 +128,7 @@ class SettingController extends Controller
             'currency_symbol' => ['required', 'string', 'max:4'],
             'diagnosis_cost_default' => ['required', 'numeric', 'min:0', 'max:99999'],
             'maintenance_due_days' => ['required', 'integer', 'min:1', 'max:90'],
+            'ticket_terms' => ['nullable', 'string', 'max:600'],
             'payment_methods' => ['required', 'array', 'max:20'],
             'payment_methods.*.key' => ['nullable', 'string', 'max:30'],
             'payment_methods.*.label' => ['nullable', 'string', 'max:40'],

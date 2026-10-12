@@ -93,6 +93,7 @@ class DashboardController extends Controller
             : 0;
 
         $myWork = $user->isTechnician() ? $this->technicianQueue($user) : null;
+        $counter = $user->can('manage-invoices') ? $this->counterPanel() : null;
 
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])
@@ -110,12 +111,33 @@ class DashboardController extends Controller
             'expiringWarranties' => $expiringWarranties,
             'lowStockParts' => $lowStockParts,
             'myWork' => $myWork,
+            'counter' => $counter,
             'todayAppointments' => $todayAppointments,
             'unassignedAppointments' => $unassignedAppointments,
             'duePlans' => $duePlans,
             'warrantyAlertDays' => Warranty::alertDays(),
             'statuses' => Order::statuses(),
         ]);
+    }
+
+    /**
+     * Mostrador (recepción/administración): equipos para entregar, presupuestos por
+     * confirmar y lo recibido hoy.
+     */
+    private function counterPanel(): array
+    {
+        $with = ['client', 'brand', 'deviceModel', 'statusHistory'];
+        $since = fn ($order, string $status) => $order->statusHistory->where('to_status', $status)->max('changed_at') ?? $order->updated_at;
+
+        return [
+            'ready' => Order::with($with)->where('status', 'ready')->get()
+                ->each(fn ($o) => $o->status_since = $since($o, 'ready'))
+                ->sortBy('status_since')->values(),
+            'waiting' => Order::with($with)->where('status', 'waiting_approval')->get()
+                ->each(fn ($o) => $o->status_since = $since($o, 'waiting_approval'))
+                ->sortBy('status_since')->values(),
+            'today' => Order::with(['client', 'brand', 'deviceModel', 'user'])->whereDate('created_at', today())->latest('id')->get(),
+        ];
     }
 
     /**

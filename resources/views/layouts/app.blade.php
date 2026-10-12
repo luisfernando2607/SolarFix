@@ -179,7 +179,21 @@
                             </form>
                         </div>
                     </div>
+                    <div class="px-4 pb-3">
+                        <form method="GET" action="{{ route('search') }}" role="search" class="relative">
+                        <input type="search" name="q" id="searchMobile" value="{{ request()->routeIs('search') ? request('q') : '' }}" placeholder="Buscar orden, cliente, teléfono, cédula o IMEI…" autocomplete="off"
+                            class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </form>
+                    </div>
                 </header>
+                <div class="hidden md:block sticky top-0 z-20 bg-white border-b px-6 py-2.5">
+                    <form method="GET" action="{{ route('search') }}" role="search" class="relative max-w-xl">
+                        <input type="search" name="q" id="searchDesktop" value="{{ request()->routeIs('search') ? request('q') : '' }}" placeholder="Buscar orden, cliente, teléfono, cédula o IMEI…" autocomplete="off"
+                            class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </form>
+                </div>
             @endauth
 
             <main class="flex-1">
@@ -227,6 +241,15 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
         }
+
+        // Atajo: "/" enfoca el buscador (fuera de campos de texto).
+        document.addEventListener('keydown', function (e) {
+            var tag = (e.target.tagName || '').toLowerCase();
+            if (e.key === '/' && !['input', 'textarea', 'select'].includes(tag) && !e.target.isContentEditable) {
+                var box = document.getElementById(window.innerWidth >= 768 ? 'searchDesktop' : 'searchMobile');
+                if (box) { e.preventDefault(); box.focus(); }
+            }
+        });
 
         // Menú lateral deslizable en pantallas pequeñas.
         (function () {

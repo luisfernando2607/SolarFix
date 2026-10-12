@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\OrderPayment;
 use App\Models\OrderSignature;
+use App\Support\PaymentMethods;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +41,24 @@ class SignatureController extends Controller
             return redirect()->route('orders.show', $order)->with('error', $error);
         }
 
-        $request->validate(['signature' => ['required', 'string']]);
+        $request->validate([
+            'signature' => ['required', 'string'],
+            'payment_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_method' => ['nullable', Rule::in(PaymentMethods::keys())],
+            'payment_reference' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        // Cobro del saldo en el mismo paso de la entrega (solo quien puede registrar pagos).
+        $paymentAmount = round((float) $request->input('payment_amount', 0), 2);
+        if ($stage === 'delivery' && $paymentAmount > 0) {
+            abort_unless(Auth::user()->can('register-payments'), 403, 'No puedes registrar pagos.');
+            if (! $request->filled('payment_method')) {
+                return back()->withErrors(['payment_method' => 'Elige el método de pago.'])->withInput();
+            }
+            if ($paymentAmount > (float) $order->balance_due + 0.004) {
+                return back()->withErrors(['payment_amount' => 'El pago supera el saldo pendiente (' . money($order->balance_due) . ').'])->withInput();
+            }
+        }
 
         $png = $this->decodePng($request->signature);
         if (! $png) {
@@ -49,7 +69,11 @@ class SignatureController extends Controller
         $path = 'signatures/' . $order->id . '-' . $stage . '-' . now()->format('YmdHis') . '.png';
         Storage::disk('local')->put($path, $png);
 
-        DB::transaction(function () use ($order, $stage, $path, $request) {
+        DB::transaction(function () use ($order, $stage, $path, $request, $paymentAmount) {
+            if ($stage === 'delivery' && $paymentAmount > 0) {
+                OrderPayment::register($order, $paymentAmount, $request->payment_method, Auth::id(), $request->payment_reference, 'Cobrado al entregar');
+            }
+
             $existing = OrderSignature::where('order_id', $order->id)->where('stage', $stage)->first();
             if ($existing) {
                 Storage::disk('local')->delete($existing->signature_path);

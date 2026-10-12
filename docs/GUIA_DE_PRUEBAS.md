@@ -21,6 +21,10 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 
 ## 2. Recepción de un equipo (recepcionista)
 
+- [ ] El dashboard muestra **Mostrador**: listos para entregar, esperando aprobación y recibidos hoy.
+- [ ] En la barra superior (o con la tecla `/`) busca por teléfono, cédula, IMEI o número de orden. → Un número de orden exacto abre la orden directamente.
+- [ ] En la orden, **Ticket**: se abre la impresión de 80 mm con el QR de seguimiento. Escanéalo con el celular. → Abre la página de seguimiento.
+
 - [ ] **Órdenes → Nueva**: busca un cliente por **cédula** y por **teléfono**. → Aparece en la lista.
 - [ ] Crea otra orden con un cliente **nuevo**; deja el teléfono vacío. → Pide el teléfono.
 - [ ] Elige celular, marca, modelo, PIN `1234`, accesorios, una foto, técnico asignado y un anticipo de $10.
@@ -52,7 +56,7 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] **WhatsApp → Equipo listo**: mensaje con el saldo pendiente.
 - [ ] Como recepcionista, en **Pagos** de la orden intenta cobrar más que el saldo. → Lo rechaza.
 - [ ] Cobra el saldo exacto. → Saldo $0.00; el comprobante se imprime. La recepcionista no ve el botón de eliminar pagos.
-- [ ] **Firmar entrega**: firma. → La orden queda "Entregado", con garantía emitida (30 días) y comisión para el técnico.
+- [ ] **Firmar entrega** con saldo pendiente: la pantalla permite **cobrar en el mismo paso** (monto, método, referencia). Firma. → Pago registrado, saldo $0, orden "Entregado", garantía emitida y comisión para el técnico.
 - [ ] **PDF**: revisa que tenga costos, repuestos, checklist de recepción con el daño, garantía y las dos firmas.
 - [ ] **WhatsApp → Entrega y garantía**: mensaje con la fecha de vencimiento.
 

@@ -117,6 +117,13 @@
                     <span class="block text-xs text-gray-500">Al facturar una orden se desglosa la base y el IVA, y el total coincide con el de la orden. Si se desmarca, el IVA se suma al total de la orden.</span>
                 </span>
             </label>
+            <div class="mt-4">
+                <label for="ticket_terms" class="block text-sm font-medium text-gray-700 mb-1">Condiciones impresas en el ticket de recepción</label>
+                <textarea id="ticket_terms" name="ticket_terms" rows="3" maxlength="600" placeholder="Presente este ticket para retirar su equipo."
+                    class="{{ $input }} @error('ticket_terms') border-red-500 @enderror">{{ old('ticket_terms', $settings['ticket_terms']) }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Ej. plazo para retirar el equipo, política de garantía o de equipos abandonados.</p>
+                @error('ticket_terms') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+            </div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">

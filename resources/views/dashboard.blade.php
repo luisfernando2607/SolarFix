@@ -9,6 +9,95 @@
         <p class="text-gray-500">Bienvenido, {{ Auth::user()->name }}</p>
     </div>
 
+    @if ($counter)
+    <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Mostrador</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-green-200">
+                <div class="px-4 py-3 border-b bg-green-50 flex justify-between text-sm font-semibold text-green-900">
+                    <span>Listos para entregar</span><span>{{ $counter['ready']->count() }}</span>
+                </div>
+                <ul class="divide-y">
+                    @forelse ($counter['ready'] as $order)
+                        <li class="px-4 py-2.5">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <a href="{{ route('orders.show', $order) }}" class="min-w-0 text-sm">
+                                        <span class="font-medium text-blue-700">{{ $order->order_number }}</span>
+                                        <span class="text-gray-700">· {{ $order->client?->name }}</span>
+                                        <span class="block text-xs text-gray-500 truncate">{{ $order->brand?->name ?? $order->brand_text }} {{ $order->deviceModel?->name ?? $order->model_text }}{{ $order->client?->phone ? ' · ' . $order->client->phone : '' }}</span>
+                                    </a>
+                                    <div class="text-right text-xs space-y-1">
+                                        <span class="block {{ $order->status_since->lt(now()->subDays(7)) ? 'text-red-600 font-semibold' : 'text-gray-500' }}">lista {{ $order->status_since->diffForHumans() }}</span>
+                                        @if ($order->balance_due > 0) <span class="block text-red-600 font-medium">Saldo {{ money($order->balance_due) }}</span> @endif
+                                        <span class="flex gap-1 justify-end">
+                                            <form method="POST" action="{{ route('orders.whatsapp', [$order, 'ready']) }}" target="_blank">@csrf
+                                                <button type="submit" class="px-2 py-1 rounded border border-green-300 text-green-700 hover:bg-green-50">Avisar</button>
+                                            </form>
+                                            <a href="{{ route('orders.signatures.create', [$order, 'delivery']) }}" class="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Entregar</a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                    @empty
+                        <li class="px-4 py-3 text-xs text-gray-400">No hay equipos listos.</li>
+                    @endforelse
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-orange-200">
+                <div class="px-4 py-3 border-b bg-orange-50 flex justify-between text-sm font-semibold text-orange-900">
+                    <span>Esperando aprobación</span><span>{{ $counter['waiting']->count() }}</span>
+                </div>
+                <ul class="divide-y">
+                    @forelse ($counter['waiting'] as $order)
+                        <li class="px-4 py-2.5">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <a href="{{ route('orders.show', $order) }}" class="min-w-0 text-sm">
+                                        <span class="font-medium text-blue-700">{{ $order->order_number }}</span>
+                                        <span class="text-gray-700">· {{ $order->client?->name }}</span>
+                                        <span class="block text-xs text-gray-500 truncate">{{ $order->brand?->name ?? $order->brand_text }} {{ $order->deviceModel?->name ?? $order->model_text }}{{ $order->client?->phone ? ' · ' . $order->client->phone : '' }}</span>
+                                    </a>
+                                    <div class="text-right text-xs space-y-1">
+                                        <span class="block {{ $order->status_since->lt(now()->subHours(72)) ? 'text-red-600 font-semibold' : 'text-gray-500' }}">{{ $order->status_since->diffForHumans() }}</span>
+                                        <span class="block text-gray-700">{{ money($order->total_amount) }}</span>
+                                        <form method="POST" action="{{ route('orders.whatsapp', [$order, 'budget']) }}" target="_blank">@csrf
+                                            <button type="submit" class="px-2 py-1 rounded border border-green-300 text-green-700 hover:bg-green-50">Reenviar presupuesto</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                    @empty
+                        <li class="px-4 py-3 text-xs text-gray-400">Ningún presupuesto pendiente.</li>
+                    @endforelse
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border">
+                <div class="px-4 py-3 border-b flex justify-between text-sm font-semibold text-gray-800">
+                    <span>Recibidos hoy</span><span>{{ $counter['today']->count() }}</span>
+                </div>
+                <ul class="divide-y">
+                    @forelse ($counter['today'] as $order)
+                        <li class="px-4 py-2.5">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <a href="{{ route('orders.show', $order) }}" class="min-w-0 text-sm">
+                                        <span class="font-medium text-blue-700">{{ $order->order_number }}</span>
+                                        <span class="text-gray-700">· {{ $order->client?->name }}</span>
+                                        <span class="block text-xs text-gray-500 truncate">{{ $order->brand?->name ?? $order->brand_text }} {{ $order->deviceModel?->name ?? $order->model_text }}{{ $order->client?->phone ? ' · ' . $order->client->phone : '' }}</span>
+                                    </a>
+                                    <span class="text-xs {{ $order->user ? 'text-gray-500' : 'text-red-600' }}">{{ $order->user?->name ?? 'sin técnico' }}</span>
+                                </div>
+                            </li>
+                    @empty
+                        <li class="px-4 py-3 text-xs text-gray-400">Todavía no se recibe nada hoy.</li>
+                    @endforelse
+                </ul>
+                <a href="{{ route('orders.create') }}" class="block border-t px-4 py-2.5 text-center text-sm text-blue-600 hover:bg-gray-50">+ Recibir equipo</a>
+            </div>
+        </div>
+    </div>
+    @endif
+
     @if ($myWork)
     <div class="mb-6">
         <div class="flex flex-wrap items-end justify-between gap-2 mb-3">

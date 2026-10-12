@@ -31,6 +31,27 @@ class OrderPayment extends Model
         ];
     }
 
+    /**
+     * Registra un cobro de la orden: lo asocia a su factura vigente y recalcula el saldo.
+     */
+    public static function register(Order $order, float $amount, string $method, ?int $userId, ?string $reference = null, ?string $notes = null, $paidAt = null): self
+    {
+        $payment = self::create([
+            'order_id' => $order->id,
+            'invoice_id' => $order->invoices()->where('status', '!=', 'anulada')->value('id'),
+            'amount' => $amount,
+            'method' => $method,
+            'reference' => $reference,
+            'notes' => $notes,
+            'paid_at' => $paidAt ?? now(),
+            'registered_by' => $userId,
+        ]);
+
+        $order->recalculateTotals();
+
+        return $payment;
+    }
+
     public function getMethodLabelAttribute(): string
     {
         return PaymentMethods::label($this->method);

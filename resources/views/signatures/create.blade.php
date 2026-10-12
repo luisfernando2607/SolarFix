@@ -109,6 +109,28 @@
         @error('signature') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
         <p id="signatureEmpty" class="hidden text-sm text-red-600 mt-1">Falta la firma del cliente.</p>
 
+        @if ($stage === 'delivery' && ! $order->isReturnWithoutRepair() && $order->balance_due > 0)
+            @can('register-payments')
+                <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-sm font-semibold text-amber-900 mb-3">Cobrar el saldo antes de entregar</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <input type="number" name="payment_amount" step="0.01" min="0" max="{{ $order->balance_due }}" inputmode="decimal"
+                            value="{{ old('payment_amount', $order->balance_due) }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm @error('payment_amount') border-red-500 @enderror">
+                        <select name="payment_method" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white @error('payment_method') border-red-500 @enderror">
+                            @foreach (\App\Support\PaymentMethods::all() as $methodKey => $methodLabel)
+                                <option value="{{ $methodKey }}" {{ old('payment_method', 'cash') === $methodKey ? 'selected' : '' }}>{{ $methodLabel }}</option>
+                            @endforeach
+                        </select>
+                        <input type="text" name="payment_reference" maxlength="100" placeholder="Referencia (opcional)" value="{{ old('payment_reference') }}"
+                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                    @error('payment_amount') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    @error('payment_method') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    <p class="text-xs text-amber-800 mt-2">Deja 0 si el cliente no paga ahora; el saldo queda pendiente.</p>
+                </div>
+            @endcan
+        @endif
+
         <button type="submit" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition">
             {{ $stage === 'reception' ? 'Guardar firma de recepción' : ($order->isReturnWithoutRepair() ? 'Firmar devolución' : 'Firmar y marcar como entregado') }}
         </button>

@@ -27,20 +27,15 @@ class PaymentController extends Controller
                 . ') supera el saldo pendiente (' . money($order->balance_due) . ').');
         }
 
-        $invoiceId = $order->invoices()->where('status', '!=', 'anulada')->value('id');
-
-        $payment = OrderPayment::create([
-            'order_id' => $order->id,
-            'invoice_id' => $invoiceId,
-            'amount' => $validated['amount'],
-            'method' => $validated['method'],
-            'reference' => $validated['reference'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'paid_at' => $validated['paid_at'] ?? now(),
-            'registered_by' => Auth::id(),
-        ]);
-
-        $order->recalculateTotals();
+        OrderPayment::register(
+            $order,
+            (float) $validated['amount'],
+            $validated['method'],
+            Auth::id(),
+            $validated['reference'] ?? null,
+            $validated['notes'] ?? null,
+            $validated['paid_at'] ?? null,
+        );
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Pago de ' . money($validated['amount']) . ' registrado.');

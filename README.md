@@ -46,6 +46,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 📊 **Reportes** | Ingresos, órdenes, técnicos, tipos de equipo y repuestos; exportación a Excel |
 | ⚙️ **Configuración** | Datos del negocio, IVA, prefijos de orden y factura, moneda, métodos de pago, textos de WhatsApp, alertas y comisiones |
 | 🧑‍🔧 **Para técnicos** | Cola "Mi trabajo" por etapa, tomar órdenes sin técnico, acciones rápidas de estado, panel de diagnóstico y costos, bitácora y fotos con la cámara |
+| 🧾 **Para recepción** | Búsqueda global (tecla `/`), panel Mostrador (listos, por aprobar, recibidos hoy), cobro y entrega en un paso, ticket de 80 mm con QR |
 | 🔗 **Seguimiento del cliente** | Enlace privado y QR por orden: el cliente ve estado, fechas y saldo sin llamar al taller |
 | 📱 **App instalable** | Se agrega a la pantalla de inicio del celular y se abre como app (PWA) |
 | 💾 **Respaldos** | Diarios y automáticos: base de datos, fotos y firmas en un .zip |
