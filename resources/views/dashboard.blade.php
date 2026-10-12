@@ -125,6 +125,32 @@
     </div>
     @endif
 
+    @if ($expiringWarranties->count())
+    <div class="mt-6 bg-white rounded-xl shadow-sm border border-amber-200">
+        <div class="px-6 py-4 border-b bg-amber-50 flex items-center justify-between">
+            <div>
+                <h3 class="text-base font-semibold text-amber-800">Garantías por vencer (próximos {{ $warrantyAlertDays }} días)</h3>
+                <p class="text-xs text-amber-700 mt-0.5">Revisa si estos clientes tuvieron problemas o regresos.</p>
+            </div>
+            <a href="{{ route('warranties.index', ['status' => 'expiring']) }}" class="text-sm text-amber-800 hover:underline font-medium">Ver todas →</a>
+        </div>
+        <ul class="divide-y">
+            @foreach ($expiringWarranties as $warranty)
+            <li class="px-6 py-3 flex items-center justify-between text-sm">
+                <div>
+                    <a href="{{ route('orders.show', $warranty->order_id) }}" class="text-blue-600 hover:underline font-medium">{{ $warranty->order?->order_number }}</a>
+                    <span class="text-gray-600">· {{ $warranty->order?->client?->name ?? '—' }}</span>
+                    @if ($warranty->order?->client?->phone)
+                        <span class="text-gray-400">· {{ $warranty->order->client->phone }}</span>
+                    @endif
+                </div>
+                <span class="text-xs text-amber-700 whitespace-nowrap">vence {{ $warranty->end_date->format('d/m/Y') }}</span>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     @isset($stats['users_count'])
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <div class="bg-white rounded-xl shadow-sm border p-6">

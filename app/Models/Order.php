@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class Order extends Model
 {
@@ -94,6 +95,88 @@ class Order extends Model
     }
 
     /**
+     * Crea la orden reintentando si otro usuario tomó el mismo número al mismo tiempo.
+     */
+    public static function createWithUniqueNumber(array $attributes): self
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return self::create($attributes + ['order_number' => self::nextOrderNumber()]);
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= 5) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    private static function nextOrderNumber(): string
+    {
+        $prefix = 'ORD-' . now()->format('Ymd') . '-';
+        // withTrashed: las órdenes anuladas conservan su número.
+        $last = self::withTrashed()
+            ->where('order_number', 'like', $prefix . '%')
+            ->orderBy('order_number', 'desc')
+            ->value('order_number');
+
+        $next = $last ? (int) substr($last, -4) + 1 : 1;
+
+        return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Marca la orden como entregada (con historial) y emite su garantía.
+     */
+    public function markDelivered(?int $userId, ?string $notes = null): void
+    {
+        if ($this->status !== 'delivered') {
+            OrderStatusHistory::create([
+                'order_id' => $this->id,
+                'from_status' => $this->status,
+                'to_status' => 'delivered',
+                'changed_by' => $userId,
+                'notes' => $notes,
+            ]);
+            $this->status = 'delivered';
+        }
+
+        $this->delivery_date ??= today();
+        $this->save();
+
+        $this->issueWarranty();
+    }
+
+    /**
+     * Crea la garantía al entregar, o ajusta sus fechas si cambian los días o la fecha de entrega.
+     */
+    public function issueWarranty(): ?Warranty
+    {
+        $warranty = $this->warranty()->first();
+
+        if ($this->status !== 'delivered' || $this->warranty_days <= 0) {
+            return $warranty;
+        }
+
+        $start = $this->delivery_date ?? today();
+        $dates = ['start_date' => $start, 'end_date' => $start->copy()->addDays($this->warranty_days)];
+
+        if (! $warranty) {
+            return $this->warranty()->create($dates + ['warranty_type' => 'full', 'status' => 'active']);
+        }
+
+        if ($warranty->status !== 'claimed') {
+            $warranty->update($dates);
+        }
+
+        return $warranty;
+    }
+
+    public function isWarrantyOrder(): bool
+    {
+        return $this->parent_order_id !== null;
+    }
+
+    /**
      * Los técnicos ven las órdenes asignadas a ellos y las que aún no tienen técnico.
      */
     public function scopeVisibleTo($query, User $user)
@@ -143,7 +226,7 @@ class Order extends Model
 
     public function parentOrder()
     {
-        return $this->belongsTo(Order::class, 'parent_order_id');
+        return $this->belongsTo(Order::class, 'parent_order_id')->withTrashed();
     }
 
     public function childOrders()
@@ -169,6 +252,16 @@ class Order extends Model
     public function accessories()
     {
         return $this->belongsToMany(Accessory::class, 'order_accessories');
+    }
+
+    public function warranty()
+    {
+        return $this->hasOne(Warranty::class);
+    }
+
+    public function signatures()
+    {
+        return $this->hasMany(OrderSignature::class);
     }
 
     public function whatsappLogs()

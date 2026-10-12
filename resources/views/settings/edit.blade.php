@@ -74,6 +74,13 @@
                     @error('stale_order_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
+                    <label for="warranty_alert_days" class="block text-sm font-medium text-gray-700 mb-1">Avisar garantías que vencen en (días) *</label>
+                    <input type="number" min="1" id="warranty_alert_days" name="warranty_alert_days"
+                        value="{{ old('warranty_alert_days', $settings['warranty_alert_days']) }}" required
+                        class="{{ $input }} @error('warranty_alert_days') border-red-500 @enderror">
+                    @error('warranty_alert_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
                     <label for="approval_alert_hours" class="block text-sm font-medium text-gray-700 mb-1">Horas esperando aprobación *</label>
                     <input type="number" min="1" id="approval_alert_hours" name="approval_alert_hours"
                         value="{{ old('approval_alert_hours', $settings['approval_alert_hours']) }}" required

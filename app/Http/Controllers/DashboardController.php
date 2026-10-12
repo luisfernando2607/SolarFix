@@ -7,6 +7,7 @@ use App\Models\OrderPayment;
 use App\Models\OrderStatusHistory;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\Warranty;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -61,6 +62,15 @@ class DashboardController extends Controller
             ->sortBy('waiting_since')
             ->take(10);
 
+        $expiringWarranties = collect();
+        if (! $user->isTechnician()) {
+            $expiringWarranties = Warranty::with('order.client')
+                ->filterStatus('expiring')
+                ->orderBy('end_date')
+                ->take(10)
+                ->get();
+        }
+
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])
             ->orderBy('created_at', 'desc')
@@ -74,6 +84,8 @@ class DashboardController extends Controller
             'staleDays' => $staleDays,
             'awaitingApproval' => $awaitingApproval,
             'approvalHours' => $approvalHours,
+            'expiringWarranties' => $expiringWarranties,
+            'warrantyAlertDays' => Warranty::alertDays(),
             'statuses' => Order::statuses(),
         ]);
     }

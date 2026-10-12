@@ -39,6 +39,23 @@
         </div>
     </div>
 
+    @if ($order->parentOrder)
+        <div class="mb-6 rounded-xl border border-cyan-200 bg-cyan-50 px-5 py-3 text-sm text-cyan-900">
+            <strong>Orden de garantía</strong> de la orden
+            <a href="{{ route('orders.show', $order->parentOrder) }}" class="font-medium underline">#{{ $order->parentOrder->order_number }}</a>.
+            Sin costo para el cliente salvo que el daño no esté cubierto.
+        </div>
+    @endif
+    @if ($order->childOrders->count())
+        <div class="mb-6 rounded-xl border border-cyan-200 bg-cyan-50 px-5 py-3 text-sm text-cyan-900">
+            <strong>Reclamos de garantía:</strong>
+            @foreach ($order->childOrders as $child)
+                <a href="{{ route('orders.show', $child) }}" class="font-medium underline">#{{ $child->order_number }}</a>
+                <span class="text-cyan-700">({{ $statuses[$child->status] ?? $child->status }}, {{ $child->entry_date?->format('d/m/Y') }})</span>{{ $loop->last ? '' : ',' }}
+            @endforeach
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="md:col-span-2 space-y-6">
 
@@ -169,7 +186,7 @@
                                     <span class="font-medium text-gray-800">
                                         {{ $statuses[$history->to_status] ?? $history->to_status }}
                                     </span>
-                                    @if ($history->from_status)
+                                    @if ($history->from_status && $history->from_status !== $history->to_status)
                                         <span class="text-gray-400 text-xs">(desde {{ $statuses[$history->from_status] ?? $history->from_status }})</span>
                                     @endif
                                 </div>
@@ -283,6 +300,86 @@
                     </form>
                 @endif
             </div>
+
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Firmas</h3>
+                @php $isAdmin = Auth::user()->isAdmin() || Auth::user()->isSuperAdmin(); @endphp
+                <div class="space-y-4">
+                    @foreach (\App\Models\OrderSignature::stages() as $stageKey => $stageLabel)
+                        @php $signature = $order->signatures->firstWhere('stage', $stageKey); @endphp
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">{{ $stageLabel }}</p>
+                            @if ($signature)
+                                <img src="{{ route('orders.signatures.image', [$order, $stageKey]) }}" alt="Firma de {{ strtolower($stageLabel) }}"
+                                    class="mt-1 h-20 w-full object-contain border rounded-lg bg-white">
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ $signature->signed_at->format('d/m/Y H:i') }}
+                                    @if ($isAdmin)
+                                        · <a href="{{ route('orders.signatures.create', [$order, $stageKey]) }}" class="text-blue-600 hover:underline">Reemplazar</a>
+                                    @endif
+                                </p>
+                            @elseif ($stageKey === 'reception' || in_array($order->status, ['ready', 'delivered']))
+                                <a href="{{ route('orders.signatures.create', [$order, $stageKey]) }}"
+                                    class="mt-1 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition
+                                    {{ $stageKey === 'delivery' && $order->status === 'ready' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-white hover:bg-gray-50 text-gray-700 border' }}">
+                                    {{ $stageKey === 'reception' ? 'Firmar recepción' : 'Firmar entrega' }}
+                                </a>
+                            @else
+                                <p class="text-xs text-gray-400 mt-1">Disponible cuando la orden esté lista.</p>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            @if ($order->warranty)
+                @php
+                    $warranty = $order->warranty;
+                    $warrantyStatus = $warranty->currentStatus();
+                    $warrantyBadge = [
+                        'active' => 'bg-green-100 text-green-800',
+                        'expiring' => 'bg-amber-100 text-amber-800',
+                        'expired' => 'bg-gray-100 text-gray-600',
+                        'claimed' => 'bg-cyan-100 text-cyan-800',
+                    ][$warrantyStatus];
+                @endphp
+                <div class="bg-white rounded-xl shadow-sm border p-6">
+                    <div class="flex items-center justify-between border-b pb-2 mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Garantía</h3>
+                        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium {{ $warrantyBadge }}">{{ \App\Models\Warranty::statuses()[$warrantyStatus] }}</span>
+                    </div>
+                    <dl class="space-y-1 text-sm">
+                        <div class="flex justify-between"><dt class="text-gray-500">Tipo</dt><dd class="text-gray-800">{{ \App\Models\Warranty::types()[$warranty->warranty_type] ?? $warranty->warranty_type }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-gray-500">Desde</dt><dd class="text-gray-800">{{ $warranty->start_date->format('d/m/Y') }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-gray-500">Hasta</dt><dd class="font-medium text-gray-800">{{ $warranty->end_date->format('d/m/Y') }}</dd></div>
+                    </dl>
+                    @if ($warranty->conditions)
+                        <p class="text-sm text-gray-600 mt-2">{{ $warranty->conditions }}</p>
+                    @endif
+
+                    @can('manage-warranties')
+                        @if ($warranty->isValid())
+                            <a href="{{ route('warranties.claim.create', $order) }}" class="mt-4 w-full inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium bg-cyan-600 hover:bg-cyan-700 text-white transition">
+                                Abrir reclamo de garantía
+                            </a>
+                        @endif
+                        <details class="mt-3">
+                            <summary class="text-xs text-blue-600 cursor-pointer">Editar tipo y condiciones</summary>
+                            <form method="POST" action="{{ route('warranties.update', $warranty) }}" class="mt-2 space-y-2">
+                                @csrf @method('PATCH')
+                                <select name="warranty_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                                    @foreach (\App\Models\Warranty::types() as $typeKey => $typeLabel)
+                                        <option value="{{ $typeKey }}" {{ $warranty->warranty_type === $typeKey ? 'selected' : '' }}>{{ $typeLabel }}</option>
+                                    @endforeach
+                                </select>
+                                <textarea name="conditions" rows="2" placeholder="Condiciones (ej. no cubre golpes ni humedad)"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">{{ $warranty->conditions }}</textarea>
+                                <button type="submit" class="w-full bg-white hover:bg-gray-50 text-gray-700 border px-3 py-1.5 rounded-lg text-sm font-medium">Guardar</button>
+                            </form>
+                        </details>
+                    @endcan
+                </div>
+            @endif
 
             <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">WhatsApp</h3>

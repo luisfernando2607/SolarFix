@@ -176,6 +176,7 @@ class OperationsTest extends TestCase
         $this->actingAs($this->admin())->put(route('settings.update'), [
             'company_name' => 'Taller Solar',
             'default_warranty_days' => 60,
+            'warranty_alert_days' => 10,
             'iva_percent' => 12,
             'prices_include_iva' => '0',
             'stale_order_days' => 7,

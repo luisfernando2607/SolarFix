@@ -23,6 +23,9 @@
 
 <div class="hdr">
     <h1>ORDEN DE SERVICIO #{{ $order->order_number }}</h1>
+    @if ($order->parentOrder)
+        <p style="font-size:10pt;font-weight:bold;margin:3pt 0">REPARACIÓN EN GARANTÍA{{ (float) $order->total_amount == 0 ? ' — $0' : '' }} · Orden original #{{ $order->parentOrder->order_number }}</p>
+    @endif
     <p><strong>Ingreso:</strong> {{ $order->entry_date?->format('d/m/Y') ?? '—' }} &nbsp;|&nbsp; <strong>Estado:</strong> {{ $statuses[$order->status] ?? $order->status }} &nbsp;|&nbsp; <strong>Técnico:</strong> {{ $order->user->name ?? '—' }}</p>
 </div>
 
@@ -152,6 +155,44 @@
         </td>
     </tr>
 </table>
+
+@if ($order->warranty)
+<table>
+    <tr><th colspan="4">Garantía</th></tr>
+    <tr>
+        <td class="b" style="width:15%">Tipo</td>
+        <td style="width:35%">{{ \App\Models\Warranty::types()[$order->warranty->warranty_type] ?? $order->warranty->warranty_type }}</td>
+        <td class="b" style="width:15%">Vigencia</td>
+        <td style="width:35%">{{ $order->warranty->start_date->format('d/m/Y') }} al {{ $order->warranty->end_date->format('d/m/Y') }} ({{ $order->warranty_days }} días)</td>
+    </tr>
+    @if ($order->warranty->conditions)
+        <tr><td class="b">Condiciones</td><td colspan="3">{{ $order->warranty->conditions }}</td></tr>
+    @endif
+</table>
+@endif
+
+@if ($signatureImages->isNotEmpty())
+<table>
+    <tr>
+        @foreach (\App\Models\OrderSignature::stages() as $stageKey => $stageLabel)
+            <th class="c" style="width:50%">Firma del cliente — {{ $stageLabel }}</th>
+        @endforeach
+    </tr>
+    <tr>
+        @foreach (\App\Models\OrderSignature::stages() as $stageKey => $stageLabel)
+            @php $signature = $order->signatures->firstWhere('stage', $stageKey); @endphp
+            <td class="c" style="height:60pt;vertical-align:middle">
+                @if (isset($signatureImages[$stageKey]))
+                    <img src="{{ $signatureImages[$stageKey] }}" style="max-height:55pt;max-width:95%">
+                    <br><span style="font-size:7pt;color:#555">{{ $signature->signed_at->format('d/m/Y H:i') }}</span>
+                @else
+                    <span style="color:#999">Sin firma</span>
+                @endif
+            </td>
+        @endforeach
+    </tr>
+</table>
+@endif
 
 <div class="ftr">
     Generado el {{ now()->format('d/m/Y \a \l\a\s H:i') }} — SolarFix Sistema de Reparaciones

@@ -15,6 +15,8 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manage-orders', fn (User $user) => in_array($user->role, ['super_admin', 'admin', 'technician', 'receptionist']));
         Gate::define('manage-payments', fn (User $user) => in_array($user->role, ['super_admin', 'admin']));
         Gate::define('manage-invoices', fn (User $user) => in_array($user->role, ['super_admin', 'admin', 'receptionist']));
+        Gate::define('manage-clients', fn (User $user) => in_array($user->role, ['super_admin', 'admin', 'receptionist']));
+        Gate::define('manage-warranties', fn (User $user) => in_array($user->role, ['super_admin', 'admin', 'receptionist']));
         Gate::define('delete-orders', fn (User $user) => in_array($user->role, ['super_admin', 'admin']));
         Gate::define('view-dashboard', fn (User $user) => in_array($user->role, ['super_admin', 'admin', 'technician', 'receptionist']));
     }

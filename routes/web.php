@@ -11,7 +11,9 @@ use App\Http\Controllers\DeviceModelController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\WhatsAppController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +50,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');
         Route::post('/orders/{order}/whatsapp/{type}', [WhatsAppController::class, 'send'])->name('orders.whatsapp');
+        Route::controller(SignatureController::class)->where(['stage' => 'reception|delivery'])->group(function () {
+            Route::get('/orders/{order}/signatures/{stage}', 'create')->name('orders.signatures.create');
+            Route::post('/orders/{order}/signatures/{stage}', 'store')->name('orders.signatures.store');
+            Route::get('/orders/{order}/signatures/{stage}/image', 'image')->name('orders.signatures.image');
+        });
 
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::post('/orders/{order}/payments', [PaymentController::class, 'store'])->name('orders.payments.store');
@@ -61,6 +68,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
             Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
             Route::get('/cash', [CashClosingController::class, 'index'])->name('cash.index');
+            Route::get('/warranties', [WarrantyController::class, 'index'])->name('warranties.index');
+            Route::patch('/warranties/{warranty}', [WarrantyController::class, 'update'])->name('warranties.update');
+            Route::get('/orders/{order}/warranty-claim', [WarrantyController::class, 'createClaim'])->name('warranties.claim.create');
+            Route::post('/orders/{order}/warranty-claim', [WarrantyController::class, 'storeClaim'])->name('warranties.claim.store');
             Route::post('/cash', [CashClosingController::class, 'store'])->name('cash.store');
         });
         Route::middleware('role:super_admin,admin')->group(function () {

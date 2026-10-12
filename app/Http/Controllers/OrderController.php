@@ -11,7 +11,6 @@ use App\Models\OrderPayment;
 use App\Models\OrderPhoto;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -124,7 +123,7 @@ class OrderController extends Controller
         $validated['created_by'] = Auth::id();
         $validated['user_id'] = Auth::user()->isTechnician() ? Auth::id() : ($validated['user_id'] ?? null);
 
-        $order = $this->createWithUniqueNumber($validated);
+        $order = Order::createWithUniqueNumber($validated);
 
         if ($amountPaid > 0) {
             OrderPayment::create([
@@ -179,6 +178,10 @@ class OrderController extends Controller
             'accessories',
             'photos.takenBy',
             'whatsappLogs.sentBy',
+            'warranty',
+            'signatures',
+            'parentOrder',
+            'childOrders',
         ]);
 
         return view('orders.show', [
@@ -199,11 +202,24 @@ class OrderController extends Controller
             'payments',
             'statusHistory.changedBy',
             'accessories',
+            'warranty',
+            'signatures',
+            'parentOrder',
         ]);
+
+        // Las firmas están en almacenamiento privado: se insertan en el PDF como data URI.
+        $signatureImages = $order->signatures->mapWithKeys(function ($signature) {
+            $disk = Storage::disk('local');
+
+            return $disk->exists($signature->signature_path)
+                ? [$signature->stage => 'data:image/png;base64,' . base64_encode($disk->get($signature->signature_path))]
+                : [];
+        });
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.pdf', [
             'order' => $order,
             'statuses' => Order::statuses(),
+            'signatureImages' => $signatureImages,
         ]);
 
         return $pdf->download('orden-' . $order->order_number . '.pdf');
@@ -280,6 +296,14 @@ class OrderController extends Controller
                 'to_status' => $validated['status'],
                 'changed_by' => Auth::id(),
             ]);
+        }
+
+        // Al entregar se emite la garantía; si ya existe, se ajustan sus fechas.
+        if ($order->status === 'delivered') {
+            if (! $order->delivery_date) {
+                $order->update(['delivery_date' => today()]);
+            }
+            $order->issueWarranty();
         }
 
         return redirect()->route('orders.show', $order)
@@ -386,33 +410,5 @@ class OrderController extends Controller
     private function authorizeOrder(Order $order): void
     {
         abort_unless($order->isVisibleTo(Auth::user()), 403, 'Esta orden está asignada a otro técnico.');
-    }
-
-    /**
-     * Crea la orden reintentando si otro usuario tomó el mismo número al mismo tiempo.
-     */
-    private function createWithUniqueNumber(array $attributes): Order
-    {
-        for ($attempt = 1; ; $attempt++) {
-            try {
-                return Order::create($attributes + ['order_number' => $this->generateOrderNumber()]);
-            } catch (UniqueConstraintViolationException $e) {
-                if ($attempt >= 5) {
-                    throw $e;
-                }
-            }
-        }
-    }
-
-    private function generateOrderNumber(): string
-    {
-        $prefix = 'ORD-' . now()->format('Ymd') . '-';
-        $last = Order::where('order_number', 'like', $prefix . '%')
-            ->orderBy('order_number', 'desc')
-            ->value('order_number');
-
-        $next = $last ? (int) substr($last, -4) + 1 : 1;
-
-        return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 }
