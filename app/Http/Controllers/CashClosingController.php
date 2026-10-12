@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\CashClosing;
 use App\Models\CashMovement;
 use App\Models\OrderPayment;
+use App\Support\BranchContext;
 use App\Support\PaymentMethods;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -16,7 +18,8 @@ class CashClosingController extends Controller
     public function index(Request $request)
     {
         $date = $this->date($request);
-        $payments = $this->paymentsOn($date);
+        $branch = $this->branch($request);
+        $payments = $this->paymentsOn($date, $branch);
 
         $totals = $this->totalsByMethod($payments);
 
@@ -24,10 +27,12 @@ class CashClosingController extends Controller
             'date' => $date,
             'payments' => $payments,
             'totals' => $totals,
-            'movements' => CashMovement::with('registeredBy')->whereDate('movement_date', $date)->orderBy('id')->get(),
-            'cash' => $this->cashSummary($date, $totals['cash']),
-            'closing' => CashClosing::with('closedBy')->whereDate('closing_date', $date)->first(),
-            'history' => CashClosing::with('closedBy')->orderByDesc('closing_date')->take(10)->get(),
+            'movements' => CashMovement::with('registeredBy')->where('branch_id', $branch)->whereDate('movement_date', $date)->orderBy('id')->get(),
+            'cash' => $this->cashSummary($date, $totals['cash'], $branch),
+            'closing' => CashClosing::with('closedBy')->where('branch_id', $branch)->whereDate('closing_date', $date)->first(),
+            'history' => CashClosing::with('closedBy')->where('branch_id', $branch)->orderByDesc('closing_date')->take(10)->get(),
+            'branch' => Branch::find($branch),
+            'branches' => BranchContext::seesAllBranches() ? Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']) : collect(),
             'methods' => PaymentMethods::withHistorical($payments->pluck('method')->unique()),
         ]);
     }
@@ -35,8 +40,9 @@ class CashClosingController extends Controller
     public function store(Request $request)
     {
         $date = $this->date($request);
-        $totals = $this->totalsByMethod($this->paymentsOn($date));
-        $cash = $this->cashSummary($date, $totals['cash']);
+        $branch = $this->branch($request);
+        $totals = $this->totalsByMethod($this->paymentsOn($date, $branch));
+        $cash = $this->cashSummary($date, $totals['cash'], $branch);
 
         $validated = $request->validate([
             'counted_cash' => ['required', 'numeric', 'min:0'],
@@ -51,8 +57,8 @@ class CashClosingController extends Controller
             ]);
         }
 
-        $closing = CashClosing::whereDate('closing_date', $date)->first()
-            ?? new CashClosing(['closing_date' => $date]);
+        $closing = CashClosing::where('branch_id', $branch)->whereDate('closing_date', $date)->first()
+            ?? new CashClosing(['closing_date' => $date, 'branch_id' => $branch]);
 
         $closing->fill([
             'opening_cash' => $cash['opening'],
@@ -71,7 +77,7 @@ class CashClosingController extends Controller
             'closed_by' => Auth::id(),
         ])->save();
 
-        return redirect()->route('cash.index', ['date' => $date->toDateString()])
+        return redirect()->route('cash.index', ['date' => $date->toDateString(), 'branch' => $branch])
             ->with('success', 'Cierre de caja del ' . $date->format('d/m/Y') . ' registrado.');
     }
 
@@ -81,15 +87,16 @@ class CashClosingController extends Controller
     public function storeMovement(Request $request)
     {
         $date = $this->date($request);
+        $branch = $this->branch($request);
         $validated = $request->validate([
             'type' => ['required', Rule::in(array_keys(CashMovement::types()))],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
             'description' => ['required', 'string', 'max:255'],
         ]);
 
-        CashMovement::create($validated + ['movement_date' => $date, 'registered_by' => Auth::id()]);
+        CashMovement::create($validated + ['movement_date' => $date, 'branch_id' => $branch, 'registered_by' => Auth::id()]);
 
-        return redirect()->route('cash.index', ['date' => $date->toDateString()])
+        return redirect()->route('cash.index', ['date' => $date->toDateString(), 'branch' => $branch])
             ->with('success', CashMovement::types()[$validated['type']] . ' registrado.');
     }
 
@@ -100,15 +107,15 @@ class CashClosingController extends Controller
         $date = $movement->movement_date->toDateString();
         $movement->delete();
 
-        return redirect()->route('cash.index', ['date' => $date])->with('success', 'Movimiento eliminado.');
+        return redirect()->route('cash.index', ['date' => $date, 'branch' => $movement->branch_id])->with('success', 'Movimiento eliminado.');
     }
 
     /**
      * Efectivo esperado en caja = fondo inicial + cobros en efectivo + otros ingresos − gastos − retiros.
      */
-    private function cashSummary(Carbon $date, float $cashPayments): array
+    private function cashSummary(Carbon $date, float $cashPayments, int $branch): array
     {
-        $movements = CashMovement::whereDate('movement_date', $date)->get();
+        $movements = CashMovement::where('branch_id', $branch)->whereDate('movement_date', $date)->get();
         $sum = fn ($type) => round((float) $movements->where('type', $type)->sum('amount'), 2);
 
         $summary = [
@@ -130,9 +137,25 @@ class CashClosingController extends Controller
         return $request->filled('date') ? Carbon::parse($request->date)->startOfDay() : today();
     }
 
-    private function paymentsOn(Carbon $date)
+    /**
+     * Caja de la sucursal: la propia; los administradores pueden elegir otra (?branch=).
+     */
+    private function branch(Request $request): int
+    {
+        if (BranchContext::seesAllBranches() && $request->filled('branch') && Branch::whereKey($request->branch)->exists()) {
+            return (int) $request->branch;
+        }
+
+        return BranchContext::forCreate();
+    }
+
+    /**
+     * Cobros del día de las órdenes de la sucursal.
+     */
+    private function paymentsOn(Carbon $date, int $branch)
     {
         return OrderPayment::with(['order.client', 'registeredBy'])
+            ->whereHas('order', fn ($q) => $q->withTrashed()->where('branch_id', $branch))
             ->whereDate('paid_at', $date)
             ->orderBy('paid_at')
             ->get();

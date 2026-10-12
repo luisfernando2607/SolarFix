@@ -10,7 +10,7 @@ class CashClosing extends Model
     use Auditable;
 
     protected $fillable = [
-        'closing_date', 'opening_cash', 'cash_payments', 'other_income', 'expenses', 'withdrawals', 'expected_cash', 'expected_transfer', 'expected_card', 'expected_other',
+        'branch_id', 'closing_date', 'opening_cash', 'cash_payments', 'other_income', 'expenses', 'withdrawals', 'expected_cash', 'expected_transfer', 'expected_card', 'expected_other',
         'counted_cash', 'difference', 'notes', 'closed_by',
     ];
 

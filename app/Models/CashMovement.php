@@ -9,7 +9,7 @@ class CashMovement extends Model
 {
     use Auditable;
 
-    protected $fillable = ['movement_date', 'type', 'amount', 'description', 'registered_by'];
+    protected $fillable = ['branch_id', 'movement_date', 'type', 'amount', 'description', 'registered_by'];
 
     protected function casts(): array
     {

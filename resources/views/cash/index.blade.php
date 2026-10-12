@@ -6,10 +6,17 @@
 <div class="p-6">
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Caja del día</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Caja del día{{ \App\Models\Branch::count() > 1 ? ' · ' . $branch->name : '' }}</h2>
             <p class="text-gray-500">Ingresos registrados el {{ $date->translatedFormat('l d \d\e F \d\e Y') }}</p>
         </div>
         <form method="GET" action="{{ route('cash.index') }}" class="flex items-center gap-2">
+            @if ($branches->count() > 1)
+                <select name="branch" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                    @foreach ($branches as $option)
+                        <option value="{{ $option->id }}" {{ $option->id === $branch->id ? 'selected' : '' }}>{{ $option->name }}</option>
+                    @endforeach
+                </select>
+            @endif
             <input type="date" name="date" value="{{ $date->toDateString() }}" max="{{ today()->toDateString() }}"
                 class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
             <button type="submit" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition">Ver</button>
@@ -102,6 +109,7 @@
             <form method="POST" action="{{ route('cash.movements.store') }}" class="px-6 py-4 border-t flex flex-wrap items-end gap-2">
                 @csrf
                 <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+                <input type="hidden" name="branch" value="{{ $branch->id }}">
                 <select name="type" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
                     @foreach (\App\Models\CashMovement::types() as $key => $label)
                         <option value="{{ $key }}" {{ old('type', $movements->where('type', 'opening')->isEmpty() ? 'opening' : 'expense') === $key ? 'selected' : '' }}>{{ $label }}</option>
@@ -149,6 +157,7 @@
             <form method="POST" action="{{ route('cash.store') }}">
                 @csrf
                 <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+                <input type="hidden" name="branch" value="{{ $branch->id }}">
                 <div class="mb-4">
                     <label for="counted_cash" class="block text-sm font-medium text-gray-700 mb-1">Efectivo contado *</label>
                     <div class="relative">
@@ -194,7 +203,7 @@
                     @foreach ($history as $row)
                     <tr class="border-b">
                         <td class="px-6 py-3">
-                            <a href="{{ route('cash.index', ['date' => $row->closing_date->toDateString()]) }}" class="text-blue-600 hover:underline">{{ $row->closing_date->format('d/m/Y') }}</a>
+                            <a href="{{ route('cash.index', ['date' => $row->closing_date->toDateString(), 'branch' => $branch->id]) }}" class="text-blue-600 hover:underline">{{ $row->closing_date->format('d/m/Y') }}</a>
                         </td>
                         <td class="px-6 py-3 text-right">{{ money($row->expected_cash) }}</td>
                         <td class="px-6 py-3 text-right">{{ money($row->counted_cash) }}</td>

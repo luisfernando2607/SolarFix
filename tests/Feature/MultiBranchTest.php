@@ -158,4 +158,49 @@ class MultiBranchTest extends TestCase
             'role' => 'technician', 'is_active' => '1',
         ])->assertSessionHasErrors('branch_id');
     }
+
+    // --- Caja por sucursal ---
+
+    public function test_each_branch_has_its_own_cash(): void
+    {
+        $gyeOrder = $this->makeOrder($this->gye);
+        $qtoOrder = $this->makeOrder($this->qto);
+        \App\Models\OrderPayment::create(['order_id' => $gyeOrder->id, 'amount' => 40, 'method' => 'cash', 'paid_at' => now()]);
+        \App\Models\OrderPayment::create(['order_id' => $qtoOrder->id, 'amount' => 25, 'method' => 'cash', 'paid_at' => now()]);
+        $gyeDesk = $this->user('receptionist', $this->gye);
+        $qtoDesk = $this->user('receptionist', $this->qto);
+
+        $this->actingAs($qtoDesk)->post(route('cash.movements.store'), ['type' => 'opening', 'amount' => 10, 'description' => 'Fondo Quito']);
+        $this->actingAs($qtoDesk)->get(route('cash.index'))
+            ->assertViewHas('totals', fn ($t) => $t['cash'] == 25)
+            ->assertViewHas('cash', fn ($c) => $c['expected'] == 35);
+        $this->actingAs($gyeDesk)->get(route('cash.index'))
+            ->assertViewHas('totals', fn ($t) => $t['cash'] == 40)
+            ->assertViewHas('cash', fn ($c) => $c['expected'] == 40);
+
+        // Cada sucursal cierra su propia caja el mismo día.
+        $this->actingAs($gyeDesk)->post(route('cash.store'), ['counted_cash' => 40])->assertSessionHasNoErrors();
+        $this->actingAs($qtoDesk)->post(route('cash.store'), ['counted_cash' => 35])->assertSessionHasNoErrors();
+        $this->assertSame(2, \App\Models\CashClosing::count());
+        $this->assertEquals(35, \App\Models\CashClosing::where('branch_id', $this->qto->id)->value('expected_cash'));
+    }
+
+    public function test_receptionist_cannot_open_other_branch_cash(): void
+    {
+        $qtoOrder = $this->makeOrder($this->qto);
+        \App\Models\OrderPayment::create(['order_id' => $qtoOrder->id, 'amount' => 25, 'method' => 'cash', 'paid_at' => now()]);
+
+        $this->actingAs($this->user('receptionist', $this->gye))->get(route('cash.index', ['branch' => $this->qto->id]))
+            ->assertViewHas('totals', fn ($t) => $t['cash'] == 0);
+    }
+
+    public function test_admin_reviews_any_branch_cash(): void
+    {
+        $qtoOrder = $this->makeOrder($this->qto);
+        \App\Models\OrderPayment::create(['order_id' => $qtoOrder->id, 'amount' => 25, 'method' => 'cash', 'paid_at' => now()]);
+
+        $this->actingAs($this->user('admin'))->get(route('cash.index', ['branch' => $this->qto->id]))
+            ->assertOk()->assertSee('Caja del día · Quito')
+            ->assertViewHas('totals', fn ($t) => $t['cash'] == 25);
+    }
 }
