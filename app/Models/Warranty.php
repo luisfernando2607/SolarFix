@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class Warranty extends Model
 {
+    use Auditable;
+
     protected $fillable = ['order_id', 'warranty_type', 'start_date', 'end_date', 'status', 'conditions'];
 
     protected function casts(): array
@@ -76,5 +79,10 @@ class Warranty extends Model
     public function order()
     {
         return $this->belongsTo(Order::class)->withTrashed();
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Garantía de la orden ' . Order::withTrashed()->whereKey($this->order_id)->value('order_number');
     }
 }

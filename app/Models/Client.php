@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -24,5 +25,10 @@ class Client extends Model
         return [
             'deleted_at' => 'datetime',
         ];
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Cliente ' . $this->name;
     }
 }

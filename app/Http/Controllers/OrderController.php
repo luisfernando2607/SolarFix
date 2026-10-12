@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Accessory;
+use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\DeviceBrand;
 use App\Models\DeviceModel;
@@ -13,6 +14,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -185,6 +187,9 @@ class OrderController extends Controller
         ]);
 
         return view('orders.show', [
+            'activity' => Gate::allows('manage-users')
+                ? AuditLog::with('user')->where('order_id', $order->id)->orderByDesc('id')->take(30)->get()
+                : collect(),
             'order' => $order,
             'statuses' => Order::statuses(),
         ]);

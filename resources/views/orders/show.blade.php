@@ -204,6 +204,28 @@
                     @endforelse
                 </div>
             </div>
+
+            @if ($activity->count())
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="flex items-center justify-between border-b pb-2 mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Actividad</h3>
+                    <span class="text-xs text-gray-400">Visible solo para administradores</span>
+                </div>
+                <ul class="space-y-3 text-sm">
+                    @foreach ($activity as $log)
+                        <li class="border-l-2 pl-3 {{ $log->event === 'deleted' ? 'border-red-300' : ($log->event === 'created' ? 'border-green-300' : 'border-blue-300') }}">
+                            <p class="text-gray-800">
+                                <span class="font-medium">{{ $log->user?->name ?? 'Sistema' }}</span>
+                                {{ strtolower(\App\Models\AuditLog::events()[$log->event] ?? $log->event) }}
+                                {{ $log->description }}
+                            </p>
+                            <p class="text-xs text-gray-400">{{ $log->created_at->format('d/m/Y H:i') }}</p>
+                            <div class="text-xs mt-1">@include('audit.partials.changes', ['log' => $log])</div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
         </div>
 
         <div class="space-y-6">

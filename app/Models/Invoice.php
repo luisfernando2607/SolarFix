@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 class Invoice extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes;
 
     protected $fillable = [
         'invoice_number',
@@ -127,5 +128,10 @@ class Invoice extends Model
             }
             $invoice->total = round((float) $invoice->subtotal + (float) $invoice->iva_amount, 2);
         });
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Factura ' . $this->invoice_number;
     }
 }

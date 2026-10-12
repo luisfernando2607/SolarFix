@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessoryController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\ClientController;
@@ -36,6 +37,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('brands', DeviceBrandController::class);
         Route::resource('models', DeviceModelController::class);
         Route::resource('accessories', AccessoryController::class);
+        Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });

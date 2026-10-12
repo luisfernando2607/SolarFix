@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,6 +11,8 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
+    use Auditable;
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
 
@@ -62,5 +65,10 @@ class User extends Authenticatable
     public function isReceptionist(): bool
     {
         return $this->role === 'receptionist';
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Usuario ' . $this->email;
     }
 }

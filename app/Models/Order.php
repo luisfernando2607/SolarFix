@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 class Order extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes;
 
     protected $fillable = [
         'branch_id',
@@ -272,5 +273,10 @@ class Order extends Model
     public function invoices()
     {
         return $this->hasMany(\App\Models\Invoice::class);
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Orden ' . $this->order_number;
     }
 }

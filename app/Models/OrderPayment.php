@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class OrderPayment extends Model
 {
+    use Auditable;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -40,5 +43,10 @@ class OrderPayment extends Model
     public function invoice()
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Pago de $' . number_format((float) $this->amount, 2) . ($this->order_id ? ' · orden ' . Order::withTrashed()->whereKey($this->order_id)->value('order_number') : '');
     }
 }

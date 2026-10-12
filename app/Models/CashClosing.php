@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class CashClosing extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'closing_date', 'expected_cash', 'expected_transfer', 'expected_card', 'expected_other',
         'counted_cash', 'difference', 'notes', 'closed_by',
@@ -27,5 +30,10 @@ class CashClosing extends Model
     public function closedBy()
     {
         return $this->belongsTo(User::class, 'closed_by')->withTrashed();
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Cierre de caja del ' . $this->closing_date?->format('d/m/Y');
     }
 }

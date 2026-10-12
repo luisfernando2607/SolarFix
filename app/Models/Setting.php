@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
+    use Auditable;
+
     public $timestamps = false;
 
     protected $fillable = ['branch_id', 'key', 'value', 'group'];
@@ -33,5 +36,10 @@ class Setting extends Model
     public static function flushCache(): void
     {
         self::$cache = null;
+    }
+
+    public function auditDescription(): string
+    {
+        return 'Configuración: ' . $this->key;
     }
 }
