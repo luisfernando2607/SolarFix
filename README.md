@@ -46,6 +46,9 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 📊 **Reportes** | Ingresos, órdenes, técnicos, tipos de equipo y repuestos; exportación a Excel |
 | ⚙️ **Configuración** | Datos del negocio, IVA, prefijos de orden y factura, moneda, métodos de pago, textos de WhatsApp, alertas y comisiones |
 | 🧑‍🔧 **Para técnicos** | Cola "Mi trabajo" por etapa, tomar órdenes sin técnico, acciones rápidas de estado, panel de diagnóstico y costos, bitácora y fotos con la cámara |
+| 🔗 **Seguimiento del cliente** | Enlace privado y QR por orden: el cliente ve estado, fechas y saldo sin llamar al taller |
+| 📱 **App instalable** | Se agrega a la pantalla de inicio del celular y se abre como app (PWA) |
+| 💾 **Respaldos** | Diarios y automáticos: base de datos, fotos y firmas en un .zip |
 | 🔔 **Notificaciones** | Aviso al técnico cuando le asignan una orden, una cita o un reclamo |
 | 🕵️ **Auditoría** | Quién cambió qué y cuándo (valor anterior y nuevo) e intentos de acceso |
 
@@ -105,7 +108,12 @@ El seeder crea la sucursal, el usuario administrador, los catálogos (accesorios
    ```
 3. **Seguridad:** cambia la contraseña del administrador y sirve el sitio solo por HTTPS.
 4. **`APP_KEY`:** guárdala en un lugar seguro y no la cambies; cifra el PIN/patrón de los equipos y sin ella no se pueden leer.
-5. **Respaldos diarios** de la base de datos y de `storage/app/private` (fotos de los equipos y firmas de los clientes).
+5. **Respaldos:** activa el programador de Laravel con este cron (cada minuto):
+   ```
+   * * * * * cd /ruta/a/SolarFix && php artisan schedule:run >> /dev/null 2>&1
+   ```
+   Así se ejecuta `php artisan solarfix:backup` todos los días a las 02:00: guarda en `storage/app/backups` un .zip con la base de datos (vía `mysqldump`) y las fotos y firmas, y conserva los últimos 14. **Copia esos .zip fuera del servidor** (otro disco o la nube): un respaldo en el mismo servidor no sirve si el servidor falla. También se puede ejecutar a mano, con `--to=/otra/carpeta` y `--keep=30`.
+6. **HTTPS** es necesario para que el celular ofrezca instalar la app.
 
 Las fotos y firmas son privadas: se sirven a través de la app con control de acceso. No hace falta `php artisan storage:link`.
 
