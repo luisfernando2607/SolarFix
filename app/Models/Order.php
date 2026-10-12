@@ -93,6 +93,23 @@ class Order extends Model
         ];
     }
 
+    /**
+     * Los técnicos ven las órdenes asignadas a ellos y las que aún no tienen técnico.
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->isTechnician()) {
+            $query->where(fn ($q) => $q->where('user_id', $user->id)->orWhereNull('user_id'));
+        }
+
+        return $query;
+    }
+
+    public function isVisibleTo(User $user): bool
+    {
+        return ! $user->isTechnician() || $this->user_id === null || (int) $this->user_id === $user->id;
+    }
+
     public function branch()
     {
         return $this->belongsTo(Branch::class);

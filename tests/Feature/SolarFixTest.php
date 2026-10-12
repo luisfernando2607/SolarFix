@@ -262,6 +262,92 @@ class SolarFixTest extends TestCase
         $this->assertEquals($second->id, $payment->fresh()->invoice_id);
     }
 
+    // --- Técnico asignado ---
+
+    public function test_technician_only_sees_own_and_unassigned_orders(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+        $other = User::factory()->role('technician')->create();
+        $mine = $this->makeOrder(['user_id' => $tech->id]);
+        $unassigned = $this->makeOrder();
+        $theirs = $this->makeOrder(['user_id' => $other->id]);
+
+        $this->actingAs($tech)->get(route('orders.index'))
+            ->assertSee($mine->order_number)
+            ->assertSee($unassigned->order_number)
+            ->assertDontSee($theirs->order_number);
+
+        $this->actingAs($tech)->get(route('orders.show', $mine))->assertOk();
+        $this->actingAs($tech)->get(route('orders.show', $unassigned))->assertOk();
+        $this->actingAs($tech)->get(route('orders.show', $theirs))->assertForbidden();
+        $this->actingAs($tech)->get(route('orders.edit', $theirs))->assertForbidden();
+        $this->actingAs($tech)->get(route('orders.pdf', $theirs))->assertForbidden();
+    }
+
+    public function test_admin_sees_all_orders(): void
+    {
+        $other = User::factory()->role('technician')->create();
+        $order = $this->makeOrder(['user_id' => $other->id]);
+
+        $this->actingAs($this->admin())->get(route('orders.index'))->assertSee($order->order_number);
+    }
+
+    public function test_receptionist_assigns_technician_on_create(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+        $receptionist = User::factory()->role('receptionist')->create();
+
+        $this->actingAs($receptionist)->post(route('orders.store'), $this->orderPayload(['user_id' => $tech->id]));
+
+        $this->assertEquals($tech->id, Order::latest('id')->first()->user_id);
+    }
+
+    public function test_only_technicians_can_be_assigned(): void
+    {
+        $receptionist = User::factory()->role('receptionist')->create();
+
+        $this->actingAs($receptionist)
+            ->post(route('orders.store'), $this->orderPayload(['user_id' => $receptionist->id]))
+            ->assertSessionHasErrors('user_id');
+    }
+
+    public function test_technician_creating_order_is_assigned_and_cannot_reassign(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+        $other = User::factory()->role('technician')->create();
+
+        $this->actingAs($tech)->post(route('orders.store'), $this->orderPayload(['user_id' => $other->id]));
+        $order = Order::latest('id')->first();
+        $this->assertEquals($tech->id, $order->user_id);
+
+        $this->actingAs($tech)->put(route('orders.update', $order), [
+            'client_id' => $order->client_id,
+            'device_type' => 'celular',
+            'declared_fault' => 'Pantalla rota',
+            'unlock_type' => 'none',
+            'entry_date' => now()->toDateString(),
+            'user_id' => $other->id,
+        ]);
+        $this->assertEquals($tech->id, $order->fresh()->user_id);
+    }
+
+    public function test_editing_keeps_existing_non_technician_assignee(): void
+    {
+        $admin = $this->admin();
+        $order = $this->makeOrder(['user_id' => $admin->id]);
+
+        $this->actingAs($admin)->put(route('orders.update', $order), [
+            'client_id' => $order->client_id,
+            'device_type' => 'celular',
+            'declared_fault' => 'No enciende',
+            'unlock_type' => 'none',
+            'entry_date' => now()->toDateString(),
+            'user_id' => $admin->id,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertEquals($admin->id, $order->fresh()->user_id);
+    }
+
     // --- Pantallas ---
 
     public function test_main_screens_render_for_each_role(): void

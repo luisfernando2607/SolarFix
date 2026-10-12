@@ -20,10 +20,7 @@ class DashboardController extends Controller
             $stats['revenue'] = OrderPayment::sum('amount');
         }
 
-        $ordersQuery = Order::query();
-        if ($user->isTechnician()) {
-            $ordersQuery->where('user_id', $user->id);
-        }
+        $ordersQuery = Order::visibleTo($user);
 
         $stats['orders_total'] = (clone $ordersQuery)->count();
         $stats['orders_pending'] = (clone $ordersQuery)->whereNotIn('status', ['delivered', 'closed_no_repair'])->count();

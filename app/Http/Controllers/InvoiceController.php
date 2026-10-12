@@ -280,6 +280,8 @@ class InvoiceController extends Controller
 
     public function generateFromOrder(Order $order)
     {
+        abort_unless($order->isVisibleTo(Auth::user()), 403, 'Esta orden está asignada a otro técnico.');
+
         $order->load(['client', 'payments']);
 
         if ($order->total_amount <= 0) {

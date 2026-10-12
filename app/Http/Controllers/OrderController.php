@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\OrderPhoto;
 use App\Models\OrderStatusHistory;
+use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,8 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['client', 'brand', 'deviceModel', 'user'])
+        $query = Order::visibleTo(Auth::user())
+            ->with(['client', 'brand', 'deviceModel', 'user'])
             ->orderBy('created_at', 'desc');
 
         if ($request->filled('status')) {
@@ -59,6 +61,7 @@ class OrderController extends Controller
         ]);
 
         return view('orders.create', [
+            'technicians' => $this->assignableTechnicians(),
             'clients' => Client::orderBy('name')->get(),
             'clientsData' => $clientsData,
             'brands' => DeviceBrand::where('is_active', true)->orderBy('name')->get(),
@@ -102,6 +105,7 @@ class OrderController extends Controller
             'surcharge_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'warranty_days' => ['nullable', 'integer', 'min:0'],
+            'user_id' => ['nullable', Rule::in($this->assignableTechnicians()->pluck('id'))],
         ]);
 
         if (!empty($validated['client_id']) && !Client::where('id', $validated['client_id'])->exists()) {
@@ -135,7 +139,7 @@ class OrderController extends Controller
 
         $validated['status'] = 'received';
         $validated['created_by'] = Auth::id();
-        $validated['user_id'] = Auth::id();
+        $validated['user_id'] = Auth::user()->isTechnician() ? Auth::id() : ($validated['user_id'] ?? null);
 
         $order = $this->createWithUniqueNumber($validated);
 
@@ -179,6 +183,8 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
+        $this->authorizeOrder($order);
+
         $order->load([
             'client',
             'brand',
@@ -199,6 +205,8 @@ class OrderController extends Controller
 
     public function pdf(Order $order)
     {
+        $this->authorizeOrder($order);
+
         $order->load([
             'client',
             'brand',
@@ -219,6 +227,8 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
+        $this->authorizeOrder($order);
+
         $modelsByBrand = DeviceModel::where('is_active', true)
             ->orderBy('name')
             ->get()
@@ -240,6 +250,7 @@ class OrderController extends Controller
         ]);
 
         return view('orders.edit', [
+            'technicians' => $this->assignableTechnicians($order),
             'order' => $order->load('accessories'),
             'clients' => Client::orderBy('name')->get(),
             'clientsData' => $clientsData,
@@ -256,6 +267,8 @@ class OrderController extends Controller
 
     public function update(Request $request, Order $order)
     {
+        $this->authorizeOrder($order);
+
         $validated = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
             'device_type' => ['required', Rule::in(array_keys(Order::deviceTypes()))],
@@ -282,7 +295,13 @@ class OrderController extends Controller
             'warranty_days' => ['nullable', 'integer', 'min:0'],
             'status' => ['nullable', Rule::in(array_keys(Order::statuses()))],
             'notes' => ['nullable', 'string'],
+            'user_id' => ['nullable', Rule::in($this->assignableTechnicians($order)->pluck('id'))],
         ]);
+
+        // Los técnicos no pueden reasignar órdenes.
+        if (Auth::user()->isTechnician()) {
+            unset($validated['user_id']);
+        }
 
         $diagnosisCost = (float) ($validated['diagnosis_cost'] ?? 0);
         $laborCost = (float) ($validated['labor_cost'] ?? 0);
@@ -326,6 +345,8 @@ class OrderController extends Controller
 
     public function uploadPhoto(Request $request, Order $order)
     {
+        $this->authorizeOrder($order);
+
         $validated = $request->validate([
             'photo' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],
             'stage' => ['nullable', Rule::in(['reception', 'process', 'delivery'])],
@@ -348,6 +369,8 @@ class OrderController extends Controller
 
     public function deletePhoto(Order $order, OrderPhoto $photo)
     {
+        $this->authorizeOrder($order);
+
         if ($photo->order_id !== $order->id) {
             abort(404);
         }
@@ -357,6 +380,24 @@ class OrderController extends Controller
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Foto eliminada.');
+    }
+
+    /**
+     * Técnicos activos que se pueden asignar, más el asignado actual de la orden (si lo hay).
+     */
+    private function assignableTechnicians(?Order $order = null)
+    {
+        return User::where(function ($q) use ($order) {
+            $q->where('role', 'technician')->where('is_active', true);
+            if ($order?->user_id) {
+                $q->orWhere('id', $order->user_id);
+            }
+        })->orderBy('name')->get(['id', 'name']);
+    }
+
+    private function authorizeOrder(Order $order): void
+    {
+        abort_unless($order->isVisibleTo(Auth::user()), 403, 'Esta orden está asignada a otro técnico.');
     }
 
     /**
