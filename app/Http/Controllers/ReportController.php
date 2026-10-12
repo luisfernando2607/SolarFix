@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\Commission;
 use App\Models\Order;
 use App\Models\OrderPart;
 use App\Models\OrderPayment;
 use App\Models\OrderStatusHistory;
+use App\Support\BranchContext;
 use App\Support\PaymentMethods;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,16 +26,16 @@ class ReportController extends Controller
         $from = $request->filled('from') ? Carbon::parse($request->from)->startOfDay() : now()->startOfMonth();
         $to = $request->filled('to') ? Carbon::parse($request->to)->endOfDay() : now()->endOfDay();
 
-        $payments = OrderPayment::whereBetween('paid_at', [$from, $to])->get(['amount', 'method']);
+        $payments = BranchContext::applyThroughOrder(OrderPayment::whereBetween('paid_at', [$from, $to]))->get(['amount', 'method']);
 
         // Órdenes entregadas en el rango: según la fecha en que pasaron a "Entregado".
         $deliveredIds = OrderStatusHistory::where('to_status', 'delivered')
             ->whereBetween('changed_at', [$from, $to])
             ->distinct()
             ->pluck('order_id');
-        $delivered = Order::with('user')->whereIn('id', $deliveredIds)->where('status', 'delivered')->get();
+        $delivered = BranchContext::apply(Order::with('user'))->whereIn('id', $deliveredIds)->where('status', 'delivered')->get();
 
-        $received = Order::whereBetween('created_at', [$from, $to])->get(['id', 'device_type', 'total_amount']);
+        $received = BranchContext::apply(Order::whereBetween('created_at', [$from, $to]))->get(['id', 'device_type', 'total_amount']);
 
         $repairDays = $delivered->filter(fn ($o) => $o->entry_date && $o->delivery_date)
             ->map(fn ($o) => $o->entry_date->diffInDays($o->delivery_date));
@@ -41,6 +43,7 @@ class ReportController extends Controller
         $commissions = Commission::whereIn('order_id', $delivered->pluck('id'))->get()->groupBy('user_id');
 
         return view('reports.index', [
+            'branchName' => ($branch = BranchContext::current()) ? Branch::find($branch)?->name : null,
             'from' => $from,
             'to' => $to,
             'kpis' => [
@@ -67,7 +70,7 @@ class ReportController extends Controller
                 'total' => round((float) $orders->sum('total_amount'), 2),
             ])->sortByDesc('orders')->values(),
             'topParts' => OrderPart::with('sparePart')
-                ->whereIn('order_id', Order::whereBetween('created_at', [$from, $to])->select('id'))
+                ->whereIn('order_id', BranchContext::apply(Order::whereBetween('created_at', [$from, $to]))->select('id'))
                 ->get()
                 ->groupBy('spare_part_id')
                 ->map(fn ($rows) => [
@@ -109,16 +112,16 @@ class ReportController extends Controller
     private function orderRows(Carbon $from, Carbon $to): array
     {
         $statuses = Order::statuses();
-        $orders = Order::with(['client', 'user', 'brand', 'deviceModel'])
+        $orders = BranchContext::apply(Order::with(['client', 'user', 'brand', 'deviceModel', 'branch']))
             ->whereBetween('created_at', [$from, $to])
             ->orderBy('id')
             ->get();
 
         return [
-            ['Orden', 'Fecha ingreso', 'Cliente', 'Cédula', 'Teléfono', 'Equipo', 'Marca', 'Modelo', 'Estado', 'Técnico',
+            ['Orden', 'Sucursal', 'Fecha ingreso', 'Cliente', 'Cédula', 'Teléfono', 'Equipo', 'Marca', 'Modelo', 'Estado', 'Técnico',
                 'Diagnóstico', 'Mano de obra', 'Repuestos', 'Recargo', 'Total', 'Pagado', 'Saldo', 'Fecha entrega'],
             $orders->map(fn ($o) => [
-                $o->order_number, $o->entry_date?->format('d/m/Y'), $o->client?->name, $o->client?->id_document, $o->client?->phone,
+                $o->order_number, $o->branch?->name, $o->entry_date?->format('d/m/Y'), $o->client?->name, $o->client?->id_document, $o->client?->phone,
                 Order::deviceTypes()[$o->device_type] ?? $o->device_type, $o->brand?->name ?? $o->brand_text, $o->deviceModel?->name ?? $o->model_text,
                 $statuses[$o->status] ?? $o->status, $o->user?->name,
                 $this->decimal($o->diagnosis_cost), $this->decimal($o->labor_cost), $this->decimal($o->parts_cost), $this->decimal($o->surcharge_amount),
@@ -129,15 +132,15 @@ class ReportController extends Controller
 
     private function paymentRows(Carbon $from, Carbon $to): array
     {
-        $payments = OrderPayment::with(['order.client', 'registeredBy'])
+        $payments = BranchContext::applyThroughOrder(OrderPayment::with(['order.client', 'order.branch', 'registeredBy']))
             ->whereBetween('paid_at', [$from, $to])
             ->orderBy('paid_at')
             ->get();
 
         return [
-            ['Fecha', 'Hora', 'Orden', 'Cliente', 'Método', 'Referencia', 'Monto', 'Registrado por'],
+            ['Fecha', 'Hora', 'Sucursal', 'Orden', 'Cliente', 'Método', 'Referencia', 'Monto', 'Registrado por'],
             $payments->map(fn ($p) => [
-                $p->paid_at->format('d/m/Y'), $p->paid_at->format('H:i'), $p->order?->order_number, $p->order?->client?->name,
+                $p->paid_at->format('d/m/Y'), $p->paid_at->format('H:i'), $p->order?->branch?->name, $p->order?->order_number, $p->order?->client?->name,
                 PaymentMethods::label($p->method), $p->reference, $this->decimal($p->amount), $p->registeredBy?->name,
             ]),
         ];
@@ -170,7 +173,7 @@ class ReportController extends Controller
     private function monthlyRevenue()
     {
         $start = now()->startOfMonth()->subMonths(11);
-        $totals = OrderPayment::where('paid_at', '>=', $start)->get(['amount', 'paid_at'])
+        $totals = BranchContext::applyThroughOrder(OrderPayment::where('paid_at', '>=', $start))->get(['amount', 'paid_at'])
             ->groupBy(fn ($p) => $p->paid_at->format('Y-m'))
             ->map(fn ($rows) => round((float) $rows->sum('amount'), 2));
 

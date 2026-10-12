@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WhatsappLog;
 use App\Notifications\AssignmentNotification;
 use App\Services\WhatsAppMessage;
+use App\Support\BranchContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -58,6 +59,7 @@ class AppointmentController extends Controller
         if ($request->filled('plan_id')) {
             $plan = MaintenancePlan::findOrFail($request->plan_id);
             $appointment->fill([
+                'branch_id' => $plan->branch_id,
                 'maintenance_plan_id' => $plan->id,
                 'client_id' => $plan->client_id,
                 'type' => 'maintenance',
@@ -71,6 +73,7 @@ class AppointmentController extends Controller
         if ($request->filled('order_id')) {
             $order = Order::with('client')->findOrFail($request->order_id);
             $appointment->fill([
+                'branch_id' => $order->branch_id,
                 'order_id' => $order->id,
                 'client_id' => $order->client_id,
                 'user_id' => $order->user?->isTechnician() ? $order->user_id : null,
@@ -104,11 +107,13 @@ class AppointmentController extends Controller
 
     public function edit(Appointment $appointment)
     {
+        $this->authorizeView($appointment);
         return view('appointments.form', ['appointment' => $appointment->load('client'), 'technicians' => $this->technicians($appointment)]);
     }
 
     public function update(Request $request, Appointment $appointment)
     {
+        $this->authorizeView($appointment);
         $validated = $this->validated($request, $appointment);
 
         // Si cambia la fecha, el recordatorio debe enviarse de nuevo.
@@ -203,8 +208,12 @@ class AppointmentController extends Controller
 
     private function technicians(?Appointment $appointment = null)
     {
-        return User::where(function ($q) use ($appointment) {
-            $q->where('role', 'technician')->where('is_active', true);
+        // Técnicos de la sucursal de la cita (o de la activa); con "todas", de cualquiera.
+        $branch = $appointment?->branch_id ?? BranchContext::current();
+
+        return User::where(function ($q) use ($appointment, $branch) {
+            $q->where('role', 'technician')->where('is_active', true)
+                ->when($branch, fn ($q) => $q->where('branch_id', $branch));
             if ($appointment?->user_id) {
                 $q->orWhere('id', $appointment->user_id);
             }
@@ -217,6 +226,7 @@ class AppointmentController extends Controller
     private function pendingReminders()
     {
         return Appointment::with(['client', 'user'])
+            ->visibleTo(Auth::user())
             ->whereDate('scheduled_at', today()->addDay())
             ->whereIn('status', ['pending', 'confirmed'])
             ->where('reminder_sent', false)
@@ -233,6 +243,7 @@ class AppointmentController extends Controller
     private function authorizeView(Appointment $appointment): void
     {
         $user = Auth::user();
+        abort_unless(BranchContext::allows($appointment->branch_id), 403, 'La cita es de otra sucursal.');
         abort_if($user->isTechnician() && $appointment->user_id !== $user->id, 403, 'Esta cita está asignada a otro técnico.');
     }
 }

@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Commission;
 use App\Models\CommissionAdvance;
 use App\Models\User;
+use App\Support\BranchContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +28,7 @@ class CommissionController extends Controller
         // Un técnico solo ve sus propias comisiones.
         $userId = $canManage ? $request->input('user_id') : $user->id;
 
-        $query = Commission::with(['user', 'order.client'])
+        $query = BranchContext::applyThroughOrder(Commission::with(['user', 'order.client']))
             ->where('period', $period)
             ->when($userId, fn ($q) => $q->where('user_id', $userId))
             ->when($request->status === 'pending', fn ($q) => $q->where('is_paid', false))

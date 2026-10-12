@@ -162,8 +162,8 @@ class ModuleImprovementsTest extends TestCase
         $lines = array_map(fn ($l) => str_getcsv($l, ';'), array_filter(explode("\n", substr($csv, 3))));
         $this->assertSame('Orden', $lines[0][0]);
         $this->assertSame($order->order_number, $lines[1][0]);
-        $this->assertSame('José Peña', $lines[1][2]);
-        $this->assertSame('25,50', $lines[1][11]);
+        $this->assertSame('José Peña', $lines[1][3]);
+        $this->assertSame('25,50', $lines[1][12]);
     }
 
     public function test_export_neutralizes_formula_injection(): void

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Support\BranchContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -12,6 +13,7 @@ class Invoice extends Model
     use Auditable, SoftDeletes;
 
     protected $fillable = [
+        'branch_id',
         'invoice_number',
         'order_id',
         'client_id',
@@ -120,6 +122,9 @@ class Invoice extends Model
         parent::boot();
 
         static::creating(function ($invoice) {
+            $invoice->branch_id ??= $invoice->order_id
+                ? Order::withTrashed()->whereKey($invoice->order_id)->value('branch_id')
+                : BranchContext::forCreate();
             if (!$invoice->invoice_number) {
                 $invoice->invoice_number = self::generateInvoiceNumber();
             }

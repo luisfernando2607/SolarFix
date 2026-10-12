@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Warranty;
 use App\Notifications\AssignmentNotification;
+use App\Support\BranchContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ class WarrantyController extends Controller
 {
     public function index(Request $request)
     {
-        $warranties = Warranty::with(['order.client'])
+        $warranties = BranchContext::applyThroughOrder(Warranty::with(['order.client']))
             ->when($request->filled('status'), fn ($q) => $q->filterStatus($request->status))
             ->when($request->filled('q'), function ($query) use ($request) {
                 $search = '%' . $request->q . '%';
@@ -38,6 +39,7 @@ class WarrantyController extends Controller
 
     public function update(Request $request, Warranty $warranty)
     {
+        abort_unless(BranchContext::allows($warranty->order?->branch_id), 403, 'La garantía es de otra sucursal.');
         $validated = $request->validate([
             'warranty_type' => ['required', Rule::in(array_keys(Warranty::types()))],
             'conditions' => ['nullable', 'string', 'max:1000'],
@@ -50,6 +52,7 @@ class WarrantyController extends Controller
 
     public function createClaim(Order $order)
     {
+        abort_unless(BranchContext::allows($order->branch_id), 403, 'La orden es de otra sucursal.');
         $order->load(['warranty', 'client', 'brand', 'deviceModel']);
 
         if ($error = $this->claimError($order)) {
@@ -64,6 +67,7 @@ class WarrantyController extends Controller
      */
     public function storeClaim(Request $request, Order $order)
     {
+        abort_unless(BranchContext::allows($order->branch_id), 403, 'La orden es de otra sucursal.');
         $order->load('warranty');
 
         if ($error = $this->claimError($order)) {

@@ -8,6 +8,7 @@ use App\Models\InvoiceItem;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\Setting;
+use App\Support\BranchContext;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,7 @@ class InvoiceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Invoice::with(['client', 'order'])
+        $query = BranchContext::apply(Invoice::with(['client', 'order']))
             ->orderBy('created_at', 'desc');
 
         if ($request->filled('status')) {
@@ -33,7 +34,7 @@ class InvoiceController extends Controller
 
         $invoices = $query->paginate(15);
 
-        $recentPayments = OrderPayment::with(['order.client', 'registeredBy'])
+        $recentPayments = BranchContext::applyThroughOrder(OrderPayment::with(['order.client', 'registeredBy']))
             ->orderBy('paid_at', 'desc')
             ->take(10)
             ->get();
@@ -150,6 +151,7 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
+        $this->authorizeInvoice($invoice);
         $invoice->load(['client', 'order', 'items', 'createdBy', 'payments']);
 
         $payments = $invoice->payments;
@@ -167,7 +169,7 @@ class InvoiceController extends Controller
 
     public function payments(Request $request)
     {
-        $query = OrderPayment::with(['order.client', 'registeredBy'])
+        $query = BranchContext::applyThroughOrder(OrderPayment::with(['order.client', 'registeredBy']))
             ->orderBy('paid_at', 'desc');
 
         if ($request->filled('method')) {
@@ -223,6 +225,7 @@ class InvoiceController extends Controller
 
     public function pdf(Invoice $invoice)
     {
+        $this->authorizeInvoice($invoice);
         $invoice->load(['client', 'order', 'items', 'createdBy', 'payments']);
 
         $payments = $invoice->payments;
@@ -288,6 +291,7 @@ class InvoiceController extends Controller
 
     public function generateFromOrder(Order $order)
     {
+        abort_unless(BranchContext::allows($order->branch_id), 403, 'La orden es de otra sucursal.');
         $order->load(['client', 'payments']);
 
         if ($order->total_amount <= 0) {
@@ -388,5 +392,10 @@ class InvoiceController extends Controller
 
         return redirect()->route('invoices.show', $invoice)
             ->with('success', 'Factura #' . $invoice->invoice_number . ' generada desde la orden.');
+    }
+
+    private function authorizeInvoice(Invoice $invoice): void
+    {
+        abort_unless(BranchContext::allows($invoice->branch_id), 403, 'La factura es de otra sucursal.');
     }
 }

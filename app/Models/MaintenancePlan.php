@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Support\BranchContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
@@ -10,7 +11,7 @@ class MaintenancePlan extends Model
 {
     use Auditable;
 
-    protected $fillable = ['client_id', 'title', 'address', 'interval_months', 'next_due_date', 'last_done_at', 'is_active', 'notes'];
+    protected $fillable = ['branch_id', 'client_id', 'title', 'address', 'interval_months', 'next_due_date', 'last_done_at', 'is_active', 'notes'];
 
     protected function casts(): array
     {
@@ -20,6 +21,11 @@ class MaintenancePlan extends Model
             'last_done_at' => 'date',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(fn (MaintenancePlan $plan) => $plan->branch_id ??= BranchContext::forCreate());
     }
 
     public static function dueStatuses(): array

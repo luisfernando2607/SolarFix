@@ -15,7 +15,7 @@
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
             <h2 class="text-2xl font-bold text-gray-800">Reportes</h2>
-            <p class="text-gray-500">Del {{ $from->format('d/m/Y') }} al {{ $to->format('d/m/Y') }}</p>
+            <p class="text-gray-500">Del {{ $from->format('d/m/Y') }} al {{ $to->format('d/m/Y') }} · {{ $branchName ?? 'Todas las sucursales' }}</p>
         </div>
         {{-- Filtros en una sola fila sobre los datos --}}
         <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-center gap-2">

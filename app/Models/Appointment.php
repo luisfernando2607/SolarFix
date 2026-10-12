@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Support\BranchContext;
 use Illuminate\Database\Eloquent\Model;
 
 class Appointment extends Model
@@ -70,8 +71,22 @@ class Appointment extends Model
             ->filter(fn ($a) => $a->scheduled_at->lt($end) && $a->endsAt()->gt($start));
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (Appointment $appointment) {
+            $appointment->branch_id ??= $appointment->order_id
+                ? Order::withTrashed()->whereKey($appointment->order_id)->value('branch_id')
+                : BranchContext::forCreate();
+        });
+    }
+
     public function scopeVisibleTo($query, User $user)
     {
+        $branch = BranchContext::current($user);
+        if ($branch) {
+            $query->where('branch_id', $branch);
+        }
+
         return $user->isTechnician() ? $query->where('user_id', $user->id) : $query;
     }
 

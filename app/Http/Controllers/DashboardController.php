@@ -70,7 +70,7 @@ class DashboardController extends Controller
 
         $expiringWarranties = collect();
         if (! $user->isTechnician()) {
-            $expiringWarranties = Warranty::with('order.client')
+            $expiringWarranties = BranchContext::applyThroughOrder(Warranty::with('order.client'))
                 ->filterStatus('expiring')
                 ->orderBy('end_date')
                 ->take(10)
@@ -88,15 +88,15 @@ class DashboardController extends Controller
             ->orderBy('scheduled_at')
             ->get();
 
-        $duePlans = $user->can('manage-appointments') ? MaintenancePlan::due()->count() : 0;
+        $duePlans = $user->can('manage-appointments') ? BranchContext::apply(MaintenancePlan::due())->count() : 0;
 
         $unassignedAppointments = $user->can('manage-appointments')
-            ? Appointment::whereNull('user_id')->whereIn('status', ['pending', 'confirmed'])->where('scheduled_at', '>=', now())->count()
+            ? Appointment::visibleTo($user)->whereNull('user_id')->whereIn('status', ['pending', 'confirmed'])->where('scheduled_at', '>=', now())->count()
             : 0;
 
         $myWork = $user->isTechnician() ? $this->technicianQueue($user) : null;
         $counter = $user->can('manage-invoices') ? $this->counterPanel() : null;
-        $metrics = $user->can('manage-commissions') ? app(BusinessMetrics::class)->forMonth(now()) : null;
+        $metrics = $user->can('manage-commissions') ? app(BusinessMetrics::class)->forMonth(now(), BranchContext::current()) : null;
 
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])

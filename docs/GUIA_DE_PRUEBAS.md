@@ -111,6 +111,15 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] **Excel: órdenes / pagos**: el archivo abre en Excel en columnas, con tildes y decimales con coma.
 - [ ] **Auditoría**: aparecen los cambios de costos, el pago de comisiones y un intento de acceso fallido (pruébalo con una contraseña errada).
 
+## 12. Multi-sucursal (admin)
+
+- [ ] **Sucursales → Nueva**: crea "Quito" con código QTO. → Aparece el selector de sucursal en el menú.
+- [ ] Crea una recepcionista y un técnico de Quito. Como recepcionista de Quito, recibe un equipo. → El número es ORD-QTO-…; no ve las órdenes de la otra sucursal.
+- [ ] Como admin, cambia el selector entre "Todas" y cada sucursal. → Órdenes, caja, reportes e indicadores se filtran.
+- [ ] **Inventario**: en un repuesto, registra entrada en una sucursal y **traslada** unidades a la otra. → El stock de cada sucursal cambia y el total no.
+- [ ] Agrega ese repuesto a una orden de Quito. → Se descuenta del stock de Quito.
+- [ ] **Caja**: cada sucursal tiene su propio cuadre del día.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

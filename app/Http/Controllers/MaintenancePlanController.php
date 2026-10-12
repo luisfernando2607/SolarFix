@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\MaintenancePlan;
 use App\Models\WhatsappLog;
 use App\Services\WhatsAppMessage;
+use App\Support\BranchContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,7 +17,8 @@ class MaintenancePlanController extends Controller
         $request->validate(['filter' => ['nullable', 'in:due,all,inactive']]);
         $filter = $request->input('filter', 'due');
 
-        $plans = MaintenancePlan::with(['client', 'appointments' => fn ($q) => $q->whereIn('status', ['pending', 'confirmed'])])
+        $plans = BranchContext::apply(MaintenancePlan::query())
+            ->with(['client', 'appointments' => fn ($q) => $q->whereIn('status', ['pending', 'confirmed'])])
             ->when($filter === 'due', fn ($q) => $q->due())
             ->when($filter === 'all', fn ($q) => $q->where('is_active', true))
             ->when($filter === 'inactive', fn ($q) => $q->where('is_active', false))
@@ -52,11 +54,13 @@ class MaintenancePlanController extends Controller
 
     public function edit(MaintenancePlan $maintenancePlan)
     {
+        $this->authorizePlan($maintenancePlan);
         return view('maintenance_plans.form', ['plan' => $maintenancePlan->load('client')]);
     }
 
     public function update(Request $request, MaintenancePlan $maintenancePlan)
     {
+        $this->authorizePlan($maintenancePlan);
         $maintenancePlan->update($this->validated($request));
 
         return redirect()->route('maintenance-plans.index')->with('success', 'Plan de mantenimiento actualizado.');
@@ -67,6 +71,7 @@ class MaintenancePlanController extends Controller
      */
     public function whatsapp(MaintenancePlan $maintenancePlan)
     {
+        $this->authorizePlan($maintenancePlan);
         $maintenancePlan->load('client');
         $phone = WhatsAppMessage::normalizePhone($maintenancePlan->client?->phone);
         if (! $phone) {
@@ -85,6 +90,11 @@ class MaintenancePlanController extends Controller
         ]);
 
         return redirect()->away(WhatsAppMessage::url($phone, $message));
+    }
+
+    private function authorizePlan(MaintenancePlan $plan): void
+    {
+        abort_unless(BranchContext::allows($plan->branch_id), 403, 'El plan es de otra sucursal.');
     }
 
     private function validated(Request $request): array

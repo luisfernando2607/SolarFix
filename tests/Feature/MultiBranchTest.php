@@ -324,4 +324,78 @@ class MultiBranchTest extends TestCase
         $this->actingAs($this->user('receptionist', $this->qto))->get(route('spare-parts.index'))
             ->assertViewHas('branch', $this->qto->id);
     }
+
+    // --- Agenda, mantenimientos, facturas, garantías, reportes ---
+
+    public function test_appointments_and_plans_are_per_branch(): void
+    {
+        $client = \App\Models\Client::create(['name' => 'Ana', 'phone' => '0991234567', 'client_type' => 'individual']);
+        $qtoDesk = $this->user('receptionist', $this->qto);
+        $gyeDesk = $this->user('receptionist', $this->gye);
+        $qtoTech = $this->user('technician', $this->qto);
+        $gyeTech = $this->user('technician', $this->gye);
+
+        $this->actingAs($qtoDesk)->post(route('appointments.store'), [
+            'client_id' => $client->id, 'user_id' => $gyeTech->id, 'type' => 'home_visit', 'title' => 'Visita',
+            'scheduled_at' => now()->addDay()->format('Y-m-d\\TH:i'), 'duration_min' => 60,
+        ])->assertSessionHasErrors('user_id'); // técnico de otra sucursal
+
+        $this->actingAs($qtoDesk)->post(route('appointments.store'), [
+            'client_id' => $client->id, 'user_id' => $qtoTech->id, 'type' => 'home_visit', 'title' => 'Visita Quito',
+            'scheduled_at' => now()->addDay()->format('Y-m-d\\TH:i'), 'duration_min' => 60,
+        ])->assertSessionHasNoErrors();
+        $appointment = \App\Models\Appointment::first();
+        $this->assertSame($this->qto->id, $appointment->branch_id);
+
+        $this->actingAs($gyeDesk)->get(route('appointments.show', $appointment))->assertForbidden();
+        $this->actingAs($gyeDesk)->get(route('appointments.index', ['week' => now()->addDay()->toDateString()]))->assertDontSee('Visita Quito');
+
+        $this->actingAs($qtoDesk)->post(route('maintenance-plans.store'), [
+            'client_id' => $client->id, 'title' => 'Split Quito', 'interval_months' => 6,
+            'next_due_date' => now()->addDays(3)->toDateString(), 'is_active' => '1',
+        ]);
+        $this->assertSame($this->qto->id, \App\Models\MaintenancePlan::first()->branch_id);
+        $this->actingAs($gyeDesk)->get(route('maintenance-plans.index'))->assertDontSee('Split Quito');
+    }
+
+    public function test_invoices_and_warranties_follow_order_branch(): void
+    {
+        $qtoOrder = $this->makeOrder($this->qto, ['status' => 'delivered', 'labor_cost' => 30, 'total_amount' => 30, 'delivery_date' => today(), 'warranty_days' => 30]);
+        $qtoOrder->issueWarranty();
+        $admin = $this->user('admin');
+
+        $this->actingAs($admin)->post(route('invoices.generate-from-order', $qtoOrder));
+        $invoice = \App\Models\Invoice::first();
+        $this->assertSame($this->qto->id, $invoice->branch_id);
+
+        $gyeDesk = $this->user('receptionist', $this->gye);
+        $this->actingAs($gyeDesk)->get(route('invoices.show', $invoice))->assertForbidden();
+        $this->actingAs($gyeDesk)->get(route('invoices.index'))->assertDontSee($invoice->invoice_number);
+        $this->actingAs($gyeDesk)->get(route('warranties.index'))->assertDontSee($qtoOrder->order_number);
+        $this->actingAs($gyeDesk)->post(route('warranties.claim.store', $qtoOrder), ['declared_fault' => 'x'])->assertForbidden();
+
+        // El reclamo hecho en Quito queda en Quito.
+        $this->actingAs($this->user('receptionist', $this->qto))->post(route('warranties.claim.store', $qtoOrder), ['declared_fault' => 'Volvió a fallar']);
+        $claim = Order::where('parent_order_id', $qtoOrder->id)->first();
+        $this->assertSame($this->qto->id, $claim->branch_id);
+        $this->assertStringContainsString('-QTO-', $claim->order_number);
+    }
+
+    public function test_reports_and_metrics_filter_by_branch(): void
+    {
+        $gyeOrder = $this->makeOrder($this->gye);
+        $qtoOrder = $this->makeOrder($this->qto);
+        \App\Models\OrderPayment::create(['order_id' => $gyeOrder->id, 'amount' => 100, 'method' => 'cash', 'paid_at' => now()]);
+        \App\Models\OrderPayment::create(['order_id' => $qtoOrder->id, 'amount' => 30, 'method' => 'cash', 'paid_at' => now()]);
+        $admin = $this->user('admin');
+
+        $this->actingAs($admin)->get(route('reports.index'))->assertViewHas('kpis', fn ($k) => $k['revenue'] == 130)->assertSee('Todas las sucursales');
+        $this->actingAs($admin)->post(route('branch-context'), ['branch_id' => $this->qto->id]);
+        $this->actingAs($admin)->get(route('reports.index'))->assertViewHas('kpis', fn ($k) => $k['revenue'] == 30)->assertSee('Quito');
+        $this->actingAs($admin)->get(route('dashboard'))->assertViewHas('metrics', fn ($m) => $m['current']['revenue'] == 30);
+
+        $csv = $this->actingAs($admin)->get(route('reports.export', ['dataset' => 'payments']))->streamedContent();
+        $this->assertStringContainsString('Quito', $csv);
+        $this->assertStringNotContainsString($gyeOrder->order_number, $csv);
+    }
 }

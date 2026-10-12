@@ -35,8 +35,15 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl shadow-sm border p-5 {{ $part->isLowStock($branch) ? 'border-red-300' : '' }}">
             <p class="text-sm text-gray-500">Stock{{ $branch === null && $branches->count() > 1 ? ' total' : '' }}</p>
-            <p class="text-3xl font-bold {{ $part->isLowStock($branch) ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stockIn($branch) }}</p>
-            <p class="text-xs {{ $part->isLowStock($branch) ? 'text-red-600' : 'text-gray-400' }}">mínimo {{ $part->min_stock }}{{ $part->isLowStock($branch) ? ' · stock bajo' : '' }}</p>
+            @php
+                // Con "todas", el total no es "bajo": se indica en qué sucursales falta.
+                $lowBranches = $branch === null ? $part->stocks->filter(fn ($st) => $st->quantity <= $part->min_stock)->map(fn ($st) => $st->branch?->name)->filter() : collect();
+                $lowHere = $branch !== null && $part->isLowStock($branch);
+            @endphp
+            <p class="text-3xl font-bold {{ $lowHere ? 'text-red-600' : 'text-gray-800' }}">{{ $part->stockIn($branch) }}</p>
+            <p class="text-xs {{ $lowHere || $lowBranches->isNotEmpty() ? 'text-red-600' : 'text-gray-400' }}">
+                mínimo {{ $part->min_stock }}{{ $lowHere ? ' · stock bajo' : '' }}{{ $lowBranches->isNotEmpty() ? ' · bajo en ' . $lowBranches->join(', ') : '' }}
+            </p>
             @if ($branches->count() > 1 && $part->stocks->count())
                 <ul class="mt-2 text-xs text-gray-600 space-y-0.5">
                     @foreach ($part->stocks->sortBy('branch.name') as $stock)

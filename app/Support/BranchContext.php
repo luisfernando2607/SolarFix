@@ -62,6 +62,16 @@ class BranchContext
     }
 
     /**
+     * Filtra por la sucursal activa a través de la orden (pagos, garantías, comisiones).
+     */
+    public static function applyThroughOrder($query, string $relation = 'order')
+    {
+        $branch = self::current();
+
+        return $branch ? $query->whereHas($relation, fn ($q) => $q->withTrashed()->where('branch_id', $branch)) : $query;
+    }
+
+    /**
      * ¿Puede el usuario ver un registro de esta sucursal? (los administradores, siempre).
      */
     public static function allows(?int $branchId, ?User $user = null): bool

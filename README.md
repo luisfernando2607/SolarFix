@@ -46,6 +46,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 📈 **Indicadores** | Mes actual vs. anterior (ingresos, entregas, ticket, días de reparación, aprobación de presupuestos, retrabajos), cuentas por cobrar y valor del inventario |
 | 👥 **Clientes duplicados** | Detección por teléfono o cédula y unión con todo su historial |
 | 📊 **Reportes** | Ingresos, órdenes, técnicos, tipos de equipo y repuestos; exportación a Excel |
+| 🏢 **Multi-sucursal** | Sucursales con código en el número de orden, caja e inventario por sucursal, traslados de repuestos y reportes por sucursal; los admins ven todas |
 | ⚙️ **Configuración** | Datos del negocio, IVA, prefijos de orden y factura, moneda, métodos de pago, textos de WhatsApp, alertas y comisiones |
 | 🧑‍🔧 **Para técnicos** | Cola "Mi trabajo" por etapa, tomar órdenes sin técnico, acciones rápidas de estado, panel de diagnóstico y costos, bitácora y fotos con la cámara |
 | 🧾 **Para recepción** | Búsqueda global (tecla `/`), panel Mostrador (listos, por aprobar, recibidos hoy), cobro y entrega en un paso, ticket de 80 mm con QR |
@@ -59,9 +60,9 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 
 | Rol | Puede |
 |---|---|
-| `super_admin`, `admin` | Todo: usuarios, catálogos, configuración, reportes, auditoría, comisiones, precios y ajustes de inventario, eliminar órdenes, pagos y facturas. |
-| `receptionist` | Clientes, órdenes, cobros, facturas, caja, garantías, agenda y mantenimientos. |
-| `technician` | Sus órdenes y las sin asignar, repuestos y entradas de inventario, sus citas y sus comisiones. No ve facturas ni caja. |
+| `super_admin`, `admin` | Todas las sucursales (con selector para filtrar por una). Todo: usuarios, catálogos, configuración, reportes, auditoría, comisiones, precios y ajustes de inventario, eliminar órdenes, pagos y facturas. |
+| `receptionist` | Solo su sucursal: clientes, órdenes, cobros, facturas, caja, garantías, agenda y mantenimientos. |
+| `technician` | Solo su sucursal: sus órdenes y las sin asignar, repuestos y entradas de inventario, sus citas y sus comisiones. No ve facturas ni caja. |
 
 ---
 
@@ -151,7 +152,6 @@ Para probar a mano en el navegador, por módulo y por rol: [`docs/GUIA_DE_PRUEBA
 
 - **Facturación electrónica SRI:** las facturas son comprobantes internos; no se envían al SRI.
 - **WhatsApp:** los mensajes se abren en WhatsApp con el texto listo (wa.me); el envío automático requiere la API de WhatsApp Business.
-- **Multi-sucursal:** los usuarios tienen sucursal, pero órdenes, caja e inventario funcionan como una sola sucursal.
 
 ---
 

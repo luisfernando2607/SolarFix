@@ -14,12 +14,29 @@ use Illuminate\Support\Carbon;
  */
 class BusinessMetrics
 {
+    private ?int $branchId = null;
+
+    /**
+     * Órdenes de la sucursal (todas, si no hay una elegida).
+     */
+    private function orders()
+    {
+        return Order::query()->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId));
+    }
+
+    private function throughOrder($query)
+    {
+        return $query->when($this->branchId, fn ($q) => $q->whereHas('order', fn ($o) => $o->withTrashed()->where('branch_id', $this->branchId)));
+    }
+
     public function forMonth(Carbon $month, ?int $branchId = null): array
     {
         $from = $month->copy()->startOfMonth();
         $to = $month->copy()->endOfMonth();
         $previousFrom = $from->copy()->subMonthNoOverflow()->startOfMonth();
         $previousTo = $previousFrom->copy()->endOfMonth();
+
+        $this->branchId = $branchId;
 
         return [
             'current' => $this->period($from, $to),
@@ -38,22 +55,22 @@ class BusinessMetrics
     private function period(Carbon $from, Carbon $to): array
     {
         $deliveredIds = $this->ordersReaching('delivered', $from, $to);
-        $delivered = Order::whereIn('id', $deliveredIds)->get(['id', 'total_amount', 'entry_date', 'delivery_date']);
+        $delivered = $this->orders()->whereIn('id', $deliveredIds)->get(['id', 'total_amount', 'entry_date', 'delivery_date']);
         $repairDays = $delivered->filter(fn ($o) => $o->entry_date && $o->delivery_date)
             ->map(fn ($o) => $o->entry_date->diffInDays($o->delivery_date));
 
         // Presupuestos resueltos en el período: aprobados (pasan a reparación) o rechazados (cerrados).
-        $decisions = OrderStatusHistory::where('from_status', 'waiting_approval')
+        $decisions = $this->throughOrder(OrderStatusHistory::query())->where('from_status', 'waiting_approval')
             ->whereIn('to_status', ['repairing', 'closed_no_repair'])
             ->whereBetween('changed_at', [$from, $to])
             ->get(['to_status']);
         $approved = $decisions->where('to_status', 'repairing')->count();
 
-        $warrantyClaims = Order::whereNotNull('parent_order_id')->whereBetween('created_at', [$from, $to])->count();
+        $warrantyClaims = $this->orders()->whereNotNull('parent_order_id')->whereBetween('created_at', [$from, $to])->count();
 
         return [
-            'revenue' => round((float) OrderPayment::whereBetween('paid_at', [$from, $to])->sum('amount'), 2),
-            'received' => Order::whereBetween('created_at', [$from, $to])->count(),
+            'revenue' => round((float) $this->throughOrder(OrderPayment::query())->whereBetween('paid_at', [$from, $to])->sum('amount'), 2),
+            'received' => $this->orders()->whereBetween('created_at', [$from, $to])->count(),
             'delivered' => $delivered->count(),
             'avg_ticket' => $delivered->count() ? round((float) $delivered->avg('total_amount'), 2) : null,
             'avg_days' => $repairDays->count() ? round($repairDays->avg(), 1) : null,
@@ -81,7 +98,7 @@ class BusinessMetrics
      */
     private function receivables(): array
     {
-        $orders = Order::with('client')
+        $orders = $this->orders()->with('client')
             ->where('status', 'delivered')
             ->where('balance_due', '>', 0)
             ->orderBy('delivery_date')
