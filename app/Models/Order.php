@@ -149,6 +149,28 @@ class Order extends Model
     }
 
     /**
+     * Devolución del equipo sin reparar: queda la fecha y la nota, sin garantía ni comisión.
+     */
+    public function markReturnedWithoutRepair(?int $userId): void
+    {
+        OrderStatusHistory::create([
+            'order_id' => $this->id,
+            'from_status' => $this->status,
+            'to_status' => $this->status,
+            'changed_by' => $userId,
+            'notes' => 'Devolución sin reparación firmada por el cliente',
+        ]);
+
+        $this->delivery_date ??= today();
+        $this->save();
+    }
+
+    public function isReturnWithoutRepair(): bool
+    {
+        return $this->status === 'closed_no_repair';
+    }
+
+    /**
      * Crea la garantía al entregar, o ajusta sus fechas si cambian los días o la fecha de entrega.
      */
     public function issueWarranty(): ?Warranty

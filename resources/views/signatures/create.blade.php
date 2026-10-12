@@ -10,7 +10,7 @@
             Volver a la orden
         </a>
         <h2 class="text-2xl font-bold text-gray-800 mt-2">
-            {{ $stage === 'reception' ? 'Firma de recepción' : 'Firma de entrega' }} · Orden #{{ $order->order_number }}
+            {{ $stage === 'reception' ? 'Firma de recepción' : ($order->isReturnWithoutRepair() ? 'Devolución sin reparación' : 'Firma de entrega') }} · Orden #{{ $order->order_number }}
         </h2>
         <p class="text-gray-500">Muestra este resumen al cliente y pídele que firme.</p>
     </div>
@@ -53,6 +53,20 @@
                     <dt class="text-gray-500">Accesorios recibidos</dt>
                     <dd class="text-gray-800">{{ $order->accessories->pluck('name')->join(', ') ?: 'Ninguno' }}</dd>
                 </div>
+            @elseif ($order->isReturnWithoutRepair())
+                <div class="sm:col-span-2">
+                    <dt class="text-gray-500">Diagnóstico</dt>
+                    <dd class="text-gray-800">{{ $order->diagnosis ?: '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500">Costo de diagnóstico</dt>
+                    <dd class="font-medium text-gray-800">${{ number_format($order->diagnosis_cost, 2) }}</dd>
+                </div>
+                @if ($order->balance_due > 0)
+                    <div class="sm:col-span-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700">
+                        Hay un saldo pendiente de <strong>${{ number_format($order->balance_due, 2) }}</strong>. Cobra el diagnóstico antes de devolver el equipo.
+                    </div>
+                @endif
             @else
                 <div class="sm:col-span-2">
                     <dt class="text-gray-500">Trabajo realizado</dt>
@@ -76,6 +90,8 @@
         <p class="mt-4 text-sm text-gray-600 border-t pt-4">
             @if ($stage === 'reception')
                 Con mi firma confirmo que los datos del equipo, su estado físico y los accesorios entregados son correctos.
+            @elseif ($order->isReturnWithoutRepair())
+                Con mi firma confirmo que retiro mi equipo sin reparar, en el mismo estado en que lo entregué.
             @else
                 Con mi firma confirmo que recibí el equipo conforme y que se me explicaron el trabajo realizado y la garantía.
             @endif
@@ -94,7 +110,7 @@
         <p id="signatureEmpty" class="hidden text-sm text-red-600 mt-1">Falta la firma del cliente.</p>
 
         <button type="submit" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition">
-            {{ $stage === 'reception' ? 'Guardar firma de recepción' : 'Firmar y marcar como entregado' }}
+            {{ $stage === 'reception' ? 'Guardar firma de recepción' : ($order->isReturnWithoutRepair() ? 'Firmar devolución' : 'Firmar y marcar como entregado') }}
         </button>
     </form>
 </div>

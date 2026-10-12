@@ -500,11 +500,11 @@
                                         · <a href="{{ route('orders.signatures.create', [$order, $stageKey]) }}" class="text-blue-600 hover:underline">Reemplazar</a>
                                     @endif
                                 </p>
-                            @elseif ($stageKey === 'reception' || in_array($order->status, ['ready', 'delivered']))
+                            @elseif ($stageKey === 'reception' || in_array($order->status, ['ready', 'delivered', 'closed_no_repair']))
                                 <a href="{{ route('orders.signatures.create', [$order, $stageKey]) }}"
                                     class="mt-1 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition
                                     {{ $stageKey === 'delivery' && $order->status === 'ready' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-white hover:bg-gray-50 text-gray-700 border' }}">
-                                    {{ $stageKey === 'reception' ? 'Firmar recepción' : 'Firmar entrega' }}
+                                    {{ $stageKey === 'reception' ? 'Firmar recepción' : ($order->isReturnWithoutRepair() ? 'Firmar devolución' : 'Firmar entrega') }}
                                 </a>
                             @else
                                 <p class="text-xs text-gray-400 mt-1">Disponible cuando la orden esté lista.</p>

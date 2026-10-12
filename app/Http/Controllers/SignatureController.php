@@ -61,11 +61,17 @@ class SignatureController extends Controller
             );
 
             if ($stage === 'delivery') {
-                $order->markDelivered(Auth::id(), 'Entrega firmada por el cliente');
+                $order->isReturnWithoutRepair()
+                    ? $order->markReturnedWithoutRepair(Auth::id())
+                    : $order->markDelivered(Auth::id(), 'Entrega firmada por el cliente');
             }
         });
 
-        $message = $stage === 'delivery' ? 'Entrega firmada. La orden quedó como entregada.' : 'Firma de recepción registrada.';
+        $message = match (true) {
+            $stage === 'reception' => 'Firma de recepción registrada.',
+            $order->isReturnWithoutRepair() => 'Devolución sin reparación firmada.',
+            default => 'Entrega firmada. La orden quedó como entregada.',
+        };
 
         return redirect()->route('orders.show', $order)->with('success', $message);
     }
@@ -97,8 +103,8 @@ class SignatureController extends Controller
             return 'Esta firma ya fue registrada. Solo un administrador puede reemplazarla.';
         }
 
-        if ($stage === 'delivery' && ! in_array($order->status, ['ready', 'delivered'])) {
-            return 'La orden debe estar "Lista" para firmar la entrega.';
+        if ($stage === 'delivery' && ! in_array($order->status, ['ready', 'delivered', 'closed_no_repair'])) {
+            return 'La orden debe estar "Lista" (o "Cerrada sin reparación") para firmar la entrega.';
         }
 
         return null;
