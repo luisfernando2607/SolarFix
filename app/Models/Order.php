@@ -59,6 +59,7 @@ class Order extends Model
             'amount_paid' => 'decimal:2',
             'balance_due' => 'decimal:2',
             'warranty_days' => 'integer',
+            'unlock_value' => 'encrypted',
             'deleted_at' => 'datetime',
         ];
     }

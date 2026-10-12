@@ -18,7 +18,7 @@ Route::get('/', function () {
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 });
 
 Route::middleware('auth')->group(function () {
@@ -38,7 +38,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
-        Route::resource('orders', OrderController::class);
+        Route::resource('orders', OrderController::class)->except(['destroy']);
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');
@@ -50,10 +50,12 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('/invoices/payments/list', [InvoiceController::class, 'payments'])->name('invoices.payments');
-        Route::resource('invoices', InvoiceController::class);
+        Route::resource('invoices', InvoiceController::class)->only(['index', 'create', 'store', 'show']);
         Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
         Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
         Route::middleware('role:super_admin,admin')->group(function () {
+            Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+            Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
             Route::patch('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
             Route::patch('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
         });
