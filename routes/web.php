@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoices/payments/list', [InvoiceController::class, 'payments'])->name('invoices.payments');
         Route::resource('invoices', InvoiceController::class);
         Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+        Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::patch('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
             Route::patch('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
