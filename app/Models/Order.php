@@ -115,19 +115,20 @@ class Order extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    // withTrashed: las órdenes conservan el nombre del cliente o usuario aunque se elimine.
     public function client()
     {
-        return $this->belongsTo(Client::class);
+        return $this->belongsTo(Client::class)->withTrashed();
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function createdBy()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     public function brand()

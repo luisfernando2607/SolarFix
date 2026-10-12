@@ -61,10 +61,12 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                         Órdenes
                     </a>
+                    @can('manage-invoices')
                     <a href="{{ route('invoices.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('invoices.*') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Facturas
                     </a>
+                    @endcan
                 </nav>
                 <div class="px-4 py-4 border-t border-gray-700">
                     <div class="flex items-center gap-3">
@@ -159,12 +161,34 @@
                 var tbody = table.querySelector('tbody');
                 var rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
 
-                filterInput.addEventListener('input', function () {
-                    var q = this.value.toLowerCase();
-                    rows.forEach(function (row) {
-                        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+                if (table.dataset.search === 'server') {
+                    // Búsqueda en el servidor: recorre todos los registros, no solo la página visible.
+                    var url = new URL(window.location.href);
+                    filterInput.placeholder = table.dataset.searchPlaceholder || 'Buscar...';
+                    filterInput.value = url.searchParams.get('q') || '';
+                    if (filterInput.value) {
+                        filterInput.focus();
+                        filterInput.setSelectionRange(filterInput.value.length, filterInput.value.length);
+                    }
+                    var timer;
+                    filterInput.addEventListener('input', function () {
+                        clearTimeout(timer);
+                        var value = this.value.trim();
+                        timer = setTimeout(function () {
+                            if (value === (url.searchParams.get('q') || '')) return;
+                            value ? url.searchParams.set('q', value) : url.searchParams.delete('q');
+                            url.searchParams.delete('page');
+                            window.location.assign(url.toString());
+                        }, 400);
                     });
-                });
+                } else {
+                    filterInput.addEventListener('input', function () {
+                        var q = this.value.toLowerCase();
+                        rows.forEach(function (row) {
+                            row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+                        });
+                    });
+                }
 
                 var headers = table.querySelectorAll('thead th');
                 headers.forEach(function (th, index) {

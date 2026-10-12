@@ -17,11 +17,11 @@
 
     <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div class="px-6 py-3 border-b bg-gray-50/50 flex flex-wrap items-center gap-2">
-            <a href="{{ route('invoices.index') }}" class="px-3 py-1.5 text-xs font-medium rounded-lg {{ !$currentStatus ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50' }}">
+            <a href="{{ route('invoices.index', array_filter(['q' => request('q')])) }}" class="px-3 py-1.5 text-xs font-medium rounded-lg {{ !$currentStatus ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50' }}">
                 Todas
             </a>
             @foreach ($statuses as $key => $label)
-                <a href="{{ route('invoices.index', ['status' => $key]) }}"
+                <a href="{{ route('invoices.index', array_filter(['status' => $key, 'q' => request('q')])) }}"
                     class="px-3 py-1.5 text-xs font-medium rounded-lg {{ $currentStatus === $key ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50' }}">
                     {{ $label }}
                 </a>
@@ -34,7 +34,7 @@
 
         @if ($invoices->count())
             <div class="overflow-x-auto">
-                <table data-table class="w-full">
+                <table data-table data-search="server" data-search-placeholder="Buscar por número de factura, cliente o cédula..." class="w-full">
                     <thead>
                         <tr class="bg-gray-50 border-b">
                             <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider"># Factura</th>
@@ -80,7 +80,7 @@
                 </table>
             </div>
             <div class="px-6 py-3 border-t bg-gray-50/50">
-                {{ $invoices->links() }}
+                {{ $invoices->withQueryString()->links() }}
             </div>
         @else
             <div class="text-center py-8">

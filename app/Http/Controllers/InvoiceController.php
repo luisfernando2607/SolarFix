@@ -23,6 +23,13 @@ class InvoiceController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('q')) {
+            $search = '%' . $request->q . '%';
+            $query->where(fn ($q) => $q->where('invoice_number', 'like', $search)
+                ->orWhere('client_name', 'like', $search)
+                ->orWhere('client_document', 'like', $search));
+        }
+
         $invoices = $query->paginate(15);
 
         $recentPayments = OrderPayment::with(['order.client', 'registeredBy'])
@@ -280,8 +287,6 @@ class InvoiceController extends Controller
 
     public function generateFromOrder(Order $order)
     {
-        abort_unless($order->isVisibleTo(Auth::user()), 403, 'Esta orden está asignada a otro técnico.');
-
         $order->load(['client', 'payments']);
 
         if ($order->total_amount <= 0) {

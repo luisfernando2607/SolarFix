@@ -348,6 +348,69 @@ class SolarFixTest extends TestCase
         $this->assertEquals($admin->id, $order->fresh()->user_id);
     }
 
+    // --- Búsqueda ---
+
+    public function test_order_search_covers_all_pages(): void
+    {
+        for ($i = 0; $i < 20; $i++) {
+            $this->makeOrder();
+        }
+        $target = $this->makeOrder(['serial_imei' => 'IMEI-BUSCADO-123']);
+        // La orden buscada no está en la primera página (15 por página, más recientes primero)
+        Order::whereKey($target->id)->update(['created_at' => now()->subYear()]);
+
+        $this->actingAs($this->admin())->get(route('orders.index', ['q' => 'BUSCADO']))
+            ->assertSee($target->order_number)
+            ->assertViewHas('orders', fn ($orders) => $orders->total() === 1);
+    }
+
+    public function test_client_search_by_document(): void
+    {
+        Client::create(['name' => 'Rosa Buscada', 'phone' => '0911111111', 'id_document' => '0102030405', 'client_type' => 'individual']);
+        Client::create(['name' => 'Otro Cliente', 'phone' => '0922222222', 'client_type' => 'individual']);
+
+        $this->actingAs($this->admin())->get(route('clients.index', ['q' => '0102030405']))
+            ->assertSee('Rosa Buscada')
+            ->assertDontSee('Otro Cliente');
+    }
+
+    // --- Eliminación de registros en uso ---
+
+    public function test_in_use_catalog_items_cannot_be_deleted(): void
+    {
+        $admin = $this->admin();
+        $brand = \App\Models\DeviceBrand::create(['name' => 'Marca Test', 'is_active' => true]);
+        $model = \App\Models\DeviceModel::create(['brand_id' => $brand->id, 'name' => 'Modelo Test', 'device_type' => 'celular']);
+        $accessory = \App\Models\Accessory::create(['name' => 'Accesorio Test', 'is_active' => true]);
+        $order = $this->makeOrder(['brand_id' => $brand->id, 'model_id' => $model->id]);
+        $order->accessories()->attach($accessory->id);
+
+        $this->actingAs($admin)->delete(route('accessories.destroy', $accessory))->assertSessionHas('error');
+        $this->actingAs($admin)->delete(route('models.destroy', $model))->assertSessionHas('error');
+        $this->actingAs($admin)->delete(route('brands.destroy', $brand))->assertSessionHas('error');
+
+        $this->assertModelExists($accessory);
+        $this->assertModelExists($model);
+        $this->assertModelExists($brand);
+    }
+
+    public function test_unused_catalog_items_can_be_deleted(): void
+    {
+        $admin = $this->admin();
+        $accessory = \App\Models\Accessory::create(['name' => 'Sin uso', 'is_active' => true]);
+
+        $this->actingAs($admin)->delete(route('accessories.destroy', $accessory))->assertSessionHas('success');
+        $this->assertModelMissing($accessory);
+    }
+
+    public function test_order_keeps_deleted_client_name(): void
+    {
+        $order = $this->makeOrder();
+        $order->client->delete();
+
+        $this->actingAs($this->admin())->get(route('orders.show', $order))->assertSee('Cliente Test');
+    }
+
     // --- Pantallas ---
 
     public function test_main_screens_render_for_each_role(): void
@@ -364,17 +427,27 @@ class SolarFixTest extends TestCase
             foreach ([
                 route('dashboard'),
                 route('orders.index'),
+                route('orders.index', ['q' => 'test', 'status' => 'received']),
                 route('orders.create'),
                 route('orders.show', $order),
                 route('orders.edit', $order),
-                route('invoices.index'),
-                route('invoices.show', $invoice),
             ] as $url) {
                 $this->actingAs($user)->get($url)->assertOk();
+            }
+
+            foreach ([
+                route('invoices.index', ['q' => 'X']),
+                route('invoices.show', $invoice),
+                route('invoices.payments'),
+            ] as $url) {
+                $this->actingAs($user)->get($url)->assertStatus($role === 'technician' ? 403 : 200);
             }
         }
 
         $admin = $this->admin();
+        foreach (['users', 'clients', 'brands', 'models', 'accessories'] as $resource) {
+            $this->actingAs($admin)->get(route("$resource.index", ['q' => 'a']))->assertOk();
+        }
         $this->actingAs($admin)->get(route('users.edit', $admin))->assertOk();
         $this->actingAs($admin)->get(route('users.create'))->assertOk();
     }

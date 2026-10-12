@@ -17,16 +17,7 @@ class DeviceModel extends Model
 
     public static function deviceTypes(): array
     {
-        return [
-            'celular' => 'Celular',
-            'tablet' => 'Tablet',
-            'pc' => 'PC / Laptop',
-            'aire_split' => 'Aire Split',
-            'aire_central' => 'Aire Central',
-            'televisor' => 'Televisor',
-            'lavador' => 'Lavador',
-            'otro' => 'Otro',
-        ];
+        return DeviceBrand::deviceTypes();
     }
 
     protected function casts(): array

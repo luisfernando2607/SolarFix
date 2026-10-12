@@ -49,10 +49,12 @@ Route::middleware('auth')->group(function () {
             Route::delete('/orders/{order}/payments/{payment}', [PaymentController::class, 'destroy'])->name('orders.payments.destroy');
         });
 
-        Route::get('/invoices/payments/list', [InvoiceController::class, 'payments'])->name('invoices.payments');
-        Route::resource('invoices', InvoiceController::class)->only(['index', 'create', 'store', 'show']);
-        Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
-        Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
+        Route::middleware('role:super_admin,admin,receptionist')->group(function () {
+            Route::get('/invoices/payments/list', [InvoiceController::class, 'payments'])->name('invoices.payments');
+            Route::resource('invoices', InvoiceController::class)->only(['index', 'create', 'store', 'show']);
+            Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+            Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
+        });
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
             Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');

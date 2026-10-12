@@ -4,14 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\DeviceBrand;
 use App\Models\DeviceModel;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class DeviceModelController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $models = DeviceModel::with('brand')->orderBy('name')->paginate(10);
+        $models = DeviceModel::with('brand')
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $search = '%' . $request->q . '%';
+                $query->where(fn ($q) => $q->where('name', 'like', $search)
+                    ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', $search)));
+            })
+            ->orderBy('name')
+            ->paginate(10);
         return view('models.index', compact('models'));
     }
 
@@ -65,6 +73,10 @@ class DeviceModelController extends Controller
 
     public function destroy(DeviceModel $model)
     {
+        if (Order::withTrashed()->where('model_id', $model->id)->exists()) {
+            return back()->with('error', 'El modelo está registrado en órdenes. Desactívalo en lugar de eliminarlo.');
+        }
+
         $model->delete();
 
         return redirect()->route('models.index')

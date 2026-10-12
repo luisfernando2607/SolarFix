@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\DeviceBrand;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class DeviceBrandController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $brands = DeviceBrand::with('models:brand_id,device_type')->withCount('models')->orderBy('name')->paginate(10);
+        $brands = DeviceBrand::with('models:brand_id,device_type')->withCount('models')
+            ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%' . $request->q . '%'))
+            ->orderBy('name')
+            ->paginate(10);
         return view('brands.index', compact('brands'));
     }
 
@@ -68,6 +72,10 @@ class DeviceBrandController extends Controller
 
     public function destroy(DeviceBrand $brand)
     {
+        if ($brand->models()->exists() || Order::withTrashed()->where('brand_id', $brand->id)->exists()) {
+            return back()->with('error', 'La marca tiene modelos u órdenes asociadas. Desactívala en lugar de eliminarla.');
+        }
+
         $brand->delete();
 
         return redirect()->route('brands.index')

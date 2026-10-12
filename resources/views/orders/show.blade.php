@@ -273,7 +273,7 @@
                         <dd>${{ number_format($order->balance_due, 2) }}</dd>
                     </div>
                 </dl>
-                @if ($order->total_amount > 0)
+                @if ($order->total_amount > 0 && Gate::allows('manage-invoices'))
                     <form method="POST" action="{{ route('invoices.generate-from-order', $order) }}" class="mt-4">
                         @csrf
                         <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition">

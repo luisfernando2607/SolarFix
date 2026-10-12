@@ -29,6 +29,21 @@ class OrderController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('q')) {
+            $search = '%' . $request->q . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', $search)
+                    ->orWhere('serial_imei', 'like', $search)
+                    ->orWhere('brand_text', 'like', $search)
+                    ->orWhere('model_text', 'like', $search)
+                    ->orWhereHas('client', fn ($c) => $c->where('name', 'like', $search)
+                        ->orWhere('id_document', 'like', $search)
+                        ->orWhere('phone', 'like', $search))
+                    ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', $search))
+                    ->orWhereHas('deviceModel', fn ($m) => $m->where('name', 'like', $search));
+            });
+        }
+
         $orders = $query->paginate(15);
 
         return view('orders.index', [
@@ -40,39 +55,7 @@ class OrderController extends Controller
 
     public function create()
     {
-        $modelsByBrand = DeviceModel::where('is_active', true)
-            ->orderBy('name')
-            ->get()
-            ->groupBy('brand_id')
-            ->map(fn ($models) => $models->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'device_type' => $m->device_type]));
-
-        $brandsData = DeviceBrand::where('is_active', true)->orderBy('name')->get()->map(fn ($b) => [
-            'id' => $b->id,
-            'name' => $b->name,
-            'device_types' => $b->device_types ?? [],
-        ]);
-
-        $clientsData = Client::orderBy('name')->get()->map(fn ($c) => [
-            'id' => $c->id,
-            'name' => $c->name,
-            'id_document' => $c->id_document,
-            'phone' => $c->phone,
-            'email' => $c->email,
-        ]);
-
-        return view('orders.create', [
-            'technicians' => $this->assignableTechnicians(),
-            'clients' => Client::orderBy('name')->get(),
-            'clientsData' => $clientsData,
-            'brands' => DeviceBrand::where('is_active', true)->orderBy('name')->get(),
-            'brandsData' => $brandsData,
-            'accessories' => Accessory::where('is_active', true)->orderBy('name')->get(),
-            'statuses' => Order::statuses(),
-            'deviceTypes' => Order::deviceTypes(),
-            'unlockTypes' => Order::unlockTypes(),
-            'modelsByBrand' => $modelsByBrand,
-            'deviceTypesData' => collect(Order::deviceTypes())->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->values(),
-        ]);
+        return view('orders.create', $this->formData());
     }
 
     public function store(Request $request)
@@ -229,40 +212,7 @@ class OrderController extends Controller
     {
         $this->authorizeOrder($order);
 
-        $modelsByBrand = DeviceModel::where('is_active', true)
-            ->orderBy('name')
-            ->get()
-            ->groupBy('brand_id')
-            ->map(fn ($models) => $models->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'device_type' => $m->device_type]));
-
-        $brandsData = DeviceBrand::where('is_active', true)->orderBy('name')->get()->map(fn ($b) => [
-            'id' => $b->id,
-            'name' => $b->name,
-            'device_types' => $b->device_types ?? [],
-        ]);
-
-        $clientsData = Client::orderBy('name')->get()->map(fn ($c) => [
-            'id' => $c->id,
-            'name' => $c->name,
-            'id_document' => $c->id_document,
-            'phone' => $c->phone,
-            'email' => $c->email,
-        ]);
-
-        return view('orders.edit', [
-            'technicians' => $this->assignableTechnicians($order),
-            'order' => $order->load('accessories'),
-            'clients' => Client::orderBy('name')->get(),
-            'clientsData' => $clientsData,
-            'brands' => DeviceBrand::where('is_active', true)->orderBy('name')->get(),
-            'brandsData' => $brandsData,
-            'accessories' => Accessory::where('is_active', true)->orderBy('name')->get(),
-            'statuses' => Order::statuses(),
-            'deviceTypes' => Order::deviceTypes(),
-            'unlockTypes' => Order::unlockTypes(),
-            'modelsByBrand' => $modelsByBrand,
-            'deviceTypesData' => collect(Order::deviceTypes())->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->values(),
-        ]);
+        return view('orders.edit', ['order' => $order->load('accessories')] + $this->formData($order));
     }
 
     public function update(Request $request, Order $order)
@@ -380,6 +330,43 @@ class OrderController extends Controller
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Foto eliminada.');
+    }
+
+    /**
+     * Datos compartidos por los formularios de crear y editar orden.
+     */
+    private function formData(?Order $order = null): array
+    {
+        $clients = Client::orderBy('name')->get();
+        $brands = DeviceBrand::where('is_active', true)->orderBy('name')->get();
+
+        return [
+            'technicians' => $this->assignableTechnicians($order),
+            'clients' => $clients,
+            'clientsData' => $clients->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'id_document' => $c->id_document,
+                'phone' => $c->phone,
+                'email' => $c->email,
+            ]),
+            'brands' => $brands,
+            'brandsData' => $brands->map(fn ($b) => [
+                'id' => $b->id,
+                'name' => $b->name,
+                'device_types' => $b->device_types ?? [],
+            ]),
+            'accessories' => Accessory::where('is_active', true)->orderBy('name')->get(),
+            'statuses' => Order::statuses(),
+            'deviceTypes' => Order::deviceTypes(),
+            'unlockTypes' => Order::unlockTypes(),
+            'modelsByBrand' => DeviceModel::where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->groupBy('brand_id')
+                ->map(fn ($models) => $models->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'device_type' => $m->device_type])),
+            'deviceTypesData' => collect(Order::deviceTypes())->map(fn ($name, $id) => ['id' => $id, 'name' => $name])->values(),
+        ];
     }
 
     /**

@@ -18,7 +18,7 @@
     <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
         @if ($clients->count())
             <div class="overflow-x-auto">
-                <table data-table class="w-full">
+                <table data-table data-search="server" data-search-placeholder="Buscar por nombre, cédula, teléfono o email..." class="w-full">
                     <thead>
                         <tr class="bg-gray-50 border-b">
                             <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre</th>
@@ -69,7 +69,7 @@
                 </table>
             </div>
             <div class="px-6 py-4 border-t bg-gray-50">
-                {{ $clients->links() }}
+                {{ $clients->withQueryString()->links() }}
             </div>
         @else
             <div class="text-center py-12">

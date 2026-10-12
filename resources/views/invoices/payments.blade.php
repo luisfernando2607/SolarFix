@@ -112,7 +112,7 @@
             </table>
         </div>
         <div class="px-6 py-3 border-t bg-gray-50/50">
-            {{ $payments->links() }}
+            {{ $payments->withQueryString()->links() }}
         </div>
         @else
         <div class="text-center py-12">

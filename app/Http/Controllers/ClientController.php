@@ -8,9 +8,18 @@ use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $clients = Client::orderBy('name')->paginate(10);
+        $clients = Client::query()
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $search = '%' . $request->q . '%';
+                $query->where(fn ($q) => $q->where('name', 'like', $search)
+                    ->orWhere('id_document', 'like', $search)
+                    ->orWhere('phone', 'like', $search)
+                    ->orWhere('email', 'like', $search));
+            })
+            ->orderBy('name')
+            ->paginate(10);
         return view('clients.index', compact('clients'));
     }
 

@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Accessory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AccessoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $accessories = Accessory::orderBy('name')->paginate(10);
+        $accessories = Accessory::query()
+            ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%' . $request->q . '%'))
+            ->orderBy('name')
+            ->paginate(10);
         return view('accessories.index', compact('accessories'));
     }
 
@@ -56,6 +60,10 @@ class AccessoryController extends Controller
 
     public function destroy(Accessory $accessory)
     {
+        if (DB::table('order_accessories')->where('accessory_id', $accessory->id)->exists()) {
+            return back()->with('error', 'El accesorio está registrado en órdenes. Desactívalo en lugar de eliminarlo.');
+        }
+
         $accessory->delete();
 
         return redirect()->route('accessories.index')
