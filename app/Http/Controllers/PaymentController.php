@@ -16,7 +16,7 @@ class PaymentController extends Controller
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['required', Rule::in(['cash', 'transfer', 'card', 'other'])],
             'reference' => ['nullable', 'string', 'max:100'],
-            'notes' => ['nullable', 'string', 'max:500'],
+            'notes' => ['nullable', 'string', 'max:255'],
             'paid_at' => ['nullable', 'date'],
         ]);
 

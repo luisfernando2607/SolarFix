@@ -72,7 +72,6 @@ class InvoiceController extends Controller
             'device_brand' => ['nullable', 'string', 'max:80'],
             'device_model' => ['nullable', 'string', 'max:120'],
             'device_serial' => ['nullable', 'string', 'max:100'],
-            'subtotal' => ['required', 'numeric', 'min:0'],
             'iva_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'issued_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -82,47 +81,60 @@ class InvoiceController extends Controller
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $ivaAmount = round((float) $validated['subtotal'] * (float) $validated['iva_percent'] / 100, 2);
-        $total = round((float) $validated['subtotal'] + $ivaAmount, 2);
+        if (!empty($validated['order_id'])) {
+            $existing = Invoice::where('order_id', $validated['order_id'])
+                ->where('status', '!=', 'anulada')
+                ->first();
 
-        $invoice = Invoice::create([
-            'order_id' => $validated['order_id'],
-            'client_id' => $validated['client_id'],
-            'client_name' => $validated['client_name'],
-            'client_document' => $validated['client_document'],
-            'client_phone' => $validated['client_phone'],
-            'client_address' => $validated['client_address'],
-            'client_email' => $validated['client_email'],
-            'device_type' => $validated['device_type'],
-            'device_brand' => $validated['device_brand'],
-            'device_model' => $validated['device_model'],
-            'device_serial' => $validated['device_serial'],
-            'subtotal' => $validated['subtotal'],
-            'iva_percent' => $validated['iva_percent'],
-            'iva_amount' => $ivaAmount,
-            'total' => $total,
-            'status' => 'emitida',
-            'issued_at' => $validated['issued_at'],
-            'notes' => $validated['notes'],
-            'created_by' => Auth::id(),
+            if ($existing) {
+                return redirect()->route('invoices.show', $existing)
+                    ->with('info', 'La orden ya tiene una factura vigente: #' . $existing->invoice_number);
+            }
+        }
+
+        // El subtotal se calcula desde los ítems; no se confía en el valor enviado por el formulario.
+        $items = collect($validated['items'])->map(fn ($item) => [
+            'description' => $item['description'],
+            'quantity' => $item['quantity'],
+            'unit_price' => $item['unit_price'],
+            'subtotal' => round((float) $item['quantity'] * (float) $item['unit_price'], 2),
         ]);
+        $subtotal = round($items->sum('subtotal'), 2);
+        $ivaAmount = round($subtotal * (float) $validated['iva_percent'] / 100, 2);
 
-        foreach ($validated['items'] as $item) {
-            $itemSubtotal = round((float) $item['quantity'] * (float) $item['unit_price'], 2);
-            InvoiceItem::create([
-                'invoice_id' => $invoice->id,
-                'description' => $item['description'],
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'subtotal' => $itemSubtotal,
+        $invoice = DB::transaction(function () use ($validated, $items, $subtotal, $ivaAmount) {
+            $invoice = Invoice::createWithUniqueNumber([
+                'order_id' => $validated['order_id'] ?? null,
+                'client_id' => $validated['client_id'] ?? null,
+                'client_name' => $validated['client_name'],
+                'client_document' => $validated['client_document'] ?? null,
+                'client_phone' => $validated['client_phone'] ?? null,
+                'client_address' => $validated['client_address'] ?? null,
+                'client_email' => $validated['client_email'] ?? null,
+                'device_type' => $validated['device_type'] ?? null,
+                'device_brand' => $validated['device_brand'] ?? null,
+                'device_model' => $validated['device_model'] ?? null,
+                'device_serial' => $validated['device_serial'] ?? null,
+                'subtotal' => $subtotal,
+                'iva_percent' => $validated['iva_percent'],
+                'iva_amount' => $ivaAmount,
+                'total' => round($subtotal + $ivaAmount, 2),
+                'status' => 'emitida',
+                'issued_at' => $validated['issued_at'],
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => Auth::id(),
             ]);
-        }
 
-        if ($invoice->order_id) {
-            \App\Models\OrderPayment::where('order_id', $invoice->order_id)
-                ->whereNull('invoice_id')
-                ->update(['invoice_id' => $invoice->id]);
-        }
+            $invoice->items()->createMany($items->all());
+
+            if ($invoice->order_id) {
+                OrderPayment::where('order_id', $invoice->order_id)
+                    ->whereNull('invoice_id')
+                    ->update(['invoice_id' => $invoice->id]);
+            }
+
+            return $invoice;
+        });
 
         return redirect()->route('invoices.show', $invoice)
             ->with('success', 'Factura #' . $invoice->invoice_number . ' emitida exitosamente.');
@@ -222,7 +234,11 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
-        $invoice->delete();
+        DB::transaction(function () use ($invoice) {
+            // Los pagos quedan libres para asociarse a una nueva factura de la orden.
+            $invoice->payments()->update(['invoice_id' => null]);
+            $invoice->delete();
+        });
 
         return redirect()->route('invoices.index')
             ->with('success', 'Factura #' . $invoice->invoice_number . ' eliminada.');
@@ -230,10 +246,18 @@ class InvoiceController extends Controller
 
     public function cancel(Invoice $invoice)
     {
-        $invoice->update([
-            'status' => 'anulada',
-            'cancelled_at' => now(),
-        ]);
+        if ($invoice->status === 'anulada') {
+            return back()->with('error', 'La factura ya está anulada.');
+        }
+
+        DB::transaction(function () use ($invoice) {
+            $invoice->update([
+                'status' => 'anulada',
+                'cancelled_at' => now(),
+            ]);
+            // Los pagos quedan libres para asociarse a una nueva factura de la orden.
+            $invoice->payments()->update(['invoice_id' => null]);
+        });
 
         return redirect()->route('invoices.show', $invoice)
             ->with('success', 'Factura #' . $invoice->invoice_number . ' anulada.');
@@ -241,6 +265,10 @@ class InvoiceController extends Controller
 
     public function markPaid(Invoice $invoice)
     {
+        if ($invoice->status !== 'emitida') {
+            return back()->with('error', 'Solo se puede marcar como pagada una factura emitida.');
+        }
+
         $invoice->update([
             'status' => 'pagada',
             'paid_at' => now(),
@@ -290,7 +318,7 @@ class InvoiceController extends Controller
         $deviceTypeLabel = Order::deviceTypes()[$order->device_type] ?? $order->device_type;
 
         $invoice = DB::transaction(function () use ($order, $items, $subtotal, $deviceTypeLabel) {
-            $invoice = Invoice::create([
+            $invoice = Invoice::createWithUniqueNumber([
                 'order_id' => $order->id,
                 'client_id' => $order->client?->id,
                 'client_name' => $order->client?->name ?? 'Cliente ocasional',

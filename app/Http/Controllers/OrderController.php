@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\OrderPhoto;
 use App\Models\OrderStatusHistory;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -77,7 +78,7 @@ class OrderController extends Controller
             'client_id' => ['nullable'],
             'client_name' => ['required_without:client_id', 'nullable', 'string', 'max:150'],
             'client_id_document' => ['nullable', 'string', 'max:20'],
-            'client_phone' => ['nullable', 'string', 'max:30'],
+            'client_phone' => ['required_without:client_id', 'nullable', 'string', 'max:30'],
             'client_email' => ['nullable', 'email', 'max:180'],
             'device_type' => ['required', Rule::in(array_keys(Order::deviceTypes()))],
             'brand_id' => ['nullable', 'exists:device_brands,id'],
@@ -128,15 +129,26 @@ class OrderController extends Controller
         $surchargeAmount = $subtotal * ($surchargePercent / 100);
         $validated['surcharge_amount'] = round($surchargeAmount, 2);
         $validated['total_amount'] = round($subtotal + $surchargeAmount, 2);
-        $amountPaid = (float) ($validated['amount_paid'] ?? 0);
-        $validated['balance_due'] = round($validated['total_amount'] - $amountPaid, 2);
+        $amountPaid = round((float) ($validated['amount_paid'] ?? 0), 2);
+        $validated['amount_paid'] = $amountPaid;
+        $validated['balance_due'] = round(max(0, $validated['total_amount'] - $amountPaid), 2);
 
-        $validated['order_number'] = $this->generateOrderNumber();
         $validated['status'] = 'received';
         $validated['created_by'] = Auth::id();
         $validated['user_id'] = Auth::id();
 
-        $order = Order::create($validated);
+        $order = $this->createWithUniqueNumber($validated);
+
+        if ($amountPaid > 0) {
+            OrderPayment::create([
+                'order_id' => $order->id,
+                'amount' => $amountPaid,
+                'method' => 'cash',
+                'notes' => 'Anticipo registrado al recibir el equipo',
+                'paid_at' => now(),
+                'registered_by' => Auth::id(),
+            ]);
+        }
 
         if (!empty($validated['accessories'])) {
             $order->accessories()->attach($validated['accessories']);
@@ -267,9 +279,6 @@ class OrderController extends Controller
             'labor_cost' => ['nullable', 'numeric', 'min:0'],
             'parts_cost' => ['nullable', 'numeric', 'min:0'],
             'surcharge_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'total_amount' => ['nullable', 'numeric', 'min:0'],
-            'amount_paid' => ['nullable', 'numeric', 'min:0'],
-            'balance_due' => ['nullable', 'numeric', 'min:0'],
             'warranty_days' => ['nullable', 'integer', 'min:0'],
             'status' => ['nullable', Rule::in(array_keys(Order::statuses()))],
             'notes' => ['nullable', 'string'],
@@ -283,8 +292,9 @@ class OrderController extends Controller
         $surchargeAmount = $subtotal * ($surchargePercent / 100);
         $validated['surcharge_amount'] = round($surchargeAmount, 2);
         $validated['total_amount'] = round($subtotal + $surchargeAmount, 2);
-        $amountPaid = (float) ($validated['amount_paid'] ?? 0);
-        $validated['balance_due'] = round($validated['total_amount'] - $amountPaid, 2);
+        $amountPaid = (float) $order->payments()->sum('amount');
+        $validated['amount_paid'] = round($amountPaid, 2);
+        $validated['balance_due'] = round(max(0, $validated['total_amount'] - $amountPaid), 2);
 
         $oldStatus = $order->status;
         $order->update($validated);
@@ -347,6 +357,22 @@ class OrderController extends Controller
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Foto eliminada.');
+    }
+
+    /**
+     * Crea la orden reintentando si otro usuario tomó el mismo número al mismo tiempo.
+     */
+    private function createWithUniqueNumber(array $attributes): Order
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return Order::create($attributes + ['order_number' => $this->generateOrderNumber()]);
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= 5) {
+                    throw $e;
+                }
+            }
+        }
     }
 
     private function generateOrderNumber(): string

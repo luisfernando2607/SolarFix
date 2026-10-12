@@ -114,7 +114,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Operación exitosa',
-                text: '{{ session('success') }}',
+                text: @json(session('success')),
                 timer: 3000,
                 showConfirmButton: true,
                 confirmButtonColor: '#2563eb',
@@ -127,8 +127,19 @@
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: '{{ session('error') }}',
+                text: @json(session('error')),
                 confirmButtonColor: '#dc2626',
+            });
+        </script>
+    @endif
+
+    @if (session('info'))
+        <script>
+            Swal.fire({
+                icon: 'info',
+                title: 'Información',
+                text: @json(session('info')),
+                confirmButtonColor: '#2563eb',
             });
         </script>
     @endif

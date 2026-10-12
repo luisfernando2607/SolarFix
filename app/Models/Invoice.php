@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class Invoice extends Model
 {
@@ -29,6 +30,7 @@ class Invoice extends Model
         'status',
         'issued_at',
         'paid_at',
+        'cancelled_at',
         'notes',
         'created_by',
     ];
@@ -78,6 +80,22 @@ class Invoice extends Model
     public function payments()
     {
         return $this->hasMany(\App\Models\OrderPayment::class, 'invoice_id');
+    }
+
+    /**
+     * Crea la factura reintentando si otro usuario tomó el mismo número al mismo tiempo.
+     */
+    public static function createWithUniqueNumber(array $attributes): self
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return self::create($attributes);
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= 5) {
+                    throw $e;
+                }
+            }
+        }
     }
 
     private static function generateInvoiceNumber(): string

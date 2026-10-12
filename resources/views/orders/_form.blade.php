@@ -121,10 +121,11 @@
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                         </div>
                         <div>
-                            <label for="client_phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                            <label for="client_phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
                             <input type="text" id="client_phone" name="client_phone" value="{{ old('client_phone') }}"
                                 placeholder="Número de teléfono"
-                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('client_phone') border-red-500 @enderror">
+                            @error('client_phone') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label for="client_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -440,9 +441,17 @@
                             <label for="amount_paid" class="block text-sm font-medium text-gray-700 mb-1">{{ $editing ? 'Monto Pagado' : 'Anticipo' }}</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                                <input type="number" step="0.01" min="0" id="amount_paid" name="amount_paid" value="{{ old('amount_paid', $editing ? $order->amount_paid : '0') }}"
-                                    class="w-full pl-7 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cost-input">
+                                @if ($editing)
+                                    <input type="number" id="amount_paid" value="{{ $order->amount_paid }}" readonly
+                                        class="w-full pl-7 pr-4 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-gray-700 outline-none cursor-not-allowed">
+                                @else
+                                    <input type="number" step="0.01" min="0" id="amount_paid" name="amount_paid" value="{{ old('amount_paid', '0') }}"
+                                        class="w-full pl-7 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cost-input">
+                                @endif
                             </div>
+                            @if ($editing)
+                                <p class="text-xs text-gray-500 mt-1">Se calcula con los pagos registrados en la orden.</p>
+                            @endif
                         </div>
 
                         <div>
@@ -643,11 +652,13 @@
             document.getElementById('clientInfo').classList.remove('hidden');
             document.getElementById('clientFields').classList.add('hidden');
             document.getElementById('client_name').removeAttribute('required');
+            document.getElementById('client_phone').removeAttribute('required');
         } else {
             clientHidden.value = '';
             document.getElementById('clientInfo').classList.add('hidden');
             document.getElementById('clientFields').classList.remove('hidden');
             document.getElementById('client_name').setAttribute('required', '');
+            document.getElementById('client_phone').setAttribute('required', '');
         }
     }
 
