@@ -57,7 +57,7 @@ class InventoryService
     }
 
     /**
-     * Agrega un repuesto a la orden al precio de venta (a $0 en órdenes de garantía) y descuenta el stock.
+     * Agrega un repuesto a la orden al precio de venta (a $0 si la garantía cubre repuestos) y descuenta el stock.
      */
     public function addToOrder(Order $order, SparePart $part, int $quantity, ?int $userId): OrderPart
     {
@@ -74,7 +74,7 @@ class InventoryService
             $locked->stock_quantity -= $quantity;
             $locked->save();
 
-            $unitPrice = $order->isWarrantyOrder() ? 0 : (float) $locked->sale_price;
+            $unitPrice = $order->warrantyCoversParts() ? 0 : (float) $locked->sale_price;
 
             $orderPart = OrderPart::create([
                 'order_id' => $order->id,

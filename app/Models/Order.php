@@ -221,6 +221,26 @@ class Order extends Model
     }
 
     /**
+     * Tipo de garantía de la orden original que cubre este reclamo (full, labor o parts).
+     */
+    public function warrantyCoverage(): ?string
+    {
+        if (! $this->isWarrantyOrder()) {
+            return null;
+        }
+
+        return Warranty::where('order_id', $this->parent_order_id)->value('warranty_type') ?? 'full';
+    }
+
+    /**
+     * En un reclamo, los repuestos son gratis salvo que la garantía cubra solo mano de obra.
+     */
+    public function warrantyCoversParts(): bool
+    {
+        return in_array($this->warrantyCoverage(), ['full', 'parts'], true);
+    }
+
+    /**
      * Los técnicos ven las órdenes asignadas a ellos y las que aún no tienen técnico.
      */
     public function scopeVisibleTo($query, User $user)

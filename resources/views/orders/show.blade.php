@@ -43,7 +43,13 @@
         <div class="mb-6 rounded-xl border border-cyan-200 bg-cyan-50 px-5 py-3 text-sm text-cyan-900">
             <strong>Orden de garantía</strong> de la orden
             <a href="{{ route('orders.show', $order->parentOrder) }}" class="font-medium underline">#{{ $order->parentOrder->order_number }}</a>.
-            Sin costo para el cliente salvo que el daño no esté cubierto.
+            @php $coverage = $order->warrantyCoverage(); @endphp
+            Cobertura: <strong>{{ \App\Models\Warranty::types()[$coverage] ?? $coverage }}</strong>.
+            {{ match ($coverage) {
+                'labor' => 'La mano de obra no se cobra; los repuestos sí.',
+                'parts' => 'Los repuestos no se cobran; la mano de obra puede cobrarse.',
+                default => 'Sin costo para el cliente salvo que el daño no esté cubierto.',
+            } }}
         </div>
     @endif
     @if ($order->childOrders->count())
@@ -179,7 +185,7 @@
                 <div class="flex items-center justify-between border-b pb-2 mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">Repuestos</h3>
                     @if ($order->isWarrantyOrder())
-                        <span class="text-xs text-cyan-700">Garantía: sin costo para el cliente</span>
+                        <span class="text-xs text-cyan-700">{{ $order->warrantyCoversParts() ? 'Garantía: repuestos sin costo' : 'Garantía de mano de obra: los repuestos se cobran' }}</span>
                     @endif
                 </div>
                 @php $partsLocked = in_array($order->status, ['delivered', 'closed_no_repair']); @endphp

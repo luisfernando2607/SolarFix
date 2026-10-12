@@ -347,4 +347,26 @@ class ModuleImprovementsTest extends TestCase
             ->post(route('orders.payments.store', $order), ['amount' => 10, 'method' => 'cash'])
             ->assertForbidden();
     }
+
+    // --- Cobertura según el tipo de garantía ---
+
+    public function test_labor_only_warranty_charges_parts(): void
+    {
+        $part = \App\Models\SparePart::create(['name' => 'Batería', 'cost_price' => 10, 'sale_price' => 25, 'min_stock' => 0]);
+        $part->stock_quantity = 5;
+        $part->save();
+        $admin = $this->admin();
+
+        foreach (['labor' => 25, 'parts' => 0, 'full' => 0] as $type => $expected) {
+            $original = $this->makeOrder(['status' => 'delivered', 'delivery_date' => today(), 'warranty_days' => 30]);
+            $original->issueWarranty()->update(['warranty_type' => $type]);
+            $this->actingAs($admin)->post(route('warranties.claim.store', $original), ['declared_fault' => 'Falla otra vez']);
+            $claim = Order::where('parent_order_id', $original->id)->first();
+
+            $this->actingAs($admin)->post(route('orders.parts.store', $claim), ['spare_part_id' => $part->id, 'quantity' => 1]);
+
+            $this->assertEquals($expected, $claim->fresh()->total_amount, "Garantía {$type}");
+            $this->actingAs($admin)->get(route('orders.show', $claim))->assertOk()->assertSee(\App\Models\Warranty::types()[$type]);
+        }
+    }
 }
