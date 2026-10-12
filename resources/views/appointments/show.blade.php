@@ -37,6 +37,12 @@
                     <span class="text-gray-400">Sin orden</span>
                 @endif
             </dd></div>
+            @if ($appointment->maintenancePlan)
+                <div><dt class="text-gray-500">Plan de mantenimiento</dt><dd>
+                    <a href="{{ route('maintenance-plans.edit', $appointment->maintenancePlan) }}" class="text-blue-600 hover:underline">{{ $appointment->maintenancePlan->title }}</a>
+                    <span class="block text-xs text-gray-500">Al completar la cita se programa el siguiente.</span>
+                </dd></div>
+            @endif
             <div><dt class="text-gray-500">Recordatorio</dt><dd class="text-gray-800">{{ $appointment->reminder_sent ? 'Enviado' : 'No enviado' }}</dd></div>
         </dl>
     </div>

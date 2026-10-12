@@ -32,6 +32,11 @@ class Client extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function maintenancePlans()
+    {
+        return $this->hasMany(MaintenancePlan::class);
+    }
+
     public function appointments()
     {
         return $this->hasMany(Appointment::class);

@@ -11,6 +11,7 @@ use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceBrandController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\MaintenancePlanController;
 use App\Http\Controllers\DeviceModelController;
 use App\Http\Controllers\OrderChecklistController;
 use App\Http\Controllers\OrderController;
@@ -105,6 +106,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
             Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
             Route::get('/cash', [CashClosingController::class, 'index'])->name('cash.index');
+            Route::resource('maintenance-plans', MaintenancePlanController::class)->except(['show', 'destroy']);
+            Route::post('/maintenance-plans/{maintenance_plan}/whatsapp', [MaintenancePlanController::class, 'whatsapp'])->name('maintenance-plans.whatsapp');
             Route::get('/appointments/create', [AppointmentController::class, 'create'])->name('appointments.create');
             Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
             Route::get('/appointments/{appointment}/edit', [AppointmentController::class, 'edit'])->name('appointments.edit');

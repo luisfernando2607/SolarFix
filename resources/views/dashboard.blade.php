@@ -125,6 +125,13 @@
     </div>
     @endif
 
+    @if ($duePlans)
+    <a href="{{ route('maintenance-plans.index') }}" class="mt-6 block bg-white rounded-xl shadow-sm border border-amber-200 px-6 py-4 hover:bg-amber-50">
+        <span class="text-base font-semibold text-amber-800">{{ $duePlans }} {{ $duePlans === 1 ? 'mantenimiento preventivo vencido o por vencer' : 'mantenimientos preventivos vencidos o por vencer' }}</span>
+        <span class="block text-xs text-amber-700 mt-0.5">Avisa a los clientes y agenda las visitas →</span>
+    </a>
+    @endif
+
     @if ($todayAppointments->count() || $unassignedAppointments)
     <div class="mt-6 bg-white rounded-xl shadow-sm border border-blue-200">
         <div class="px-6 py-4 border-b bg-blue-50 flex items-center justify-between">

@@ -90,6 +90,7 @@ class ClientController extends Controller
                 ->where('scheduled_at', '>=', today())->whereIn('status', ['pending', 'confirmed'])
                 ->orderBy('scheduled_at')->get(),
             'statuses' => Order::statuses(),
+            'plans' => $client->maintenancePlans()->where('is_active', true)->orderBy('next_due_date')->get(),
         ]);
     }
 

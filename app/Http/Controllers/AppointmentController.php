@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\MaintenancePlan;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\WhatsappLog;
@@ -52,6 +53,19 @@ class AppointmentController extends Controller
             $appointment->fill(['client_id' => $client->id, 'address' => $client->address]);
         }
 
+        // Visita de un plan de mantenimiento preventivo.
+        if ($request->filled('plan_id')) {
+            $plan = MaintenancePlan::findOrFail($request->plan_id);
+            $appointment->fill([
+                'maintenance_plan_id' => $plan->id,
+                'client_id' => $plan->client_id,
+                'type' => 'maintenance',
+                'title' => 'Mantenimiento preventivo · ' . $plan->title,
+                'address' => $plan->address,
+                'notes' => $plan->notes,
+            ]);
+        }
+
         // Segunda visita desde una orden: cliente, dirección y técnico de la orden.
         if ($request->filled('order_id')) {
             $order = Order::with('client')->findOrFail($request->order_id);
@@ -81,7 +95,7 @@ class AppointmentController extends Controller
     public function show(Appointment $appointment)
     {
         $this->authorizeView($appointment);
-        $appointment->load(['client', 'user', 'order']);
+        $appointment->load(['client', 'user', 'order', 'maintenancePlan']);
 
         return view('appointments.show', ['appointment' => $appointment]);
     }
@@ -114,6 +128,11 @@ class AppointmentController extends Controller
         $validated = $request->validate(['status' => ['required', Rule::in(array_keys(Appointment::statuses()))]]);
 
         $appointment->update(['status' => $validated['status']]);
+
+        // Mantenimiento preventivo hecho: el plan programa el siguiente.
+        if ($validated['status'] === 'completed' && $appointment->maintenancePlan) {
+            $appointment->maintenancePlan->registerService($appointment->scheduled_at);
+        }
 
         return back()->with('success', 'Cita ' . strtolower(Appointment::statuses()[$validated['status']]) . '.');
     }
@@ -155,6 +174,7 @@ class AppointmentController extends Controller
             'client_id' => ['required', 'exists:clients,id'],
             'user_id' => ['nullable', Rule::in($this->technicians($appointment)->pluck('id'))],
             'order_id' => ['nullable', 'exists:orders,id'],
+            'maintenance_plan_id' => ['nullable', 'exists:maintenance_plans,id'],
             'type' => ['required', Rule::in(array_keys(Appointment::types()))],
             'title' => ['required', 'string', 'max:150'],
             'address' => ['nullable', 'string', 'max:255'],

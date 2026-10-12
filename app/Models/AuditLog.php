@@ -67,6 +67,7 @@ class AuditLog extends Model
             'Commission' => 'Comisión',
             'Appointment' => 'Cita',
             'CashMovement' => 'Movimiento de caja',
+            'MaintenancePlan' => 'Plan de mantenimiento',
         ];
     }
 

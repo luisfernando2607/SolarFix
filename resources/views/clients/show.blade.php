@@ -110,6 +110,23 @@
             </div>
         @endif
 
+        @can('manage-appointments')
+        <div class="bg-white rounded-xl shadow-sm border">
+            <div class="px-6 py-3 border-b flex items-center justify-between">
+                <h3 class="text-base font-semibold text-gray-800">Mantenimientos preventivos</h3>
+                <a href="{{ route('maintenance-plans.create', ['client_id' => $client->id]) }}" class="text-sm text-blue-600 hover:underline">+ Nuevo plan</a>
+            </div>
+            @forelse ($plans as $plan)
+                <a href="{{ route('maintenance-plans.edit', $plan) }}" class="px-6 py-2 flex justify-between text-sm hover:bg-gray-50 border-b last:border-b-0">
+                    <span>{{ $plan->title }} <span class="text-xs text-gray-500">· cada {{ $plan->interval_months }} meses</span></span>
+                    <span class="{{ $plan->dueStatus() === 'overdue' ? 'text-red-600 font-medium' : ($plan->dueStatus() === 'due_soon' ? 'text-amber-700' : 'text-gray-500') }}">próximo {{ $plan->next_due_date->format('d/m/Y') }}</span>
+                </a>
+            @empty
+                <p class="px-6 py-3 text-sm text-gray-400">Sin planes de mantenimiento.</p>
+            @endforelse
+        </div>
+        @endcan
+
         @if ($warranties->count())
             <div class="bg-white rounded-xl shadow-sm border">
                 <h3 class="px-6 py-3 border-b text-base font-semibold text-gray-800">Garantías vigentes</h3>

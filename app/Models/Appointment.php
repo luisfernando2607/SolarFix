@@ -10,7 +10,7 @@ class Appointment extends Model
     use Auditable;
 
     protected $fillable = [
-        'branch_id', 'client_id', 'user_id', 'order_id', 'type', 'title', 'address',
+        'branch_id', 'client_id', 'user_id', 'order_id', 'maintenance_plan_id', 'type', 'title', 'address',
         'scheduled_at', 'duration_min', 'status', 'notes', 'reminder_sent',
     ];
 
@@ -88,6 +88,11 @@ class Appointment extends Model
     public function order()
     {
         return $this->belongsTo(Order::class)->withTrashed();
+    }
+
+    public function maintenancePlan()
+    {
+        return $this->belongsTo(MaintenancePlan::class);
     }
 
     public function auditDescription(): string

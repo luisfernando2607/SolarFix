@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Appointment;
+use App\Models\MaintenancePlan;
 use App\Models\Order;
 use App\Models\Setting;
 
@@ -177,6 +178,22 @@ class WhatsAppMessage
         $lines[] = 'Si necesita reprogramar, responda a este mensaje. ¡Gracias!';
 
         return implode("\n", $lines);
+    }
+
+    public static function buildMaintenanceDue(MaintenancePlan $plan): string
+    {
+        $company = Setting::get('company_name', 'SolarFix');
+        $client = $plan->client?->name ?? 'cliente';
+        $when = $plan->next_due_date->lt(today())
+            ? 'ya le corresponde'
+            : 'le corresponde el ' . $plan->next_due_date->translatedFormat('d \\d\\e F');
+
+        return implode("\n", [
+            "Hola {$client}, le saludamos de *{$company}*.",
+            "Según su plan de mantenimiento, {$when} el mantenimiento de: *{$plan->title}*.",
+            '',
+            '¿Desea que agendemos una visita? Responda a este mensaje con el día y la hora que le convienen.',
+        ]);
     }
 
     private static function money($amount): string

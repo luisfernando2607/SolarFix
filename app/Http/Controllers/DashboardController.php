@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\MaintenancePlan;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\OrderStatusHistory;
@@ -84,6 +85,8 @@ class DashboardController extends Controller
             ->orderBy('scheduled_at')
             ->get();
 
+        $duePlans = $user->can('manage-appointments') ? MaintenancePlan::due()->count() : 0;
+
         $unassignedAppointments = $user->can('manage-appointments')
             ? Appointment::whereNull('user_id')->whereIn('status', ['pending', 'confirmed'])->where('scheduled_at', '>=', now())->count()
             : 0;
@@ -105,6 +108,7 @@ class DashboardController extends Controller
             'lowStockParts' => $lowStockParts,
             'todayAppointments' => $todayAppointments,
             'unassignedAppointments' => $unassignedAppointments,
+            'duePlans' => $duePlans,
             'warrantyAlertDays' => Warranty::alertDays(),
             'statuses' => Order::statuses(),
         ]);

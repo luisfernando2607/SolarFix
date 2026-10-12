@@ -215,4 +215,101 @@ class ModuleImprovementsTest extends TestCase
 
         $this->assertEquals(7, $part->fresh()->cost_price);
     }
+
+    // --- 6. Mantenimientos preventivos recurrentes ---
+
+    private function plan(array $attributes = []): \App\Models\MaintenancePlan
+    {
+        return \App\Models\MaintenancePlan::create($attributes + [
+            'client_id' => $this->client(['address' => 'Urb. Los Pinos 12'])->id,
+            'title' => 'Split sala 12000 BTU',
+            'address' => 'Urb. Los Pinos 12',
+            'interval_months' => 6,
+            'next_due_date' => today()->addDays(5),
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_receptionist_creates_plan(): void
+    {
+        $client = $this->client();
+
+        $this->actingAs(User::factory()->role('receptionist')->create())->post(route('maintenance-plans.store'), [
+            'client_id' => $client->id, 'title' => 'Split dormitorio', 'interval_months' => 4,
+            'next_due_date' => today()->addMonths(4)->toDateString(), 'is_active' => '1',
+        ])->assertRedirect(route('clients.show', $client));
+
+        $this->assertSame(4, \App\Models\MaintenancePlan::first()->interval_months);
+    }
+
+    public function test_due_list_and_dashboard(): void
+    {
+        $due = $this->plan(['title' => 'Vence pronto']);
+        $overdue = $this->plan(['title' => 'Ya vencido', 'next_due_date' => today()->subDays(3)]);
+        $this->plan(['title' => 'Falta mucho', 'next_due_date' => today()->addMonths(3)]);
+        $this->plan(['title' => 'Inactivo', 'next_due_date' => today(), 'is_active' => false]);
+        $receptionist = User::factory()->role('receptionist')->create();
+
+        $this->actingAs($receptionist)->get(route('maintenance-plans.index'))
+            ->assertOk()
+            ->assertViewHas('plans', fn ($p) => $p->pluck('id')->all() === [$overdue->id, $due->id]);
+        $this->assertSame('overdue', $overdue->dueStatus());
+        $this->assertSame('due_soon', $due->dueStatus());
+
+        $this->actingAs($receptionist)->get(route('dashboard'))->assertSee('2 mantenimientos preventivos vencidos o por vencer');
+    }
+
+    public function test_completing_plan_appointment_schedules_next_service(): void
+    {
+        $plan = $this->plan();
+        $receptionist = User::factory()->role('receptionist')->create();
+
+        $this->actingAs($receptionist)->get(route('appointments.create', ['plan_id' => $plan->id]))
+            ->assertOk()->assertSee('Mantenimiento preventivo · Split sala 12000 BTU')->assertSee('Urb. Los Pinos 12');
+
+        $this->actingAs($receptionist)->post(route('appointments.store'), [
+            'client_id' => $plan->client_id, 'maintenance_plan_id' => $plan->id, 'type' => 'maintenance',
+            'title' => 'Mantenimiento preventivo', 'scheduled_at' => '2026-11-20T09:00', 'duration_min' => 60,
+        ])->assertSessionHasNoErrors();
+        $appointment = \App\Models\Appointment::first();
+        $this->assertSame($plan->id, $appointment->maintenance_plan_id);
+
+        $this->actingAs($receptionist)->patch(route('appointments.status', $appointment), ['status' => 'completed']);
+
+        $plan->refresh();
+        $this->assertSame('2026-11-20', $plan->last_done_at->toDateString());
+        $this->assertSame('2027-05-20', $plan->next_due_date->toDateString());
+    }
+
+    public function test_plan_whatsapp_reminder_is_logged(): void
+    {
+        $plan = $this->plan(['next_due_date' => today()->subDay()]);
+
+        $response = $this->actingAs(User::factory()->role('receptionist')->create())->post(route('maintenance-plans.whatsapp', $plan));
+
+        $this->assertStringStartsWith('https://wa.me/593991234567', $response->headers->get('Location'));
+        $log = \App\Models\WhatsappLog::first();
+        $this->assertSame('maintenance_due', $log->trigger_event);
+        $this->assertStringContainsString('ya le corresponde', $log->message_body);
+        $this->assertStringContainsString('Split sala 12000 BTU', $log->message_body);
+    }
+
+    public function test_technicians_cannot_manage_plans(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+
+        $this->actingAs($tech)->get(route('maintenance-plans.index'))->assertForbidden();
+        $this->actingAs($tech)->post(route('maintenance-plans.whatsapp', $this->plan()))->assertForbidden();
+    }
+
+    public function test_plan_screens_render(): void
+    {
+        $plan = $this->plan();
+        $receptionist = User::factory()->role('receptionist')->create();
+
+        $this->actingAs($receptionist)->get(route('maintenance-plans.create', ['client_id' => $plan->client_id]))->assertOk()->assertSee('Urb. Los Pinos 12');
+        $this->actingAs($receptionist)->get(route('maintenance-plans.edit', $plan))->assertOk();
+        $this->actingAs($receptionist)->get(route('maintenance-plans.index', ['filter' => 'all', 'q' => 'Split']))->assertOk()->assertSee('Split sala');
+        $this->actingAs($receptionist)->get(route('clients.show', $plan->client_id))->assertOk()->assertSee('Mantenimientos preventivos');
+    }
 }
