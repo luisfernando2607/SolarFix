@@ -15,6 +15,7 @@ use App\Models\OrderPayment;
 use App\Models\OrderPhoto;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
+use App\Notifications\AssignmentNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -190,6 +191,9 @@ class OrderController extends Controller
 
         $appointment?->update(['order_id' => $order->id]);
 
+        AssignmentNotification::notify($order->user_id, 'Nueva orden asignada',
+            "Orden {$order->order_number}: {$order->declared_fault}", route('orders.show', $order));
+
         return redirect()->route('orders.show', $order)
             ->with('success', 'Orden #' . $order->order_number . ' creada exitosamente.');
     }
@@ -334,7 +338,13 @@ class OrderController extends Controller
         $validated['balance_due'] = round(max(0, $validated['total_amount'] - $amountPaid), 2);
 
         $oldStatus = $order->status;
+        $oldTechnician = $order->user_id;
         $order->update($validated);
+
+        if ($order->user_id && (int) $order->user_id !== (int) $oldTechnician) {
+            AssignmentNotification::notify($order->user_id, 'Orden asignada',
+                "Te asignaron la orden {$order->order_number}", route('orders.show', $order));
+        }
 
         if (isset($validated['accessories'])) {
             $order->accessories()->sync($validated['accessories']);

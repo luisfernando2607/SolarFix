@@ -8,6 +8,7 @@ use App\Models\MaintenancePlan;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\WhatsappLog;
+use App\Notifications\AssignmentNotification;
 use App\Services\WhatsAppMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -87,6 +88,7 @@ class AppointmentController extends Controller
         $validated = $this->validated($request);
 
         $appointment = Appointment::create($validated + ['status' => 'pending']);
+        $this->notifyTechnician($appointment);
 
         return redirect()->route('appointments.show', $appointment)
             ->with('success', 'Cita agendada. Envía la confirmación por WhatsApp al cliente.');
@@ -114,7 +116,11 @@ class AppointmentController extends Controller
             $validated['reminder_sent'] = false;
         }
 
+        $oldTechnician = $appointment->user_id;
         $appointment->update($validated);
+        if ((int) $appointment->user_id !== (int) $oldTechnician) {
+            $this->notifyTechnician($appointment);
+        }
 
         return redirect()->route('appointments.show', $appointment)->with('success', 'Cita actualizada.');
     }
@@ -216,6 +222,12 @@ class AppointmentController extends Controller
             ->where('reminder_sent', false)
             ->orderBy('scheduled_at')
             ->get();
+    }
+
+    private function notifyTechnician(Appointment $appointment): void
+    {
+        AssignmentNotification::notify($appointment->user_id, 'Cita asignada',
+            $appointment->title . ' · ' . $appointment->scheduled_at->format('d/m/Y H:i'), route('appointments.show', $appointment));
     }
 
     private function authorizeView(Appointment $appointment): void

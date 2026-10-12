@@ -12,6 +12,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceBrandController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MaintenancePlanController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DeviceModelController;
 use App\Http\Controllers\OrderChecklistController;
 use App\Http\Controllers\OrderController;
@@ -39,6 +40,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{id}', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     Route::middleware('role:super_admin,admin')->group(function () {
         Route::resource('users', UserController::class);

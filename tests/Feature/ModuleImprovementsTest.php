@@ -369,4 +369,79 @@ class ModuleImprovementsTest extends TestCase
             $this->actingAs($admin)->get(route('orders.show', $claim))->assertOk()->assertSee(\App\Models\Warranty::types()[$type]);
         }
     }
+
+    // --- Notificaciones internas ---
+
+    public function test_technician_notified_when_order_assigned(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+        $receptionist = User::factory()->role('receptionist')->create();
+        $order = $this->makeOrder();
+
+        $payload = [
+            'client_id' => $order->client_id, 'device_type' => 'celular', 'declared_fault' => 'No enciende',
+            'unlock_type' => 'none', 'entry_date' => now()->toDateString(), 'user_id' => (string) $tech->id,
+        ];
+        $this->actingAs($receptionist)->put(route('orders.update', $order), $payload);
+        // Guardar de nuevo sin cambiar el técnico no vuelve a notificar.
+        $this->actingAs($receptionist)->put(route('orders.update', $order), $payload + ['notes' => 'otra edición']);
+
+        $this->assertSame(1, $tech->notifications()->count());
+        $notification = $tech->notifications()->first();
+        $this->assertStringContainsString($order->order_number, $notification->data['body']);
+
+        $this->actingAs($tech)->get(route('dashboard'))->assertSee('1 sin leer');
+        $this->actingAs($tech)->get(route('notifications.open', $notification->id))->assertRedirect(route('orders.show', $order));
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+    public function test_self_assignment_does_not_notify(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+
+        $this->actingAs($tech)->post(route('orders.store'), [
+            'client_name' => 'Nuevo', 'client_phone' => '0990000000', 'device_type' => 'celular',
+            'declared_fault' => 'x', 'unlock_type' => 'none', 'entry_date' => now()->toDateString(),
+        ]);
+
+        $this->assertSame(0, $tech->notifications()->count());
+    }
+
+    public function test_technician_notified_for_appointment_and_warranty_claim(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+        $receptionist = User::factory()->role('receptionist')->create();
+        $client = $this->client();
+
+        $this->actingAs($receptionist)->post(route('appointments.store'), [
+            'client_id' => $client->id, 'user_id' => $tech->id, 'type' => 'home_visit', 'title' => 'Visita técnica',
+            'scheduled_at' => now()->addDay()->format('Y-m-d\TH:i'), 'duration_min' => 60,
+        ]);
+
+        $original = $this->makeOrder(['status' => 'delivered', 'delivery_date' => today(), 'warranty_days' => 30, 'user_id' => $tech->id]);
+        $original->issueWarranty();
+        $this->actingAs($receptionist)->post(route('warranties.claim.store', $original), ['declared_fault' => 'Volvió la falla']);
+
+        $this->assertEqualsCanonicalizing(['Cita asignada', 'Reclamo de garantía asignado'], $tech->notifications->pluck('data.title')->all());
+    }
+
+    public function test_notification_page_and_mark_all_read(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+        \App\Notifications\AssignmentNotification::notify($tech->id, 'Prueba', 'Cuerpo', route('dashboard'));
+
+        $this->actingAs($tech)->get(route('notifications.index'))->assertOk()->assertSee('Prueba');
+        $this->actingAs($tech)->post(route('notifications.read-all'));
+
+        $this->assertSame(0, $tech->unreadNotifications()->count());
+    }
+
+    public function test_cannot_open_other_users_notification(): void
+    {
+        $tech = User::factory()->role('technician')->create();
+        \App\Notifications\AssignmentNotification::notify($tech->id, 'Privada', 'x', route('dashboard'));
+        $id = $tech->notifications()->first()->id;
+
+        $this->actingAs(User::factory()->role('technician')->create())->get(route('notifications.open', $id))->assertNotFound();
+    }
 }

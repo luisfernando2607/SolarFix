@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Warranty;
+use App\Notifications\AssignmentNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -117,6 +118,9 @@ class WarrantyController extends Controller
 
             return $claim;
         });
+
+        AssignmentNotification::notify($claim->user_id, 'Reclamo de garantía asignado',
+            "Orden {$claim->order_number} (garantía de {$order->order_number}): {$claim->declared_fault}", route('orders.show', $claim));
 
         return redirect()->route('orders.show', $claim)
             ->with('success', 'Orden de garantía #' . $claim->order_number . ' creada.');

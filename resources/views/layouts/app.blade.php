@@ -13,9 +13,18 @@
         @auth
             <div id="sidebarOverlay" class="fixed inset-0 z-30 bg-black/50 hidden md:hidden"></div>
             <aside id="sidebar" class="fixed md:sticky inset-y-0 left-0 top-0 z-40 h-screen w-64 bg-gray-900 text-white flex flex-col -translate-x-full md:translate-x-0 transition-transform duration-200">
-                <div class="px-6 py-5 border-b border-gray-700">
-                    <h1 class="text-xl font-bold tracking-tight">{{ config('app.name') }}</h1>
-                    <p class="text-xs text-gray-400 mt-0.5">Sistema de Reparaciones</p>
+                @php $unreadCount = Auth::user()->unreadNotifications()->count(); @endphp
+                <div class="px-6 py-5 border-b border-gray-700 flex items-start justify-between gap-2">
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight">{{ config('app.name') }}</h1>
+                        <p class="text-xs text-gray-400 mt-0.5">Sistema de Reparaciones</p>
+                    </div>
+                    <a href="{{ route('notifications.index') }}" class="relative inline-flex items-center text-gray-300 hover:text-white hidden md:inline-flex" aria-label="Notificaciones{{ $unreadCount ? ' (' . $unreadCount . ' sin leer)' : '' }}">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            @if ($unreadCount)
+                                <span class="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center">{{ $unreadCount > 9 ? '9+' : $unreadCount }}</span>
+                            @endif
+                        </a>
                 </div>
                 <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
@@ -147,8 +156,14 @@
                             </button>
                             <h1 class="text-lg font-bold">{{ config('app.name') }}</h1>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-gray-600">{{ Auth::user()->name }}</span>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ route('notifications.index') }}" class="relative inline-flex items-center text-gray-600" aria-label="Notificaciones{{ $unreadCount ? ' (' . $unreadCount . ' sin leer)' : '' }}">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            @if ($unreadCount)
+                                <span class="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center">{{ $unreadCount > 9 ? '9+' : $unreadCount }}</span>
+                            @endif
+                        </a>
+                            <span class="text-sm text-gray-600 hidden sm:inline">{{ Auth::user()->name }}</span>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="text-sm text-red-600 hover:text-red-800">Salir</button>
