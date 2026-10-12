@@ -61,16 +61,19 @@ class OrderController extends Controller
     {
         $data = $this->formData();
 
-        // Orden creada desde una cita de la agenda: se precarga el cliente.
+        // Orden creada desde una cita de la agenda o desde la ficha del cliente: se precarga el cliente.
+        $client = null;
         if ($request->filled('appointment_id')) {
             $appointment = $this->linkableAppointment($request->appointment_id);
             $client = $appointment->client;
             $data['appointment'] = $appointment;
-            $data['prefillClient'] = $client ? [
-                'id' => $client->id, 'name' => $client->name, 'id_document' => $client->id_document,
-                'phone' => $client->phone, 'email' => $client->email,
-            ] : null;
+        } elseif ($request->filled('client_id')) {
+            $client = Client::find($request->client_id);
         }
+        $data['prefillClient'] = $client ? [
+            'id' => $client->id, 'name' => $client->name, 'id_document' => $client->id_document,
+            'phone' => $client->phone, 'email' => $client->email,
+        ] : null;
 
         return view('orders.create', $data);
     }

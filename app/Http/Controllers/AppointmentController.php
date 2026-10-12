@@ -48,6 +48,10 @@ class AppointmentController extends Controller
             'scheduled_at' => now()->addDay()->setTime(9, 0),
         ]);
 
+        if ($request->filled('client_id') && $client = Client::find($request->client_id)) {
+            $appointment->fill(['client_id' => $client->id, 'address' => $client->address]);
+        }
+
         // Segunda visita desde una orden: cliente, dirección y técnico de la orden.
         if ($request->filled('order_id')) {
             $order = Order::with('client')->findOrFail($request->order_id);

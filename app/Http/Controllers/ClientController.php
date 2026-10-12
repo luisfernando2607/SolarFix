@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\Order;
+use App\Models\OrderPayment;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -73,7 +75,22 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        return view('clients.show', compact('client'));
+        $orders = $client->orders()->with(['brand', 'deviceModel', 'warranty'])->latest('id')->get();
+
+        return view('clients.show', [
+            'client' => $client,
+            'orders' => $orders->take(30),
+            'stats' => [
+                'orders' => $orders->count(),
+                'paid' => round((float) OrderPayment::whereIn('order_id', $orders->pluck('id'))->sum('amount'), 2),
+                'balance' => round((float) $orders->whereNotIn('status', ['closed_no_repair'])->sum('balance_due'), 2),
+            ],
+            'warranties' => $orders->pluck('warranty')->filter()->filter->isValid(),
+            'appointments' => $client->appointments()->with('user')
+                ->where('scheduled_at', '>=', today())->whereIn('status', ['pending', 'confirmed'])
+                ->orderBy('scheduled_at')->get(),
+            'statuses' => Order::statuses(),
+        ]);
     }
 
     public function edit(Client $client)

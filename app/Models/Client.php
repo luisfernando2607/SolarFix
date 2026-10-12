@@ -27,6 +27,16 @@ class Client extends Model
         ];
     }
 
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
     public function auditDescription(): string
     {
         return 'Cliente ' . $this->name;

@@ -67,4 +67,36 @@ class ModuleImprovementsTest extends TestCase
         $this->assertTrue($order->statusHistory()->where('notes', 'like', 'Devolución sin reparación%')->exists());
         $this->actingAs($admin)->get(route('orders.show', $order))->assertOk();
     }
+
+    // --- 2. Historial en la ficha del cliente ---
+
+    public function test_client_profile_shows_history_and_totals(): void
+    {
+        $client = $this->client(['address' => 'Av. 6 de Diciembre']);
+        $open = $this->makeOrder(['client_id' => $client->id, 'status' => 'repairing', 'total_amount' => 80, 'balance_due' => 30]);
+        $done = $this->makeOrder(['client_id' => $client->id, 'status' => 'delivered', 'delivery_date' => today(), 'warranty_days' => 30, 'total_amount' => 50]);
+        $done->issueWarranty();
+        \App\Models\OrderPayment::create(['order_id' => $open->id, 'amount' => 50, 'method' => 'cash', 'paid_at' => now()]);
+        \App\Models\OrderPayment::create(['order_id' => $done->id, 'amount' => 50, 'method' => 'cash', 'paid_at' => now()]);
+        \App\Models\Appointment::create(['client_id' => $client->id, 'type' => 'maintenance', 'title' => 'Mantenimiento anual', 'scheduled_at' => now()->addDays(3), 'duration_min' => 60, 'status' => 'pending']);
+        $this->makeOrder(); // de otro cliente
+
+        $this->actingAs($this->admin())->get(route('clients.show', $client))
+            ->assertOk()
+            ->assertViewHas('stats', fn ($s) => $s['orders'] === 2 && $s['paid'] == 100 && $s['balance'] == 30)
+            ->assertViewHas('warranties', fn ($w) => $w->count() === 1)
+            ->assertSee($open->order_number)
+            ->assertSee('Mantenimiento anual');
+    }
+
+    public function test_new_order_and_appointment_prefilled_from_client(): void
+    {
+        $client = $this->client(['name' => 'Cliente Precargado', 'address' => 'Calle Larga 123']);
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get(route('orders.create', ['client_id' => $client->id]))
+            ->assertOk()->assertSee('Cliente Precargado');
+        $this->actingAs($admin)->get(route('appointments.create', ['client_id' => $client->id]))
+            ->assertOk()->assertSee('Calle Larga 123');
+    }
 }
