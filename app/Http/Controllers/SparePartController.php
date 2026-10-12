@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SparePart;
+use App\Models\Supplier;
 use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -52,9 +53,12 @@ class SparePartController extends Controller
 
     public function show(SparePart $sparePart)
     {
-        $sparePart->load(['movements.registeredBy', 'movements.order']);
+        $sparePart->load(['movements.registeredBy', 'movements.order', 'movements.supplier']);
 
-        return view('spare_parts.show', ['part' => $sparePart]);
+        return view('spare_parts.show', [
+            'part' => $sparePart,
+            'suppliers' => Supplier::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     public function edit(SparePart $sparePart)
@@ -90,6 +94,7 @@ class SparePartController extends Controller
             'unit_cost' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'sale_price' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'reason' => ['nullable', 'string', 'max:200'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
         ]);
 
         $wasLow = $sparePart->isLowStock();
@@ -102,6 +107,7 @@ class SparePartController extends Controller
                 ? (float) $validated['sale_price'] : null,
             $validated['reason'] ?? null,
             Auth::id(),
+            isset($validated['supplier_id']) ? (int) $validated['supplier_id'] : null,
         );
 
         $sparePart->refresh();

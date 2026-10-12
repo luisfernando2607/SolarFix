@@ -31,6 +31,7 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 
 ## 3. Diagnóstico y presupuesto (técnico)
 
+- [ ] Como técnico, la campana del menú muestra "1" por la orden asignada; al abrir la notificación lleva a la orden.
 - [ ] Como técnico, en **Órdenes** solo ve las suyas y las sin asignar.
 - [ ] Edita la orden: estado "En diagnóstico", diagnóstico escrito, mano de obra $40.
 - [ ] **Repuestos → Agregar**: busca un repuesto del inventario (créalo antes como admin si no hay). → Se descuenta el stock y el total sube.
@@ -68,7 +69,8 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 ## 8. Inventario (admin y técnico)
 
 - [ ] Crea un repuesto con stock inicial 2 y mínimo 3. → Aparece en "Stock bajo" y en el dashboard.
-- [ ] Como técnico, **Registrar entrada** de 10 unidades. → Sale de stock bajo; el costo se promedia.
+- [ ] Como admin, crea un **Proveedor**.
+- [ ] Como técnico, **Registrar entrada** de 10 unidades eligiendo el proveedor. → Sale de stock bajo; el costo se promedia; la compra aparece en la ficha del proveedor.
 - [ ] Como admin, **Ajuste por conteo** sin motivo. → Lo pide. Con motivo → queda en movimientos.
 
 ## 9. Caja del día (recepcionista)

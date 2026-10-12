@@ -76,7 +76,15 @@
                             <input type="number" name="sale_price" step="0.01" min="0" value="{{ old('sale_price') }}" placeholder="{{ number_format($part->sale_price, 2) }}" class="{{ $input }}">
                         </div>
                     @endcan
-                    <input type="text" name="reason" maxlength="200" value="{{ old('reason') }}" placeholder="Proveedor / factura de compra" class="{{ $input }}">
+                    @if ($suppliers->count())
+                        <select name="supplier_id" class="{{ $input }} bg-white">
+                            <option value="">Proveedor (opcional)</option>
+                            @foreach ($suppliers as $supplier)
+                                <option value="{{ $supplier->id }}" {{ (string) old('supplier_id') === (string) $supplier->id ? 'selected' : '' }}>{{ $supplier->name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+                    <input type="text" name="reason" maxlength="200" value="{{ old('reason') }}" placeholder="N.º de factura de compra / detalle" class="{{ $input }}">
                     @error('quantity') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                     <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Registrar entrada</button>
                 </form>
@@ -127,6 +135,9 @@
                                         <a href="{{ route('orders.show', $movement->order) }}" class="text-blue-600 hover:underline">{{ $movement->reason }}</a>
                                     @else
                                         {{ $movement->reason ?? '—' }}
+                                    @endif
+                                    @if ($movement->supplier)
+                                        <span class="text-xs text-gray-500">· <a href="{{ route('suppliers.show', $movement->supplier) }}" class="hover:underline">{{ $movement->supplier->name }}</a></span>
                                     @endif
                                     @if ($movement->unit_cost !== null && $movement->type === 'in')
                                         <span class="text-xs text-gray-400">· ${{ number_format($movement->unit_cost, 2) }} c/u</span>

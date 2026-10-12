@@ -22,6 +22,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\SparePartController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\WhatsAppController;
@@ -51,6 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('models', DeviceModelController::class);
         Route::resource('accessories', AccessoryController::class);
         Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');
+        Route::resource('suppliers', SupplierController::class)->except(['destroy']);
         Route::get('/spare-parts/create', [SparePartController::class, 'create'])->name('spare-parts.create');
         Route::post('/spare-parts', [SparePartController::class, 'store'])->name('spare-parts.store');
         Route::get('/spare-parts/{spare_part}/edit', [SparePartController::class, 'edit'])->name('spare-parts.edit');

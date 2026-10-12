@@ -482,4 +482,34 @@ class ModuleImprovementsTest extends TestCase
             'unlock_type' => 'none', 'entry_date' => now()->toDateString(), 'status' => 'ready',
         ])->assertSessionHasNoErrors();
     }
+
+    // --- Proveedores ---
+
+    public function test_purchase_from_supplier_appears_in_its_history(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('suppliers.store'), ['name' => 'Repuestos Guayaquil', 'ruc' => '0991234567001', 'is_active' => '1'])
+            ->assertSessionHasNoErrors();
+        $supplier = \App\Models\Supplier::first();
+        $part = \App\Models\SparePart::create(['name' => 'Pantalla A15', 'cost_price' => 20, 'sale_price' => 45, 'min_stock' => 1]);
+
+        $this->actingAs(User::factory()->role('technician')->create())->post(route('spare-parts.receive', $part), [
+            'quantity' => 4, 'unit_cost' => 18.5, 'supplier_id' => $supplier->id, 'reason' => 'Factura 001-001-123',
+        ])->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)->get(route('suppliers.show', $supplier))
+            ->assertOk()
+            ->assertSee('Pantalla A15')
+            ->assertSee('Factura 001-001-123')
+            ->assertViewHas('total', fn ($t) => $t == 74);
+        $this->actingAs($admin)->get(route('spare-parts.show', $part))->assertSee('Repuestos Guayaquil');
+        $this->actingAs($admin)->get(route('suppliers.index', ['q' => '0991234567001']))->assertOk()->assertSee('Repuestos Guayaquil');
+    }
+
+    public function test_only_admins_manage_suppliers(): void
+    {
+        $this->actingAs(User::factory()->role('technician')->create())->get(route('suppliers.index'))->assertForbidden();
+        $this->actingAs(User::factory()->role('receptionist')->create())->post(route('suppliers.store'), ['name' => 'X'])->assertForbidden();
+        $this->actingAs($this->admin())->get(route('suppliers.create'))->assertOk();
+    }
 }

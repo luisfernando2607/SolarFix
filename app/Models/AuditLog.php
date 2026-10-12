@@ -68,6 +68,7 @@ class AuditLog extends Model
             'Appointment' => 'Cita',
             'CashMovement' => 'Movimiento de caja',
             'MaintenancePlan' => 'Plan de mantenimiento',
+            'Supplier' => 'Proveedor',
         ];
     }
 

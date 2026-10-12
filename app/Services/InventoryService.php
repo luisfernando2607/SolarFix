@@ -19,9 +19,9 @@ class InventoryService
      * Entrada por compra: suma stock y recalcula el costo promedio ponderado
      * (y el precio de venta si se indica). El movimiento guarda el costo real de esta compra.
      */
-    public function receive(SparePart $part, int $quantity, float $unitCost, ?float $salePrice, ?string $reason, ?int $userId): SparePartMovement
+    public function receive(SparePart $part, int $quantity, float $unitCost, ?float $salePrice, ?string $reason, ?int $userId, ?int $supplierId = null): SparePartMovement
     {
-        return DB::transaction(function () use ($part, $quantity, $unitCost, $salePrice, $reason, $userId) {
+        return DB::transaction(function () use ($part, $quantity, $unitCost, $salePrice, $reason, $userId, $supplierId) {
             $locked = SparePart::lockForUpdate()->findOrFail($part->id);
             $currentStock = max(0, $locked->stock_quantity);
             $locked->cost_price = $currentStock > 0
@@ -33,7 +33,7 @@ class InventoryService
             }
             $locked->save();
 
-            return $this->movement($locked, 'in', $quantity, $reason ?: 'Compra', null, $unitCost, $userId);
+            return $this->movement($locked, 'in', $quantity, $reason ?: 'Compra', null, $unitCost, $userId, $supplierId);
         });
     }
 
@@ -112,7 +112,7 @@ class InventoryService
         });
     }
 
-    private function movement(SparePart $part, string $type, int $quantity, ?string $reason, ?int $orderId, ?float $unitCost, ?int $userId): SparePartMovement
+    private function movement(SparePart $part, string $type, int $quantity, ?string $reason, ?int $orderId, ?float $unitCost, ?int $userId, ?int $supplierId = null): SparePartMovement
     {
         return SparePartMovement::create([
             'spare_part_id' => $part->id,
@@ -120,6 +120,7 @@ class InventoryService
             'quantity' => $quantity,
             'reason' => $reason,
             'order_id' => $orderId,
+            'supplier_id' => $supplierId,
             'unit_cost' => $unitCost,
             'registered_by' => $userId,
             'moved_at' => now(),

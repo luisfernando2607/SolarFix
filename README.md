@@ -36,14 +36,15 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | ✅ **Checklists** | Recepción, diagnóstico y control de calidad por tipo de equipo; los daños se muestran al cliente antes de firmar |
 | ✍️ **Firma digital** | El cliente firma en pantalla al recibir y al entregar (o al retirar sin reparar) |
 | 💬 **WhatsApp** | Presupuesto, equipo listo, entrega con garantía, citas y mantenimientos (enlaces wa.me) |
-| 📦 **Inventario** | Repuestos con stock, costo promedio, entradas, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden |
+| 📦 **Inventario** | Repuestos con stock, costo promedio, entradas por proveedor, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden |
 | 💵 **Cobros y caja** | Pagos por orden, comprobantes, caja del día con fondo inicial, gastos, retiros y cuadre |
 | 🧾 **Facturas** | Desde la orden, con IVA configurable (incluido o no en los precios) |
-| 🛡️ **Garantías** | Emitidas al entregar; el reclamo abre una orden vinculada sin costo |
+| 🛡️ **Garantías** | Emitidas al entregar; el reclamo abre una orden vinculada y la cobertura (completa, mano de obra o repuestos) define qué se cobra |
 | 📅 **Agenda** | Visitas a domicilio con choque de horarios, confirmación y recordatorio |
 | 🔁 **Mantenimientos** | Planes preventivos por cliente que se renuevan al completar la visita |
 | 💰 **Comisiones** | Fijas o porcentuales por técnico, generadas al entregar |
 | 📊 **Reportes** | Ingresos, órdenes, técnicos, tipos de equipo y repuestos; exportación a Excel |
+| 🔔 **Notificaciones** | Aviso al técnico cuando le asignan una orden, una cita o un reclamo |
 | 🕵️ **Auditoría** | Quién cambió qué y cuándo (valor anterior y nuevo) e intentos de acceso |
 
 ### Roles
