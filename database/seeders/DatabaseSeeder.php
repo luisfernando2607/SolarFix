@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Branch;
+use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -30,6 +31,8 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        $this->call(CatalogSeeder::class);
 
         // Only seed test data if no orders exist yet
         if (Order::count() === 0) {

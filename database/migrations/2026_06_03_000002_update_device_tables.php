@@ -1,18 +1,30 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE device_brands MODIFY device_type VARCHAR(20) NULL");
-        DB::statement("ALTER TABLE device_models ADD COLUMN device_type VARCHAR(20) NOT NULL DEFAULT 'otro' AFTER name");
+        if (Schema::hasColumn('device_brands', 'device_type')) {
+            Schema::table('device_brands', function (Blueprint $table) {
+                $table->string('device_type', 20)->nullable()->change();
+            });
+        }
+
+        if (! Schema::hasColumn('device_models', 'device_type')) {
+            Schema::table('device_models', function (Blueprint $table) {
+                $table->string('device_type', 20)->default('otro')->after('name');
+            });
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE device_models DROP COLUMN device_type");
+        Schema::table('device_models', function (Blueprint $table) {
+            $table->dropColumn('device_type');
+        });
     }
 };

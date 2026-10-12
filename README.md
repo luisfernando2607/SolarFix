@@ -40,6 +40,22 @@ npm run build
 php artisan serve
 ```
 
+## Base de datos
+
+Todo el esquema se crea con migraciones (`php artisan migrate --seed`). El seeder carga la sucursal, el usuario administrador, los catálogos base (accesorios, marcas y modelos) y, si no hay órdenes, datos de demostración.
+
+`docs/solarfix_schema.sql` queda solo como referencia del diseño original: incluye tablas de funciones aún no implementadas (garantías, repuestos, citas, comisiones, WhatsApp).
+
+> El PIN/patrón de desbloqueo se guarda cifrado con `APP_KEY`. Si cambias esa clave, los valores existentes ya no se podrán leer.
+
+## Pruebas
+
+Los tests usan SQLite en memoria; no tocan la base de datos real.
+
+```bash
+php artisan test
+```
+
 ## Credenciales por defecto
 
 - **Email**: admin@solarfix.ec
