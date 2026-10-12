@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -322,9 +323,24 @@ class InvoiceController extends Controller
             $subtotal += (float) $order->surcharge_amount;
         }
 
+        // IVA según la configuración. Si los precios de la orden ya incluyen IVA, se desglosa
+        // la base imponible para que el total de la factura coincida con el de la orden.
+        $ivaPercent = (float) Setting::get('iva_percent', 0);
+        if ($ivaPercent > 0 && Setting::get('prices_include_iva', '1') === '1') {
+            $orderTotal = $subtotal;
+            foreach ($items as &$item) {
+                $item['unit_price'] = round($item['unit_price'] / (1 + $ivaPercent / 100), 2);
+            }
+            unset($item);
+            $subtotal = round(array_sum(array_column($items, 'unit_price')), 2);
+            $ivaAmount = round($orderTotal - $subtotal, 2);
+        } else {
+            $ivaAmount = round($subtotal * $ivaPercent / 100, 2);
+        }
+
         $deviceTypeLabel = Order::deviceTypes()[$order->device_type] ?? $order->device_type;
 
-        $invoice = DB::transaction(function () use ($order, $items, $subtotal, $deviceTypeLabel) {
+        $invoice = DB::transaction(function () use ($order, $items, $subtotal, $ivaPercent, $ivaAmount, $deviceTypeLabel) {
             $invoice = Invoice::createWithUniqueNumber([
                 'order_id' => $order->id,
                 'client_id' => $order->client?->id,
@@ -338,9 +354,9 @@ class InvoiceController extends Controller
                 'device_model' => $order->deviceModel?->name ?? $order->model_text,
                 'device_serial' => $order->serial_imei,
                 'subtotal' => $subtotal,
-                'iva_percent' => 0,
-                'iva_amount' => 0,
-                'total' => $subtotal,
+                'iva_percent' => $ivaPercent,
+                'iva_amount' => $ivaAmount,
+                'total' => round($subtotal + $ivaAmount, 2),
                 'status' => 'emitida',
                 'issued_at' => now(),
                 'created_by' => Auth::id(),

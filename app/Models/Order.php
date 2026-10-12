@@ -171,6 +171,11 @@ class Order extends Model
         return $this->belongsToMany(Accessory::class, 'order_accessories');
     }
 
+    public function whatsappLogs()
+    {
+        return $this->hasMany(WhatsappLog::class)->latest('sent_at');
+    }
+
     public function invoices()
     {
         return $this->hasMany(\App\Models\Invoice::class);

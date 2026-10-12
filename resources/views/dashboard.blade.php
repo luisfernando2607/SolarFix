@@ -60,6 +60,71 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <p class="text-sm font-medium text-gray-500">Recibidas hoy</p>
+            <p class="text-3xl font-bold text-blue-600 mt-1">{{ $stats['orders_today'] }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <p class="text-sm font-medium text-gray-500">Entregadas hoy</p>
+            <p class="text-3xl font-bold text-gray-800 mt-1">{{ $stats['delivered_today'] }}</p>
+        </div>
+        @can('manage-invoices')
+        <div class="bg-white rounded-xl shadow-sm border p-6 flex flex-col justify-between">
+            <p class="text-sm font-medium text-gray-500">Caja del día</p>
+            <a href="{{ route('cash.index') }}" class="mt-2 inline-block text-sm text-blue-600 hover:text-blue-800 font-medium">Ver ingresos y cerrar caja →</a>
+        </div>
+        @endcan
+    </div>
+
+    @if ($staleOrders->count() || $awaitingApproval->count())
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        @if ($awaitingApproval->count())
+        <div class="bg-white rounded-xl shadow-sm border border-orange-200">
+            <div class="px-6 py-4 border-b bg-orange-50">
+                <h3 class="text-base font-semibold text-orange-800">Presupuestos sin respuesta (más de {{ $approvalHours }} h)</h3>
+                <p class="text-xs text-orange-700 mt-0.5">Contactar por teléfono al cliente.</p>
+            </div>
+            <ul class="divide-y">
+                @foreach ($awaitingApproval as $order)
+                <li class="px-6 py-3 flex items-center justify-between text-sm">
+                    <div>
+                        <a href="{{ route('orders.show', $order) }}" class="text-blue-600 hover:underline font-medium">{{ $order->order_number }}</a>
+                        <span class="text-gray-600">· {{ $order->client?->name ?? '—' }}</span>
+                        @if ($order->client?->phone)
+                            <span class="text-gray-400">· {{ $order->client->phone }}</span>
+                        @endif
+                    </div>
+                    <span class="text-xs text-orange-700 whitespace-nowrap">{{ $order->waiting_since->diffForHumans() }}</span>
+                </li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+
+        @if ($staleOrders->count())
+        <div class="bg-white rounded-xl shadow-sm border border-red-200">
+            <div class="px-6 py-4 border-b bg-red-50">
+                <h3 class="text-base font-semibold text-red-800">Equipos sin movimiento (más de {{ $staleDays }} días)</h3>
+                <p class="text-xs text-red-700 mt-0.5">Posible demora o abandono.</p>
+            </div>
+            <ul class="divide-y">
+                @foreach ($staleOrders as $order)
+                <li class="px-6 py-3 flex items-center justify-between text-sm">
+                    <div>
+                        <a href="{{ route('orders.show', $order) }}" class="text-blue-600 hover:underline font-medium">{{ $order->order_number }}</a>
+                        <span class="text-gray-600">· {{ $order->client?->name ?? '—' }}</span>
+                        <span class="text-gray-400">· {{ $statuses[$order->status] ?? $order->status }}</span>
+                    </div>
+                    <span class="text-xs text-red-700 whitespace-nowrap">{{ $order->updated_at->diffForHumans() }}</span>
+                </li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+    </div>
+    @endif
+
     @isset($stats['users_count'])
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <div class="bg-white rounded-xl shadow-sm border p-6">

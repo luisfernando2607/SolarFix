@@ -143,7 +143,7 @@
                 <div class="flex justify-between items-center">
                     <span class="text-gray-600">IVA</span>
                     <div class="flex items-center gap-1">
-                        <input type="number" name="iva_percent" step="0.01" min="0" max="100" value="{{ old('iva_percent', 0) }}"
+                        <input type="number" name="iva_percent" step="0.01" min="0" max="100" value="{{ old('iva_percent', \App\Models\Setting::get('iva_percent', 0)) }}"
                             class="w-16 px-2 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-right" id="iva_percent">
                         <span>%</span>
                         <span id="iva_amount_display" class="ml-2 w-20 text-right">$0.00</span>

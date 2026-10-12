@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessoryController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceBrandController;
@@ -9,7 +10,9 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\DeviceModelController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WhatsAppController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -31,6 +34,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('brands', DeviceBrandController::class);
         Route::resource('models', DeviceModelController::class);
         Route::resource('accessories', AccessoryController::class);
+        Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
 
     Route::middleware('role:super_admin,admin,receptionist')->group(function () {
@@ -42,6 +47,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');
+        Route::post('/orders/{order}/whatsapp/{type}', [WhatsAppController::class, 'send'])->name('orders.whatsapp');
 
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::post('/orders/{order}/payments', [PaymentController::class, 'store'])->name('orders.payments.store');
@@ -54,6 +60,8 @@ Route::middleware('auth')->group(function () {
             Route::resource('invoices', InvoiceController::class)->only(['index', 'create', 'store', 'show']);
             Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
             Route::post('/orders/{order}/invoice', [InvoiceController::class, 'generateFromOrder'])->name('invoices.generate-from-order');
+            Route::get('/cash', [CashClosingController::class, 'index'])->name('cash.index');
+            Route::post('/cash', [CashClosingController::class, 'store'])->name('cash.store');
         });
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');

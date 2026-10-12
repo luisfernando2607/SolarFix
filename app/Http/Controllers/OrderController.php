@@ -178,6 +178,7 @@ class OrderController extends Controller
             'statusHistory.changedBy',
             'accessories',
             'photos.takenBy',
+            'whatsappLogs.sentBy',
         ]);
 
         return view('orders.show', [

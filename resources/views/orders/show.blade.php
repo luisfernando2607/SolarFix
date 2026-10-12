@@ -285,6 +285,46 @@
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">WhatsApp</h3>
+                @php
+                    $waSuggested = match ($order->status) {
+                        'received', 'diagnosing', 'waiting_approval' => 'budget',
+                        'repairing', 'ready' => 'ready',
+                        'delivered' => 'delivery',
+                        default => null,
+                    };
+                @endphp
+                @if (\App\Services\WhatsAppMessage::normalizePhone($order->client?->phone))
+                    <div class="space-y-2">
+                        @foreach (\App\Services\WhatsAppMessage::TYPES as $waType => $waLabel)
+                            <form method="POST" action="{{ route('orders.whatsapp', [$order, $waType]) }}" target="_blank"
+                                onsubmit="setTimeout(function () { window.location.reload(); }, 1500)">
+                                @csrf
+                                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
+                                    {{ $waType === $waSuggested ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-white hover:bg-gray-50 text-gray-700 border' }}">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+                                    {{ $waLabel }}
+                                </button>
+                            </form>
+                        @endforeach
+                    </div>
+                    @if ($order->status === 'diagnosing' || $order->status === 'received')
+                        <p class="text-xs text-gray-500 mt-2">Al enviar el presupuesto la orden pasa a "Esperando Aprobación".</p>
+                    @endif
+                @else
+                    <p class="text-sm text-gray-500">El cliente no tiene un teléfono válido para WhatsApp.</p>
+                @endif
+
+                @if ($order->whatsappLogs->count())
+                    <ul class="mt-4 border-t pt-3 space-y-1 text-xs text-gray-500">
+                        @foreach ($order->whatsappLogs->take(5) as $log)
+                            <li>{{ \App\Services\WhatsAppMessage::TYPES[$log->trigger_event] ?? $log->trigger_event }} · {{ $log->sent_at->format('d/m/Y H:i') }} · {{ $log->sentBy?->name ?? '—' }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">
                     Pagos
                     @if ($order->payments->count())
