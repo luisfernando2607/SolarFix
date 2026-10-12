@@ -673,6 +673,21 @@
             @endif
 
             <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Seguimiento del cliente</h3>
+                <p class="text-xs text-gray-500 mb-2">Enlace privado para que el cliente vea el estado de su orden.</p>
+                <div class="flex gap-2">
+                    <input type="text" id="trackingUrl" readonly value="{{ $order->trackingUrl() }}"
+                        class="flex-1 min-w-0 px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-xs text-gray-600">
+                    <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('trackingUrl').value).then(() => { this.textContent = 'Copiado'; })"
+                        class="px-3 py-2 rounded-lg text-xs font-medium border bg-white hover:bg-gray-50">Copiar</button>
+                </div>
+                <div class="mt-3 flex items-center justify-between gap-3">
+                    <img src="{{ \App\Support\QrCode::dataUri($order->trackingUrl(), 3) }}" alt="Código QR de seguimiento" class="w-24 h-24">
+                    <a href="{{ $order->trackingUrl() }}" target="_blank" rel="noopener" class="text-sm text-blue-600 hover:underline">Ver como cliente →</a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">WhatsApp</h3>
                 @php
                     $waSuggested = match ($order->status) {

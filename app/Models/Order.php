@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Str;
 
 class Order extends Model
 {
@@ -93,6 +94,21 @@ class Order extends Model
             'pattern' => 'Patrón',
             'unknown' => 'Desconocido',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order) {
+            $order->tracking_token ??= Str::random(32);
+        });
+    }
+
+    /**
+     * Enlace público de seguimiento para el cliente.
+     */
+    public function trackingUrl(): string
+    {
+        return route('tracking.show', $this->tracking_token);
     }
 
     /**

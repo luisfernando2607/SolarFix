@@ -210,6 +210,18 @@
 </table>
 @endif
 
+<table>
+    <tr>
+        <td style="width:15%;border:none;text-align:center">
+            <img src="{{ \App\Support\QrCode::dataUri($order->trackingUrl(), 3) }}" style="width:60pt;height:60pt">
+        </td>
+        <td style="border:none;font-size:8pt;vertical-align:middle">
+            <strong>Consulte el estado de su orden</strong> escaneando el código o en:<br>
+            {{ $order->trackingUrl() }}
+        </td>
+    </tr>
+</table>
+
 <div class="ftr">
     Generado el {{ now()->format('d/m/Y \a \l\a\s H:i') }} — SolarFix Sistema de Reparaciones
 </div>

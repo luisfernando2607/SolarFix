@@ -24,6 +24,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\WhatsAppController;
@@ -32,6 +33,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+// Seguimiento público de la orden (enlace privado por orden; límite contra fuerza bruta).
+Route::get('/seguimiento/{token}', [TrackingController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:30,1')
+    ->name('tracking.show');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

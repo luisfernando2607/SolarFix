@@ -48,8 +48,8 @@ class WhatsAppMessage
      * Una línea que solo contiene una variable vacía se omite (ej. {diagnostico} sin diagnóstico).
      */
     public const TEMPLATES = [
-        'budget' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) ya fue diagnosticado.\n\n{diagnostico}\n\n*Presupuesto:*\n{detalle_presupuesto}\n*Total: {total}*\n{abonos}\n\nPor favor confírmenos si aprueba la reparación. ¡Gracias!",
-        'ready' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) está *listo para retirar*.\n{saldo_pendiente}\n\n{direccion_negocio}",
+        'budget' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) ya fue diagnosticado.\n\n{diagnostico}\n\n*Presupuesto:*\n{detalle_presupuesto}\n*Total: {total}*\n{abonos}\n\nPor favor confírmenos si aprueba la reparación. ¡Gracias!\n\nEstado de su orden: {seguimiento}",
+        'ready' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) está *listo para retirar*.\n{saldo_pendiente}\n\n{direccion_negocio}\n\nEstado de su orden: {seguimiento}",
         'delivery' => "Hola {cliente}, gracias por confiar en *{negocio}*.\nLe entregamos su equipo {equipo} (orden *{orden}*).\n\n{trabajo_realizado}\n\n{garantia}\n\nConserve su número de orden ({orden}) para cualquier consulta.",
         'appointment_confirmation' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu cita de {servicio} quedó agendada para el *{fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
         'appointment_reminder' => "Hola {cliente}, le recordamos de *{negocio}* su cita de {servicio} para *mañana {fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
@@ -69,9 +69,9 @@ class WhatsAppMessage
      * Variables disponibles por plantilla (para mostrarlas en Configuración).
      */
     public const VARIABLES = [
-        'budget' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'diagnostico', 'detalle_presupuesto', 'total', 'abonos', 'saldo'],
-        'ready' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'total', 'saldo', 'saldo_pendiente', 'direccion_negocio'],
-        'delivery' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'trabajo_realizado', 'garantia', 'total'],
+        'budget' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'diagnostico', 'detalle_presupuesto', 'total', 'abonos', 'saldo', 'seguimiento'],
+        'ready' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'total', 'saldo', 'saldo_pendiente', 'direccion_negocio', 'seguimiento'],
+        'delivery' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'trabajo_realizado', 'garantia', 'total', 'seguimiento'],
         'appointment_confirmation' => ['cliente', 'negocio', 'telefono_negocio', 'servicio', 'fecha_hora', 'direccion', 'tecnico'],
         'appointment_reminder' => ['cliente', 'negocio', 'telefono_negocio', 'servicio', 'fecha_hora', 'direccion', 'tecnico'],
         'maintenance_due' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'cuando', 'fecha'],
@@ -95,6 +95,7 @@ class WhatsAppMessage
                 $order->deviceModel?->name ?? $order->model_text,
             ]))),
             'orden' => $order->order_number,
+            'seguimiento' => $order->tracking_token ? $order->trackingUrl() : '',
             'total' => money($order->total_amount),
             'saldo' => money($order->balance_due),
         ];
