@@ -61,6 +61,8 @@ class AuditLog extends Model
             'Warranty' => 'Garantía',
             'CashClosing' => 'Cierre de caja',
             'Setting' => 'Configuración',
+            'SparePart' => 'Repuesto',
+            'OrderPart' => 'Repuesto en orden',
         ];
     }
 
@@ -100,6 +102,12 @@ class AuditLog extends Model
             'name' => 'Nombre',
             'phone' => 'Teléfono',
             'email' => 'Email',
+            'stock_quantity' => 'Stock',
+            'min_stock' => 'Stock mínimo',
+            'cost_price' => 'Costo',
+            'sale_price' => 'Precio de venta',
+            'quantity' => 'Cantidad',
+            'unit_price' => 'Precio unitario',
         ][$field] ?? $field;
     }
 

@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\OrderStatusHistory;
 use App\Models\Setting;
+use App\Models\SparePart;
 use App\Models\User;
 use App\Models\Warranty;
 use Illuminate\Support\Facades\Auth;
@@ -71,6 +72,10 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        $lowStockParts = $user->can('receive-inventory')
+            ? SparePart::lowStock()->orderByRaw('stock_quantity - min_stock')->take(10)->get()
+            : collect();
+
         $recentOrders = (clone $ordersQuery)
             ->with(['client', 'brand', 'deviceModel'])
             ->orderBy('created_at', 'desc')
@@ -85,6 +90,7 @@ class DashboardController extends Controller
             'awaitingApproval' => $awaitingApproval,
             'approvalHours' => $approvalHours,
             'expiringWarranties' => $expiringWarranties,
+            'lowStockParts' => $lowStockParts,
             'warrantyAlertDays' => Warranty::alertDays(),
             'statuses' => Order::statuses(),
         ]);

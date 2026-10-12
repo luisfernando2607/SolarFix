@@ -10,9 +10,11 @@ use App\Http\Controllers\DeviceBrandController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\DeviceModelController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderPartController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SignatureController;
+use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\WhatsAppController;
@@ -38,6 +40,12 @@ Route::middleware('auth')->group(function () {
         Route::resource('models', DeviceModelController::class);
         Route::resource('accessories', AccessoryController::class);
         Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');
+        Route::get('/spare-parts/create', [SparePartController::class, 'create'])->name('spare-parts.create');
+        Route::post('/spare-parts', [SparePartController::class, 'store'])->name('spare-parts.store');
+        Route::get('/spare-parts/{spare_part}/edit', [SparePartController::class, 'edit'])->name('spare-parts.edit');
+        Route::put('/spare-parts/{spare_part}', [SparePartController::class, 'update'])->name('spare-parts.update');
+        Route::delete('/spare-parts/{spare_part}', [SparePartController::class, 'destroy'])->name('spare-parts.destroy');
+        Route::post('/spare-parts/{spare_part}/adjust', [SparePartController::class, 'adjust'])->name('spare-parts.adjust');
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
@@ -48,6 +56,13 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:super_admin,admin,technician,receptionist')->group(function () {
         Route::get('/clients-search', [ClientController::class, 'search'])->name('clients.search');
+        Route::get('/spare-parts', [SparePartController::class, 'index'])->name('spare-parts.index');
+        Route::get('/spare-parts-search', [SparePartController::class, 'search'])->name('spare-parts.search');
+        Route::get('/spare-parts/{spare_part}', [SparePartController::class, 'show'])->name('spare-parts.show')->whereNumber('spare_part');
+        Route::post('/spare-parts/{spare_part}/receive', [SparePartController::class, 'receive'])
+            ->name('spare-parts.receive')->middleware('role:super_admin,admin,technician');
+        Route::post('/orders/{order}/parts', [OrderPartController::class, 'store'])->name('orders.parts.store');
+        Route::delete('/orders/{order}/parts/{part}', [OrderPartController::class, 'destroy'])->name('orders.parts.destroy');
         Route::resource('orders', OrderController::class)->except(['destroy']);
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');

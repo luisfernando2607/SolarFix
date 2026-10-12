@@ -180,6 +180,7 @@ class OrderController extends Controller
             'accessories',
             'photos.takenBy',
             'whatsappLogs.sentBy',
+            'parts.sparePart',
             'warranty',
             'signatures',
             'parentOrder',
@@ -210,6 +211,7 @@ class OrderController extends Controller
             'warranty',
             'signatures',
             'parentOrder',
+            'parts.sparePart',
         ]);
 
         // Las firmas están en almacenamiento privado: se insertan en el PDF como data URI.
@@ -273,6 +275,11 @@ class OrderController extends Controller
         // Los técnicos no pueden reasignar órdenes.
         if (Auth::user()->isTechnician()) {
             unset($validated['user_id']);
+        }
+
+        // Si la orden tiene repuestos del inventario, su costo sale de ellos y no del formulario.
+        if ($order->parts()->exists()) {
+            $validated['parts_cost'] = round((float) $order->parts()->sum('subtotal'), 2);
         }
 
         $diagnosisCost = (float) ($validated['diagnosis_cost'] ?? 0);

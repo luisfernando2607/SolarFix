@@ -314,7 +314,14 @@ class InvoiceController extends Controller
             $items[] = ['description' => 'Mano de obra', 'quantity' => 1, 'unit_price' => (float) $order->labor_cost];
             $subtotal += (float) $order->labor_cost;
         }
-        if ((float) $order->parts_cost > 0) {
+        // Repuestos del inventario: una línea por repuesto; si no hay, el monto manual en una sola línea.
+        $order->loadMissing('parts.sparePart');
+        if ($order->parts->isNotEmpty()) {
+            foreach ($order->parts->where('subtotal', '>', 0) as $part) {
+                $items[] = ['description' => $part->sparePart?->name ?? 'Repuesto', 'quantity' => $part->quantity, 'unit_price' => (float) $part->unit_price];
+                $subtotal += (float) $part->subtotal;
+            }
+        } elseif ((float) $order->parts_cost > 0) {
             $items[] = ['description' => 'Repuestos', 'quantity' => 1, 'unit_price' => (float) $order->parts_cost];
             $subtotal += (float) $order->parts_cost;
         }
@@ -332,7 +339,7 @@ class InvoiceController extends Controller
                 $item['unit_price'] = round($item['unit_price'] / (1 + $ivaPercent / 100), 2);
             }
             unset($item);
-            $subtotal = round(array_sum(array_column($items, 'unit_price')), 2);
+            $subtotal = round(array_sum(array_map(fn ($i) => round($i['quantity'] * $i['unit_price'], 2), $items)), 2);
             $ivaAmount = round($orderTotal - $subtotal, 2);
         } else {
             $ivaAmount = round($subtotal * $ivaPercent / 100, 2);

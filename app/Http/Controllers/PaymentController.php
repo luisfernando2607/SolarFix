@@ -33,12 +33,7 @@ class PaymentController extends Controller
             'registered_by' => Auth::id(),
         ]);
 
-        $totalPaid = $order->payments()->sum('amount');
-        $balanceDue = round(max(0, (float) $order->total_amount - (float) $totalPaid), 2);
-        $order->update([
-            'amount_paid' => $totalPaid,
-            'balance_due' => $balanceDue,
-        ]);
+        $order->recalculateTotals();
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Pago de $' . number_format($validated['amount'], 2) . ' registrado.');
@@ -52,12 +47,7 @@ class PaymentController extends Controller
 
         $payment->delete();
 
-        $totalPaid = $order->payments()->sum('amount');
-        $balanceDue = round(max(0, (float) $order->total_amount - (float) $totalPaid), 2);
-        $order->update([
-            'amount_paid' => $totalPaid,
-            'balance_due' => $balanceDue,
-        ]);
+        $order->recalculateTotals();
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Pago eliminado.');

@@ -172,6 +172,26 @@ class Order extends Model
         return $warranty;
     }
 
+    /**
+     * Recalcula repuestos (si vienen del inventario), recargo, total, pagado y saldo.
+     */
+    public function recalculateTotals(): void
+    {
+        if ($this->parts()->exists()) {
+            $this->parts_cost = round((float) $this->parts()->sum('subtotal'), 2);
+        }
+
+        $subtotal = (float) $this->diagnosis_cost + (float) $this->labor_cost + (float) $this->parts_cost;
+        $surcharge = round($subtotal * (float) $this->surcharge_percent / 100, 2);
+        $paid = round((float) $this->payments()->sum('amount'), 2);
+
+        $this->surcharge_amount = $surcharge;
+        $this->total_amount = round($subtotal + $surcharge, 2);
+        $this->amount_paid = $paid;
+        $this->balance_due = round(max(0, $this->total_amount - $paid), 2);
+        $this->save();
+    }
+
     public function isWarrantyOrder(): bool
     {
         return $this->parent_order_id !== null;
@@ -253,6 +273,11 @@ class Order extends Model
     public function accessories()
     {
         return $this->belongsToMany(Accessory::class, 'order_accessories');
+    }
+
+    public function parts()
+    {
+        return $this->hasMany(OrderPart::class);
     }
 
     public function warranty()

@@ -426,9 +426,14 @@
                             <label for="parts_cost" class="block text-sm font-medium text-gray-700 mb-1">Repuestos</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                                <input type="number" step="0.01" min="0" id="parts_cost" name="parts_cost" value="{{ old('parts_cost', $editing ? $order->parts_cost : '0') }}"
-                                    class="w-full pl-7 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cost-input">
+                                @php $partsFromInventory = $editing && $order->parts()->exists(); @endphp
+                                <input type="number" step="0.01" min="0" id="parts_cost" name="parts_cost" value="{{ $partsFromInventory ? $order->parts_cost : old('parts_cost', $editing ? $order->parts_cost : '0') }}"
+                                    {{ $partsFromInventory ? 'readonly' : '' }}
+                                    class="w-full pl-7 pr-4 py-2.5 border rounded-lg outline-none cost-input {{ $partsFromInventory ? 'border-gray-200 bg-gray-50 cursor-not-allowed' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500' }}">
                             </div>
+                            @if ($partsFromInventory)
+                                <p class="text-xs text-gray-500 mt-1">Suma de los repuestos del inventario.</p>
+                            @endif
                         </div>
 
                         <div>

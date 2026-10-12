@@ -43,7 +43,7 @@ class WhatsAppMessage
 
     public static function build(string $type, Order $order): string
     {
-        $order->loadMissing(['client', 'brand', 'deviceModel']);
+        $order->loadMissing(['client', 'brand', 'deviceModel', 'parts.sparePart']);
 
         $company = Setting::get('company_name', 'SolarFix');
         $client = $order->client?->name ?? 'cliente';
@@ -76,12 +76,17 @@ class WhatsAppMessage
         }
 
         $lines[] = '*Presupuesto:*';
-        foreach ([
-            'Diagnóstico' => $order->diagnosis_cost,
-            'Mano de obra' => $order->labor_cost,
-            'Repuestos' => $order->parts_cost,
-            'Recargo' => $order->surcharge_amount,
-        ] as $label => $amount) {
+        $concepts = [['Diagnóstico', $order->diagnosis_cost], ['Mano de obra', $order->labor_cost]];
+        if ($order->parts->isNotEmpty()) {
+            foreach ($order->parts as $part) {
+                $concepts[] = [($part->sparePart?->name ?? 'Repuesto') . ' x' . $part->quantity, $part->subtotal];
+            }
+        } else {
+            $concepts[] = ['Repuestos', $order->parts_cost];
+        }
+        $concepts[] = ['Recargo', $order->surcharge_amount];
+
+        foreach ($concepts as [$label, $amount]) {
             if ((float) $amount > 0) {
                 $lines[] = "- {$label}: " . self::money($amount);
             }

@@ -100,6 +100,9 @@
             <tr><td class="c">1</td><td>Diagnóstico</td><td class="r">${{ number_format($order->diagnosis_cost, 2) }}</td></tr>
             <tr><td class="c">2</td><td>Mano de Obra</td><td class="r">${{ number_format($order->labor_cost, 2) }}</td></tr>
             <tr><td class="c">3</td><td>Repuestos</td><td class="r">${{ number_format($order->parts_cost, 2) }}</td></tr>
+            @foreach ($order->parts as $orderPart)
+            <tr><td></td><td style="font-size:7pt;color:#444">&nbsp;&nbsp;{{ $orderPart->sparePart?->name }} × {{ $orderPart->quantity }}</td><td class="r" style="font-size:7pt;color:#444">${{ number_format($orderPart->subtotal, 2) }}</td></tr>
+            @endforeach
             @if ($order->surcharge_amount > 0)
             <tr><td class="c">4</td><td>Recargo ({{ $order->surcharge_percent }}%)</td><td class="r">${{ number_format($order->surcharge_amount, 2) }}</td></tr>
             @endif

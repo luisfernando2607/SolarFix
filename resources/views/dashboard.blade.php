@@ -125,6 +125,26 @@
     </div>
     @endif
 
+    @if ($lowStockParts->count())
+    <div class="mt-6 bg-white rounded-xl shadow-sm border border-red-200">
+        <div class="px-6 py-4 border-b bg-red-50 flex items-center justify-between">
+            <div>
+                <h3 class="text-base font-semibold text-red-800">Repuestos con stock bajo</h3>
+                <p class="text-xs text-red-700 mt-0.5">En o por debajo del stock mínimo.</p>
+            </div>
+            <a href="{{ route('spare-parts.index', ['low' => 1]) }}" class="text-sm text-red-800 hover:underline font-medium">Ver todos →</a>
+        </div>
+        <ul class="divide-y">
+            @foreach ($lowStockParts as $part)
+            <li class="px-6 py-3 flex items-center justify-between text-sm">
+                <a href="{{ route('spare-parts.show', $part) }}" class="text-blue-600 hover:underline font-medium">{{ $part->name }}</a>
+                <span class="text-xs text-red-700 whitespace-nowrap">stock {{ $part->stock_quantity }} / mín. {{ $part->min_stock }}</span>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     @if ($expiringWarranties->count())
     <div class="mt-6 bg-white rounded-xl shadow-sm border border-amber-200">
         <div class="px-6 py-4 border-b bg-amber-50 flex items-center justify-between">

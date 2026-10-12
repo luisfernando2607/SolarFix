@@ -176,6 +176,116 @@
             @endif
 
             <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="flex items-center justify-between border-b pb-2 mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Repuestos</h3>
+                    @if ($order->isWarrantyOrder())
+                        <span class="text-xs text-cyan-700">Garantía: sin costo para el cliente</span>
+                    @endif
+                </div>
+                @php $partsLocked = in_array($order->status, ['delivered', 'closed_no_repair']); @endphp
+                @if ($order->parts->count())
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm mb-3">
+                            <thead>
+                                <tr class="text-left text-gray-500 border-b">
+                                    <th class="py-2 font-medium">Repuesto</th>
+                                    <th class="py-2 font-medium text-right">Cant.</th>
+                                    <th class="py-2 font-medium text-right">P. unit.</th>
+                                    <th class="py-2 font-medium text-right">Subtotal</th>
+                                    <th class="py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($order->parts as $orderPart)
+                                    <tr class="border-b">
+                                        <td class="py-2">
+                                            <a href="{{ route('spare-parts.show', $orderPart->spare_part_id) }}" class="text-blue-600 hover:underline">{{ $orderPart->sparePart?->name }}</a>
+                                        </td>
+                                        <td class="py-2 text-right">{{ $orderPart->quantity }}</td>
+                                        <td class="py-2 text-right">${{ number_format($orderPart->unit_price, 2) }}</td>
+                                        <td class="py-2 text-right font-medium">${{ number_format($orderPart->subtotal, 2) }}</td>
+                                        <td class="py-2 text-right">
+                                            @unless ($partsLocked)
+                                                <form method="POST" action="{{ route('orders.parts.destroy', [$order, $orderPart]) }}" onsubmit="return confirm('¿Quitar este repuesto? Las unidades vuelven al stock.')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="text-red-500 hover:text-red-700 text-xs">Quitar</button>
+                                                </form>
+                                            @endunless
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-400 mb-3">Sin repuestos del inventario.</p>
+                @endif
+
+                @unless ($partsLocked)
+                    <form method="POST" action="{{ route('orders.parts.store', $order) }}" class="flex flex-wrap items-end gap-2" id="addPartForm">
+                        @csrf
+                        <div class="flex-1 min-w-48 relative">
+                            <label class="block text-xs text-gray-600 mb-1">Agregar repuesto</label>
+                            <input type="text" id="partSearch" autocomplete="off" placeholder="Buscar por nombre, código o modelo..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            <input type="hidden" name="spare_part_id" id="partId">
+                            <div id="partResults" class="hidden absolute z-50 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto"></div>
+                        </div>
+                        <div class="w-20">
+                            <label class="block text-xs text-gray-600 mb-1">Cant.</label>
+                            <input type="number" name="quantity" value="1" min="1" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Agregar</button>
+                    </form>
+                    <script>
+                    (function () {
+                        var input = document.getElementById('partSearch');
+                        var hidden = document.getElementById('partId');
+                        var results = document.getElementById('partResults');
+                        var url = @json(route('spare-parts.search'));
+                        var timer;
+
+                        input.addEventListener('input', function () {
+                            hidden.value = '';
+                            clearTimeout(timer);
+                            var q = input.value.trim();
+                            if (q.length < 2) { results.classList.add('hidden'); return; }
+                            timer = setTimeout(function () {
+                                fetch(url + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                                    .then(function (r) { return r.ok ? r.json() : []; })
+                                    .then(function (items) {
+                                        if (input.value.trim() !== q) return;
+                                        results.innerHTML = '';
+                                        if (!items.length) {
+                                            results.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">Sin resultados</div>';
+                                        }
+                                        items.forEach(function (item) {
+                                            var div = document.createElement('div');
+                                            div.className = 'px-3 py-2 text-sm cursor-pointer hover:bg-blue-50' + (item.stock < 1 ? ' text-gray-400' : '');
+                                            div.textContent = item.label;
+                                            div.addEventListener('mousedown', function (e) {
+                                                e.preventDefault();
+                                                input.value = item.name;
+                                                hidden.value = item.id;
+                                                results.classList.add('hidden');
+                                            });
+                                            results.appendChild(div);
+                                        });
+                                        results.classList.remove('hidden');
+                                    });
+                            }, 250);
+                        });
+                        input.addEventListener('blur', function () { setTimeout(function () { results.classList.add('hidden'); }, 200); });
+                        document.getElementById('addPartForm').addEventListener('submit', function (e) {
+                            if (!hidden.value) { e.preventDefault(); input.focus(); input.classList.add('border-red-500'); }
+                        });
+                    })();
+                    </script>
+                @endunless
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Historial de Estados</h3>
                 <div class="space-y-3">
                     @forelse ($order->statusHistory->sortByDesc('changed_at') as $history)
