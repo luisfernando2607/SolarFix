@@ -187,6 +187,7 @@ class OperationsTest extends TestCase
             'currency_symbol' => '$',
             'diagnosis_cost_default' => 0,
             'maintenance_due_days' => 15,
+            'payment_methods' => [['key' => 'cash', 'label' => 'Efectivo'], ['key' => 'transfer', 'label' => 'Transferencia']],
         ])->assertRedirect(route('settings.edit'));
 
         Setting::flushCache();

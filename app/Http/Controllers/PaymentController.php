@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Support\PaymentMethods;
 use Illuminate\Validation\Rule;
 
 class PaymentController extends Controller
@@ -14,7 +15,7 @@ class PaymentController extends Controller
     {
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'method' => ['required', Rule::in(['cash', 'transfer', 'card', 'other'])],
+            'method' => ['required', Rule::in(PaymentMethods::keys())],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:255'],
             'paid_at' => ['nullable', 'date'],

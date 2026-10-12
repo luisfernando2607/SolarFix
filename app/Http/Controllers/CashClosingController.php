@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CashClosing;
 use App\Models\CashMovement;
 use App\Models\OrderPayment;
+use App\Support\PaymentMethods;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -12,13 +13,6 @@ use Illuminate\Validation\Rule;
 
 class CashClosingController extends Controller
 {
-    private const METHODS = [
-        'cash' => 'Efectivo',
-        'transfer' => 'Transferencia',
-        'card' => 'Tarjeta',
-        'other' => 'Otro',
-    ];
-
     public function index(Request $request)
     {
         $date = $this->date($request);
@@ -34,7 +28,7 @@ class CashClosingController extends Controller
             'cash' => $this->cashSummary($date, $totals['cash']),
             'closing' => CashClosing::with('closedBy')->whereDate('closing_date', $date)->first(),
             'history' => CashClosing::with('closedBy')->orderByDesc('closing_date')->take(10)->get(),
-            'methods' => self::METHODS,
+            'methods' => PaymentMethods::withHistorical($payments->pluck('method')->unique()),
         ]);
     }
 
@@ -67,9 +61,10 @@ class CashClosingController extends Controller
             'expenses' => $cash['expenses'],
             'withdrawals' => $cash['withdrawals'],
             'expected_cash' => $cash['expected'],
-            'expected_transfer' => $totals['transfer'],
-            'expected_card' => $totals['card'],
-            'expected_other' => $totals['other'],
+            // Las columnas fijas guardan transferencia y tarjeta; el resto de métodos (no efectivo) va en "otros".
+            'expected_transfer' => $totals['transfer'] ?? 0,
+            'expected_card' => $totals['card'] ?? 0,
+            'expected_other' => round($totals['total'] - $totals['cash'] - ($totals['transfer'] ?? 0) - ($totals['card'] ?? 0), 2),
             'counted_cash' => $validated['counted_cash'],
             'difference' => $difference,
             'notes' => $validated['notes'] ?? null,
@@ -146,7 +141,7 @@ class CashClosingController extends Controller
     private function totalsByMethod($payments): array
     {
         $totals = [];
-        foreach (array_keys(self::METHODS) as $method) {
+        foreach (array_keys(PaymentMethods::withHistorical($payments->pluck('method')->unique())) as $method) {
             $totals[$method] = round((float) $payments->where('method', $method)->sum('amount'), 2);
         }
         $totals['total'] = round(array_sum($totals), 2);

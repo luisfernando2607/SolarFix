@@ -119,7 +119,7 @@
                 @foreach ($order->payments as $payment)
                 <tr>
                     <td class="r">{{ money($payment->amount) }}</td>
-                    <td>{{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}</td>
+                    <td>{{ $payment->method_label }}</td>
                 </tr>
                 @endforeach
             @else

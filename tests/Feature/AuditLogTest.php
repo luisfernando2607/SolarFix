@@ -124,6 +124,7 @@ class AuditLogTest extends TestCase
             'currency_symbol' => '$',
             'diagnosis_cost_default' => 0,
             'maintenance_due_days' => 15,
+            'payment_methods' => [['key' => 'cash', 'label' => 'Efectivo'], ['key' => 'transfer', 'label' => 'Transferencia']],
         ]);
 
         $this->assertTrue(AuditLog::where('auditable_type', 'Setting')->where('description', 'Configuración: iva_percent')->exists());

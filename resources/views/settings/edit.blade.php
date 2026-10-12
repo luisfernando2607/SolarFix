@@ -69,6 +69,28 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Métodos de pago</h3>
+            <p class="text-xs text-gray-500 mb-4">Efectivo es fijo (lo usa el cuadre de caja). Deja un nombre vacío para quitar un método; los pagos ya registrados conservan su nombre.</p>
+            @php
+                $methodRows = old('payment_methods', collect($paymentMethods)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values()->all());
+                $methodRows = array_merge($methodRows, array_fill(0, 2, ['key' => '', 'label' => '']));
+            @endphp
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                @foreach ($methodRows as $i => $row)
+                    <div class="flex items-center gap-2">
+                        <input type="hidden" name="payment_methods[{{ $i }}][key]" value="{{ $row['key'] }}">
+                        <input type="text" name="payment_methods[{{ $i }}][label]" value="{{ $row['label'] }}" maxlength="40"
+                            placeholder="{{ $row['key'] ? '' : 'Nuevo método (ej. Deuna)' }}" {{ $row['key'] === 'cash' ? 'required' : '' }}
+                            class="{{ $input }}">
+                        @if ($row['key'] === 'cash')
+                            <span class="text-xs text-gray-400 whitespace-nowrap">fijo</span>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-4">Facturación y órdenes</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

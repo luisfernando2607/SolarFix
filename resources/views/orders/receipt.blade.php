@@ -39,7 +39,7 @@
 
 <table>
     <tr><td style="width:50%" class="label">Monto Pagado</td><td class="r val">{{ money($payment->amount) }}</td></tr>
-    <tr><td class="label">Método</td><td class="r">{{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}</td></tr>
+    <tr><td class="label">Método</td><td class="r">{{ $payment->method_label }}</td></tr>
     @if ($payment->reference)
     <tr><td class="label">Referencia</td><td class="r">{{ $payment->reference }}</td></tr>
     @endif

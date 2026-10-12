@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Support\PaymentMethods;
 use Illuminate\Database\Eloquent\Model;
 
 class OrderPayment extends Model
@@ -28,6 +29,11 @@ class OrderPayment extends Model
             'amount' => 'decimal:2',
             'paid_at' => 'datetime',
         ];
+    }
+
+    public function getMethodLabelAttribute(): string
+    {
+        return PaymentMethods::label($this->method);
     }
 
     public function order()

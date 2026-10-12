@@ -127,7 +127,7 @@
                 <div class="flex items-center gap-2">
                     <span class="font-medium text-gray-800">{{ money($payment->amount) }}</span>
                     <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                        {{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}
+                        {{ $payment->method_label }}
                     </span>
                     @if ($payment->reference)
                         <span class="text-xs text-gray-400">· {{ $payment->reference }}</span>

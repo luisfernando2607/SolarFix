@@ -630,10 +630,9 @@
                             <label class="block text-xs font-medium text-gray-600 mb-1">Método</label>
                             <select name="method" required
                                 class="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                                <option value="cash">Efectivo</option>
-                                <option value="transfer">Transferencia</option>
-                                <option value="card">Tarjeta</option>
-                                <option value="other">Otro</option>
+                                @foreach (\App\Support\PaymentMethods::all() as $methodKey => $methodLabel)
+                                    <option value="{{ $methodKey }}">{{ $methodLabel }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-span-2">
@@ -655,7 +654,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="font-medium text-gray-800">{{ money($payment->amount) }}</span>
                                 <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                                    {{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transferencia' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}
+                                    {{ $payment->method_label }}
                                 </span>
                                 @if ($payment->reference)
                                     <span class="text-xs text-gray-400">· {{ $payment->reference }}</span>

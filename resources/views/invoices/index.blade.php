@@ -120,7 +120,7 @@
                             {{ $payment->method === 'transfer' ? 'bg-blue-100 text-blue-800' : '' }}
                             {{ $payment->method === 'card' ? 'bg-purple-100 text-purple-800' : '' }}
                             {{ $payment->method === 'other' ? 'bg-gray-100 text-gray-800' : '' }}">
-                            {{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transf.' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}
+                            {{ $payment->method_label }}
                         </span>
                     </td>
                     <td class="px-6 py-2 text-sm text-gray-600 text-center">{{ $payment->paid_at?->format('d/m/Y H:i') ?? '—' }}</td>

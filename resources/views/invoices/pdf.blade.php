@@ -105,7 +105,7 @@
         @foreach ($invoicePayments as $payment)
         <tr>
             <td style="padding:1pt 4pt;font-size:8pt">{{ money($payment->amount) }}</td>
-            <td style="padding:1pt 4pt;font-size:8pt;color:#666">{{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transf.' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}</td>
+            <td style="padding:1pt 4pt;font-size:8pt;color:#666">{{ $payment->method_label }}</td>
             <td style="padding:1pt 4pt;font-size:8pt;color:#666">{{ $payment->paid_at?->format('d/m/Y') ?? '' }}</td>
         </tr>
         @endforeach

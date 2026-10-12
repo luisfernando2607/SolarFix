@@ -27,6 +27,10 @@ class ConfigurationTest extends TestCase
             'iva_percent' => 15, 'prices_include_iva' => '1', 'stale_order_days' => 5, 'approval_alert_hours' => 72,
             'commission_base' => 'service', 'order_prefix' => 'ORD', 'invoice_prefix' => 'FAC',
             'currency_symbol' => '$', 'diagnosis_cost_default' => 0, 'maintenance_due_days' => 15,
+            'payment_methods' => [
+                ['key' => 'cash', 'label' => 'Efectivo'], ['key' => 'transfer', 'label' => 'Transferencia'],
+                ['key' => 'card', 'label' => 'Tarjeta'], ['key' => 'other', 'label' => 'Otro'],
+            ],
         ];
     }
 
@@ -98,5 +102,67 @@ class ConfigurationTest extends TestCase
     {
         $this->actingAs($this->admin())->get(route('settings.edit'))
             ->assertOk()->assertSee('Prefijo de orden')->assertSee('Símbolo de moneda');
+    }
+
+    // --- Métodos de pago ---
+
+    public function test_admin_adds_renames_and_removes_payment_methods(): void
+    {
+        $this->actingAs($this->admin())->put(route('settings.update'), $this->settingsPayload(['payment_methods' => [
+            ['key' => 'cash', 'label' => ''],                          // efectivo no se puede quitar
+            ['key' => 'transfer', 'label' => 'Transferencia bancaria'], // renombrar conserva la clave
+            ['key' => 'card', 'label' => ''],                           // quitar
+            ['key' => '', 'label' => 'Deuna'],                          // nuevo
+            ['key' => '', 'label' => 'Pago Móvil Ñ'],
+        ]]))->assertSessionHasNoErrors();
+
+        $this->assertSame([
+            'cash' => 'Efectivo',
+            'transfer' => 'Transferencia bancaria',
+            'deuna' => 'Deuna',
+            'pago_movil_n' => 'Pago Móvil Ñ',
+        ], \App\Support\PaymentMethods::all());
+    }
+
+    public function test_new_method_used_in_payments_cash_and_reports(): void
+    {
+        Setting::put('payment_methods', json_encode(['cash' => 'Efectivo', 'deuna' => 'Deuna']), 'billing');
+        $receptionist = User::factory()->role('receptionist')->create();
+        $client = Client::create(['name' => 'Ana', 'phone' => '0991234567', 'client_type' => 'individual']);
+        $order = Order::create([
+            'client_id' => $client->id, 'order_number' => 'T-1', 'device_type' => 'celular', 'declared_fault' => 'x',
+            'unlock_type' => 'none', 'status' => 'repairing', 'entry_date' => now()->toDateString(),
+            'labor_cost' => 50, 'total_amount' => 50, 'balance_due' => 50,
+        ]);
+
+        $this->actingAs($receptionist)->get(route('orders.show', $order))->assertSee('<option value="deuna">Deuna</option>', false);
+        $this->actingAs($receptionist)->post(route('orders.payments.store', $order), ['amount' => 20, 'method' => 'deuna'])->assertSessionHasNoErrors();
+        $this->actingAs($receptionist)->post(route('orders.payments.store', $order), ['amount' => 5, 'method' => 'card'])->assertSessionHasErrors('method');
+        $this->actingAs($receptionist)->post(route('orders.payments.store', $order), ['amount' => 10, 'method' => 'cash']);
+
+        $this->actingAs($receptionist)->get(route('cash.index'))
+            ->assertViewHas('totals', fn ($t) => $t['deuna'] == 20 && $t['cash'] == 10 && $t['total'] == 30)
+            ->assertViewHas('cash', fn ($c) => $c['expected'] == 10);
+
+        $this->actingAs($receptionist)->post(route('cash.store'), ['counted_cash' => 10]);
+        $this->assertEquals(20, \App\Models\CashClosing::first()->expected_other);
+
+        $this->actingAs($this->admin())->get(route('reports.index'))
+            ->assertViewHas('byMethod', fn ($m) => $m->firstWhere('label', 'Deuna')['amount'] == 20);
+    }
+
+    public function test_removed_method_keeps_its_label_in_history(): void
+    {
+        $client = Client::create(['name' => 'Ana', 'phone' => '0991234567', 'client_type' => 'individual']);
+        $order = Order::create([
+            'client_id' => $client->id, 'order_number' => 'T-2', 'device_type' => 'celular', 'declared_fault' => 'x',
+            'unlock_type' => 'none', 'status' => 'repairing', 'entry_date' => now()->toDateString(),
+        ]);
+        $payment = \App\Models\OrderPayment::create(['order_id' => $order->id, 'amount' => 10, 'method' => 'card', 'paid_at' => now()]);
+
+        Setting::put('payment_methods', json_encode(['cash' => 'Efectivo']), 'billing');
+
+        $this->assertSame('Tarjeta', $payment->method_label);
+        $this->actingAs($this->admin())->get(route('orders.show', $order))->assertSee('Tarjeta');
     }
 }

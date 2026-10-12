@@ -28,10 +28,9 @@
                     class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-32">
                 <select name="method" class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Método</option>
-                    <option value="cash" {{ request('method') === 'cash' ? 'selected' : '' }}>Efectivo</option>
-                    <option value="transfer" {{ request('method') === 'transfer' ? 'selected' : '' }}>Transferencia</option>
-                    <option value="card" {{ request('method') === 'card' ? 'selected' : '' }}>Tarjeta</option>
-                    <option value="other" {{ request('method') === 'other' ? 'selected' : '' }}>Otro</option>
+                    @foreach (\App\Support\PaymentMethods::all() as $methodKey => $methodLabel)
+                        <option value="{{ $methodKey }}" {{ request('method') === $methodKey ? 'selected' : '' }}>{{ $methodLabel }}</option>
+                    @endforeach
                 </select>
                 <input type="text" name="reference" value="{{ request('reference') }}" placeholder="Referencia"
                     class="px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-36">
@@ -91,7 +90,7 @@
                                 {{ $payment->method === 'transfer' ? 'bg-blue-100 text-blue-800' : '' }}
                                 {{ $payment->method === 'card' ? 'bg-purple-100 text-purple-800' : '' }}
                                 {{ $payment->method === 'other' ? 'bg-gray-100 text-gray-800' : '' }}">
-                                {{ $payment->method === 'cash' ? 'Efectivo' : ($payment->method === 'transfer' ? 'Transf.' : ($payment->method === 'card' ? 'Tarjeta' : 'Otro')) }}
+                                {{ $payment->method_label }}
                             </span>
                         </td>
                         <td class="px-6 py-3 text-sm text-gray-500">{{ $payment->reference ?? '—' }}</td>

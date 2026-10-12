@@ -169,7 +169,7 @@
                     {{ $closing ? 'Actualizar cierre' : 'Cerrar caja' }}
                 </button>
             </form>
-            <p class="text-xs text-gray-500 mt-3">Para el depósito: transferencias y tarjeta ya están en banco ({{ money($totals['transfer'] + $totals['card']) }}).</p>
+            <p class="text-xs text-gray-500 mt-3">Cobros que no son en efectivo (ya están en banco o en el datáfono): {{ money($totals['total'] - $totals['cash']) }}.</p>
         </div>
     </div>
 

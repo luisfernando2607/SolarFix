@@ -7,12 +7,12 @@ use App\Models\Order;
 use App\Models\OrderPart;
 use App\Models\OrderPayment;
 use App\Models\OrderStatusHistory;
+use App\Support\PaymentMethods;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
 {
-    private const METHODS = ['cash' => 'Efectivo', 'transfer' => 'Transferencia', 'card' => 'Tarjeta', 'other' => 'Otro'];
 
     public function index(Request $request)
     {
@@ -50,7 +50,7 @@ class ReportController extends Controller
                 'avg_ticket' => $delivered->count() ? round((float) $delivered->avg('total_amount'), 2) : null,
                 'avg_days' => $repairDays->count() ? round($repairDays->avg(), 1) : null,
             ],
-            'byMethod' => collect(self::METHODS)->map(fn ($label, $key) => [
+            'byMethod' => collect(PaymentMethods::withHistorical($payments->pluck('method')->unique()))->map(fn ($label, $key) => [
                 'label' => $label,
                 'amount' => round((float) $payments->where('method', $key)->sum('amount'), 2),
             ])->values(),
@@ -138,7 +138,7 @@ class ReportController extends Controller
             ['Fecha', 'Hora', 'Orden', 'Cliente', 'Método', 'Referencia', 'Monto', 'Registrado por'],
             $payments->map(fn ($p) => [
                 $p->paid_at->format('d/m/Y'), $p->paid_at->format('H:i'), $p->order?->order_number, $p->order?->client?->name,
-                self::METHODS[$p->method] ?? $p->method, $p->reference, $this->decimal($p->amount), $p->registeredBy?->name,
+                PaymentMethods::label($p->method), $p->reference, $this->decimal($p->amount), $p->registeredBy?->name,
             ]),
         ];
     }
