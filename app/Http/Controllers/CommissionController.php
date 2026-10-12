@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Commission;
+use App\Models\CommissionAdvance;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -33,16 +35,33 @@ class CommissionController extends Controller
 
         $commissions = (clone $query)->orderBy('user_id')->orderBy('id')->get();
 
-        $summary = $commissions->groupBy('user_id')->map(fn ($rows) => [
-            'user' => $rows->first()->user,
-            'orders' => $rows->count(),
-            'pending' => round((float) $rows->where('is_paid', false)->sum('commission_amount'), 2),
-            'paid' => round((float) $rows->where('is_paid', true)->sum('commission_amount'), 2),
-        ]);
+        $advances = CommissionAdvance::with('user')
+            ->where('period', $period)
+            ->when($userId, fn ($q) => $q->where('user_id', $userId))
+            ->orderBy('id')
+            ->get();
+
+        // Un resumen por técnico con comisiones o adelantos en el mes.
+        $summary = $commissions->pluck('user', 'user_id')->union($advances->pluck('user', 'user_id'))
+            ->map(function ($technician, $id) use ($commissions, $advances) {
+                $rows = $commissions->where('user_id', $id);
+                $pending = round((float) $rows->where('is_paid', false)->sum('commission_amount'), 2);
+                $openAdvances = round((float) $advances->where('user_id', $id)->where('is_settled', false)->sum('amount'), 2);
+
+                return [
+                    'user' => $technician,
+                    'orders' => $rows->count(),
+                    'pending' => $pending,
+                    'paid' => round((float) $rows->where('is_paid', true)->sum('commission_amount'), 2),
+                    'advances' => $openAdvances,
+                    'to_pay' => round(max(0, $pending - $openAdvances), 2),
+                ];
+            });
 
         return view('commissions.index', [
             'commissions' => $commissions,
             'summary' => $summary,
+            'advances' => $advances,
             'period' => $period,
             'canManage' => $canManage,
             'technicians' => $canManage
@@ -52,7 +71,8 @@ class CommissionController extends Controller
     }
 
     /**
-     * Marca como pagadas las comisiones pendientes de un técnico en un mes.
+     * Paga las comisiones pendientes de un técnico en un mes, descontando sus adelantos.
+     * Si los adelantos superan lo ganado, el excedente pasa como adelanto al mes siguiente.
      */
     public function pay(Request $request)
     {
@@ -61,23 +81,66 @@ class CommissionController extends Controller
             'period' => ['required', 'date_format:Y-m'],
         ]);
 
-        $count = DB::transaction(function () use ($validated) {
+        $result = DB::transaction(function () use ($validated) {
             $pending = Commission::where('user_id', $validated['user_id'])
                 ->where('period', $validated['period'])
                 ->where('is_paid', false)
                 ->lockForUpdate()
                 ->get();
+            $advances = CommissionAdvance::where('user_id', $validated['user_id'])
+                ->where('period', $validated['period'])
+                ->where('is_settled', false)
+                ->lockForUpdate()
+                ->get();
+
+            if ($pending->isEmpty()) {
+                return null;
+            }
 
             foreach ($pending as $commission) {
                 $commission->update(['is_paid' => true, 'paid_at' => now()]);
             }
+            foreach ($advances as $advance) {
+                $advance->update(['is_settled' => true, 'settled_at' => now()]);
+            }
 
-            return $pending->count();
+            $earned = round((float) $pending->sum('commission_amount'), 2);
+            $advanced = round((float) $advances->sum('amount'), 2);
+
+            if ($advanced > $earned) {
+                CommissionAdvance::create([
+                    'user_id' => $validated['user_id'],
+                    'amount' => round($advanced - $earned, 2),
+                    'period' => Carbon::createFromFormat('!Y-m', $validated['period'])->addMonthNoOverflow()->format('Y-m'),
+                    'notes' => 'Saldo de adelantos de ' . $validated['period'],
+                    'registered_by' => Auth::id(),
+                ]);
+            }
+
+            return ['count' => $pending->count(), 'earned' => $earned, 'advanced' => $advanced, 'paid' => round(max(0, $earned - $advanced), 2)];
         });
 
         $name = User::withTrashed()->find($validated['user_id'])->name;
+        $message = $result
+            ? "Pago a {$name}: \$" . number_format($result['paid'], 2) . " ({$result['count']} comisiones por \$" . number_format($result['earned'], 2)
+                . ($result['advanced'] > 0 ? ' menos adelantos por $' . number_format($result['advanced'], 2) : '') . ').'
+            : 'No había comisiones pendientes.';
+
+        return redirect()->route('commissions.index', ['period' => $validated['period']])->with('success', $message);
+    }
+
+    public function storeAdvance(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'period' => ['required', 'date_format:Y-m'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        CommissionAdvance::create($validated + ['registered_by' => Auth::id()]);
 
         return redirect()->route('commissions.index', ['period' => $validated['period']])
-            ->with('success', $count ? "{$count} comisiones de {$name} marcadas como pagadas." : 'No había comisiones pendientes.');
+            ->with('success', 'Adelanto de $' . number_format((float) $validated['amount'], 2) . ' registrado.');
     }
 }

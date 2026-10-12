@@ -30,9 +30,42 @@
         </form>
     </div>
 
+    @if ($canManage)
+        <form method="POST" action="{{ route('commissions.advances.store') }}" class="mb-6 bg-white rounded-xl shadow-sm border p-4 flex flex-wrap items-end gap-2">
+            @csrf
+            <input type="hidden" name="period" value="{{ $period }}">
+            <span class="text-sm font-medium text-gray-700 mr-2">Registrar adelanto</span>
+            <select name="user_id" required class="{{ $field }}">
+                <option value="">Técnico...</option>
+                @foreach ($technicians as $technician)
+                    <option value="{{ $technician->id }}">{{ $technician->name }}</option>
+                @endforeach
+            </select>
+            <input type="number" name="amount" step="0.01" min="0.01" required placeholder="Monto" class="{{ $field }} w-28">
+            <input type="text" name="notes" maxlength="255" placeholder="Detalle (opcional)" class="{{ $field }} flex-1 min-w-40">
+            <button type="submit" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium">Registrar</button>
+        </form>
+    @endif
+
+    @if ($advances->isNotEmpty())
+        <div class="mb-6 bg-white rounded-xl shadow-sm border">
+            <h3 class="px-6 py-3 border-b text-sm font-semibold text-gray-800">Adelantos del mes</h3>
+            <ul class="divide-y">
+                @foreach ($advances as $advance)
+                    <li class="px-6 py-2 flex flex-wrap justify-between gap-2 text-sm">
+                        <span>{{ $advance->user?->name }} · {{ $advance->created_at->format('d/m/Y') }}{{ $advance->notes ? ' · ' . $advance->notes : '' }}</span>
+                        <span class="{{ $advance->is_settled ? 'text-gray-400' : 'font-medium text-gray-800' }}">
+                            ${{ number_format($advance->amount, 2) }} {{ $advance->is_settled ? '(descontado)' : '' }}
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     @if ($summary->isEmpty())
         <div class="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-500 text-sm">
-            No hay comisiones en {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $period)->translatedFormat('F Y') }}.
+            No hay comisiones en {{ \Illuminate\Support\Carbon::createFromFormat('!Y-m', $period)->translatedFormat('F Y') }}.
             @if ($canManage)
                 <p class="mt-1 text-xs">Configura el tipo y valor de comisión en cada usuario técnico.</p>
             @endif
@@ -51,6 +84,18 @@
                         <span class="text-gray-500">Pagado</span>
                         <span class="font-semibold text-green-700">${{ number_format($row['paid'], 2) }}</span>
                     </div>
+                    @if ($row['advances'] > 0)
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Adelantos</span>
+                            <span class="font-semibold text-gray-700">−${{ number_format($row['advances'], 2) }}</span>
+                        </div>
+                        @if ($row['pending'] > 0)
+                            <div class="flex justify-between text-sm border-t mt-1 pt-1">
+                                <span class="text-gray-700 font-medium">A pagar</span>
+                                <span class="font-bold text-gray-900">${{ number_format($row['to_pay'], 2) }}</span>
+                            </div>
+                        @endif
+                    @endif
                     @if ($canManage && $row['pending'] > 0)
                         <form method="POST" action="{{ route('commissions.pay') }}" class="mt-3"
                             onsubmit="return confirm({{ \Illuminate\Support\Js::from('¿Marcar como pagadas las comisiones pendientes de ' . ($row['user']?->name ?? '') . '?') }})">
@@ -58,7 +103,7 @@
                             <input type="hidden" name="user_id" value="{{ $userId }}">
                             <input type="hidden" name="period" value="{{ $period }}">
                             <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                                Pagar ${{ number_format($row['pending'], 2) }}
+                                Pagar ${{ number_format($row['to_pay'], 2) }}
                             </button>
                         </form>
                     @endif

@@ -69,6 +69,7 @@ class AuditLog extends Model
             'CashMovement' => 'Movimiento de caja',
             'MaintenancePlan' => 'Plan de mantenimiento',
             'Supplier' => 'Proveedor',
+            'CommissionAdvance' => 'Adelanto de comisión',
         ];
     }
 

@@ -227,4 +227,63 @@ class CommissionAndReportTest extends TestCase
             $this->actingAs(User::factory()->role($role)->create())->get(route('reports.index'))->assertForbidden();
         }
     }
+
+    // --- Adelantos de comisiones ---
+
+    public function test_advance_is_discounted_when_paying(): void
+    {
+        $admin = $this->admin();
+        $tech = $this->technician('fixed', 30);
+        $this->deliver($this->makeOrder($tech), $admin);
+        $period = now()->format('Y-m');
+
+        $this->actingAs($admin)->post(route('commissions.advances.store'), ['user_id' => $tech->id, 'period' => $period, 'amount' => 10, 'notes' => 'Pasajes']);
+        $this->actingAs($admin)->get(route('commissions.index'))
+            ->assertViewHas('summary', fn ($s) => $s[$tech->id]['to_pay'] == 20)
+            ->assertSee('Pagar $20.00');
+
+        $this->actingAs($admin)->post(route('commissions.pay'), ['user_id' => $tech->id, 'period' => $period])
+            ->assertSessionHas('success', fn ($m) => str_contains($m, '$20.00') && str_contains($m, 'adelantos por $10.00'));
+
+        $this->assertTrue(\App\Models\CommissionAdvance::first()->is_settled);
+        $this->assertTrue(Commission::first()->is_paid);
+    }
+
+    public function test_excess_advance_carries_over_to_next_month(): void
+    {
+        $admin = $this->admin();
+        $tech = $this->technician('fixed', 5);
+        $this->deliver($this->makeOrder($tech), $admin);
+        $period = now()->format('Y-m');
+
+        $this->actingAs($admin)->post(route('commissions.advances.store'), ['user_id' => $tech->id, 'period' => $period, 'amount' => 12]);
+        $this->actingAs($admin)->post(route('commissions.pay'), ['user_id' => $tech->id, 'period' => $period]);
+
+        $carry = \App\Models\CommissionAdvance::where('is_settled', false)->first();
+        $this->assertEquals(7, $carry->amount);
+        $this->assertSame(now()->startOfMonth()->addMonth()->format('Y-m'), $carry->period);
+    }
+
+    public function test_technician_sees_own_advances_only_and_cannot_register(): void
+    {
+        $admin = $this->admin();
+        $tech = $this->technician();
+        $other = $this->technician();
+        $period = now()->format('Y-m');
+        $this->actingAs($admin)->post(route('commissions.advances.store'), ['user_id' => $tech->id, 'period' => $period, 'amount' => 3]);
+        $this->actingAs($admin)->post(route('commissions.advances.store'), ['user_id' => $other->id, 'period' => $period, 'amount' => 4]);
+
+        $this->actingAs($tech)->get(route('commissions.index'))
+            ->assertViewHas('advances', fn ($a) => $a->pluck('user_id')->unique()->all() === [$tech->id]);
+        $this->actingAs($tech)->post(route('commissions.advances.store'), ['user_id' => $tech->id, 'period' => $period, 'amount' => 100])
+            ->assertForbidden();
+    }
+
+    public function test_month_is_parsed_correctly_on_day_31(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-01-31 10:00'));
+
+        $this->actingAs($this->admin())->get(route('commissions.index', ['period' => '2026-02']))
+            ->assertOk()->assertSee('febrero 2026');
+    }
 }

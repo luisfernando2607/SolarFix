@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/spare-parts/{spare_part}/adjust', [SparePartController::class, 'adjust'])->name('spare-parts.adjust');
         Route::resource('checklists', ChecklistController::class)->except(['show', 'destroy']);
         Route::post('/commissions/pay', [CommissionController::class, 'pay'])->name('commissions.pay');
+        Route::post('/commissions/advances', [CommissionController::class, 'storeAdvance'])->name('commissions.advances.store');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export/{dataset}', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');

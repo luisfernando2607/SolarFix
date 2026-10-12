@@ -42,7 +42,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 🛡️ **Garantías** | Emitidas al entregar; el reclamo abre una orden vinculada y la cobertura (completa, mano de obra o repuestos) define qué se cobra |
 | 📅 **Agenda** | Visitas a domicilio con choque de horarios, confirmación y recordatorio |
 | 🔁 **Mantenimientos** | Planes preventivos por cliente que se renuevan al completar la visita |
-| 💰 **Comisiones** | Fijas o porcentuales por técnico, generadas al entregar |
+| 💰 **Comisiones** | Fijas o porcentuales por técnico, generadas al entregar; adelantos que se descuentan al pagar |
 | 📊 **Reportes** | Ingresos, órdenes, técnicos, tipos de equipo y repuestos; exportación a Excel |
 | 🔔 **Notificaciones** | Aviso al técnico cuando le asignan una orden, una cita o un reclamo |
 | 🕵️ **Auditoría** | Quién cambió qué y cuándo (valor anterior y nuevo) e intentos de acceso |
