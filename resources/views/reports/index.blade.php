@@ -25,6 +25,9 @@
             <a href="{{ route('reports.index', ['from' => now()->startOfMonth()->toDateString(), 'to' => now()->toDateString()]) }}" class="text-sm text-gray-600 hover:text-blue-600 px-2">Este mes</a>
             <a href="{{ route('reports.index', ['from' => now()->subMonthNoOverflow()->startOfMonth()->toDateString(), 'to' => now()->subMonthNoOverflow()->endOfMonth()->toDateString()]) }}" class="text-sm text-gray-600 hover:text-blue-600 px-2">Mes anterior</a>
             <a href="{{ route('reports.index', ['from' => now()->startOfYear()->toDateString(), 'to' => now()->toDateString()]) }}" class="text-sm text-gray-600 hover:text-blue-600 px-2">Este año</a>
+            <span class="text-gray-300">|</span>
+            <a href="{{ route('reports.export', ['dataset' => 'orders', 'from' => $from->toDateString(), 'to' => $to->toDateString()]) }}" class="text-sm bg-white border px-3 py-2 rounded-lg hover:bg-gray-50">Excel: órdenes</a>
+            <a href="{{ route('reports.export', ['dataset' => 'payments', 'from' => $from->toDateString(), 'to' => $to->toDateString()]) }}" class="text-sm bg-white border px-3 py-2 rounded-lg hover:bg-gray-50">Excel: pagos</a>
         </form>
     </div>
 

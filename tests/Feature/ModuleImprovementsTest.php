@@ -144,4 +144,50 @@ class ModuleImprovementsTest extends TestCase
         $this->actingAs($this->admin())->post(route('cash.movements.store'), ['type' => 'robo', 'amount' => 0, 'description' => ''])
             ->assertSessionHasErrors(['type', 'amount', 'description']);
     }
+
+    // --- 4. Exportación a Excel (CSV) ---
+
+    public function test_orders_export_is_excel_friendly_csv(): void
+    {
+        $client = $this->client(['name' => 'José Peña', 'phone' => '0991234567']);
+        $order = $this->makeOrder(['client_id' => $client->id, 'labor_cost' => 25.5, 'total_amount' => 25.5, 'balance_due' => 25.5]);
+
+        $response = $this->actingAs($this->admin())->get(route('reports.export', ['dataset' => 'orders']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('ordenes-', $response->headers->get('Content-Disposition'));
+        $csv = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
+        $lines = array_map(fn ($l) => str_getcsv($l, ';'), array_filter(explode("\n", substr($csv, 3))));
+        $this->assertSame('Orden', $lines[0][0]);
+        $this->assertSame($order->order_number, $lines[1][0]);
+        $this->assertSame('José Peña', $lines[1][2]);
+        $this->assertSame('25,50', $lines[1][11]);
+    }
+
+    public function test_export_neutralizes_formula_injection(): void
+    {
+        $client = $this->client(['name' => '=HYPERLINK("http://malo")']);
+        $this->makeOrder(['client_id' => $client->id]);
+
+        $csv = $this->actingAs($this->admin())->get(route('reports.export', ['dataset' => 'orders']))->streamedContent();
+
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+    }
+
+    public function test_payments_export_respects_period_and_admin_only(): void
+    {
+        $order = $this->makeOrder();
+        \App\Models\OrderPayment::create(['order_id' => $order->id, 'amount' => 12, 'method' => 'card', 'reference' => 'VOUCHER-1', 'paid_at' => now()]);
+        \App\Models\OrderPayment::create(['order_id' => $order->id, 'amount' => 99, 'method' => 'cash', 'reference' => 'VIEJO', 'paid_at' => now()->subYear()]);
+
+        $csv = $this->actingAs($this->admin())->get(route('reports.export', ['dataset' => 'payments']))->streamedContent();
+        $this->assertStringContainsString('VOUCHER-1', $csv);
+        $this->assertStringContainsString('Tarjeta', $csv);
+        $this->assertStringNotContainsString('VIEJO', $csv);
+
+        $this->actingAs(User::factory()->role('receptionist')->create())->get(route('reports.export', ['dataset' => 'payments']))->assertForbidden();
+        $this->actingAs($this->admin())->get(route('reports.export', ['dataset' => 'otro']))->assertNotFound();
+    }
 }

@@ -82,6 +82,89 @@ class ReportController extends Controller
     }
 
     /**
+     * Exporta órdenes o pagos del período a CSV (separador ";" y BOM UTF-8 para Excel en español).
+     */
+    public function export(Request $request, string $dataset)
+    {
+        abort_unless(in_array($dataset, ['orders', 'payments']), 404);
+        $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
+
+        $from = $request->filled('from') ? Carbon::parse($request->from)->startOfDay() : now()->startOfMonth();
+        $to = $request->filled('to') ? Carbon::parse($request->to)->endOfDay() : now()->endOfDay();
+
+        [$header, $rows] = $dataset === 'orders' ? $this->orderRows($from, $to) : $this->paymentRows($from, $to);
+        $filename = ($dataset === 'orders' ? 'ordenes' : 'pagos') . '-' . $from->format('Ymd') . '-' . $to->format('Ymd') . '.csv';
+
+        return response()->streamDownload(function () use ($header, $rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, $header, ';');
+            foreach ($rows as $row) {
+                fputcsv($out, array_map([$this, 'safeCell'], $row), ';');
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    private function orderRows(Carbon $from, Carbon $to): array
+    {
+        $statuses = Order::statuses();
+        $orders = Order::with(['client', 'user', 'brand', 'deviceModel'])
+            ->whereBetween('created_at', [$from, $to])
+            ->orderBy('id')
+            ->get();
+
+        return [
+            ['Orden', 'Fecha ingreso', 'Cliente', 'Cédula', 'Teléfono', 'Equipo', 'Marca', 'Modelo', 'Estado', 'Técnico',
+                'Diagnóstico', 'Mano de obra', 'Repuestos', 'Recargo', 'Total', 'Pagado', 'Saldo', 'Fecha entrega'],
+            $orders->map(fn ($o) => [
+                $o->order_number, $o->entry_date?->format('d/m/Y'), $o->client?->name, $o->client?->id_document, $o->client?->phone,
+                Order::deviceTypes()[$o->device_type] ?? $o->device_type, $o->brand?->name ?? $o->brand_text, $o->deviceModel?->name ?? $o->model_text,
+                $statuses[$o->status] ?? $o->status, $o->user?->name,
+                $this->decimal($o->diagnosis_cost), $this->decimal($o->labor_cost), $this->decimal($o->parts_cost), $this->decimal($o->surcharge_amount),
+                $this->decimal($o->total_amount), $this->decimal($o->amount_paid), $this->decimal($o->balance_due), $o->delivery_date?->format('d/m/Y'),
+            ]),
+        ];
+    }
+
+    private function paymentRows(Carbon $from, Carbon $to): array
+    {
+        $payments = OrderPayment::with(['order.client', 'registeredBy'])
+            ->whereBetween('paid_at', [$from, $to])
+            ->orderBy('paid_at')
+            ->get();
+
+        return [
+            ['Fecha', 'Hora', 'Orden', 'Cliente', 'Método', 'Referencia', 'Monto', 'Registrado por'],
+            $payments->map(fn ($p) => [
+                $p->paid_at->format('d/m/Y'), $p->paid_at->format('H:i'), $p->order?->order_number, $p->order?->client?->name,
+                self::METHODS[$p->method] ?? $p->method, $p->reference, $this->decimal($p->amount), $p->registeredBy?->name,
+            ]),
+        ];
+    }
+
+    /**
+     * Decimal con coma, como lo espera Excel en español.
+     */
+    private function decimal($value): string
+    {
+        return number_format((float) $value, 2, ',', '');
+    }
+
+    /**
+     * Evita inyección de fórmulas: un texto que empieza con = + - @ se abriría como fórmula en Excel.
+     */
+    private function safeCell($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = (string) $value;
+
+        return preg_match('/^[=+\-@\t\r]/', $value) && ! preg_match('/^-?\d+(,\d+)?$/', $value) ? "'" . $value : $value;
+    }
+
+    /**
      * Ingresos cobrados por mes en los últimos 12 meses (incluye meses sin ingresos).
      */
     private function monthlyRevenue()

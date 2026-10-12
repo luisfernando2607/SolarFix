@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('checklists', ChecklistController::class)->except(['show', 'destroy']);
         Route::post('/commissions/pay', [CommissionController::class, 'pay'])->name('commissions.pay');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export/{dataset}', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
