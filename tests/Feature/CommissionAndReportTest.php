@@ -126,7 +126,7 @@ class CommissionAndReportTest extends TestCase
         $this->assertEquals(10, $commission->commission_amount); // 10% (tarifa al entregar), no 50%
     }
 
-    public function test_unpaid_commission_removed_when_order_reopened_or_deleted(): void
+    public function test_delivered_order_cannot_be_reopened_and_deleting_removes_commission(): void
     {
         $admin = $this->admin();
         $tech = $this->technician();
@@ -138,8 +138,11 @@ class CommissionAndReportTest extends TestCase
         $this->actingAs($admin)->put(route('orders.update', $order), [
             'client_id' => $order->client_id, 'device_type' => 'celular', 'declared_fault' => 'No enciende',
             'unlock_type' => 'none', 'entry_date' => $order->entry_date->toDateString(), 'status' => 'repairing',
-        ]);
-        $this->assertSame(0, Commission::count());
+            'diagnosis_cost' => 10, 'labor_cost' => 40, 'parts_cost' => 50,
+        ])->assertSessionHasErrors('status');
+        $this->assertSame('delivered', $order->fresh()->status);
+        $this->assertSame(1, Commission::count());
+        $order->commission->delete();
 
         $other = $this->makeOrder($tech);
         $this->deliver($other, $admin);

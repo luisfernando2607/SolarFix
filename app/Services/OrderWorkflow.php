@@ -77,7 +77,7 @@ class OrderWorkflow
         }
 
         // Sin reparación: los repuestos reservados para el presupuesto vuelven al stock.
-        if ($order->status === 'closed_no_repair' && $oldStatus !== 'closed_no_repair') {
+        if ($order->status === 'closed_no_repair' && ! in_array($oldStatus, ['closed_no_repair', 'delivered'], true)) {
             $this->inventory->releaseOrderParts($order, 'Devuelto: cerrada sin reparación la orden', $userId);
         }
 

@@ -524,6 +524,12 @@
                         <dd class="font-medium">{{ money($order->surcharge_amount) }}</dd>
                     </div>
                     @endif
+                    @if ($order->tax_amount > 0)
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">IVA (facturado)</dt>
+                        <dd class="font-medium">{{ money($order->tax_amount) }}</dd>
+                    </div>
+                    @endif
                     <div class="flex justify-between border-t pt-2 font-semibold">
                         <dt class="text-gray-700">Total</dt>
                         <dd class="text-gray-800">{{ money($order->total_amount) }}</dd>
@@ -536,6 +542,12 @@
                         <dt>Saldo</dt>
                         <dd>{{ money($order->balance_due) }}</dd>
                     </div>
+                    @if ($order->creditDue() > 0)
+                    <div class="flex justify-between font-semibold text-amber-700">
+                        <dt>Saldo a favor del cliente</dt>
+                        <dd>{{ money($order->creditDue()) }}</dd>
+                    </div>
+                    @endif
                 </dl>
                 @if ($order->total_amount > 0 && Gate::allows('manage-invoices'))
                     <form method="POST" action="{{ route('invoices.generate-from-order', $order) }}" class="mt-4">
@@ -769,6 +781,33 @@
                         Registrar Pago
                     </button>
                 </form>
+
+                @if ($order->creditDue() > 0)
+                <form method="POST" action="{{ route('orders.refunds.store', $order) }}" class="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200"
+                    onsubmit="return confirm('¿Registrar la devolución? Sale de la caja del día.')">
+                    @csrf
+                    <p class="text-sm text-amber-800 mb-2">Se cobró {{ money($order->creditDue()) }} de más. Devuélvelo al cliente:</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="refund_amount" class="block text-xs font-medium text-gray-600 mb-1">Monto</label>
+                            <input type="number" step="0.01" min="0.01" max="{{ $order->creditDue() }}" id="refund_amount" name="amount" required value="{{ $order->creditDue() }}"
+                                class="w-full px-2 py-1.5 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label for="refund_method" class="block text-xs font-medium text-gray-600 mb-1">Método</label>
+                            <select id="refund_method" name="method" required
+                                class="w-full px-2 py-1.5 text-base sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                @foreach (\App\Support\PaymentMethods::all() as $methodKey => $methodLabel)
+                                    <option value="{{ $methodKey }}">{{ $methodLabel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="mt-2 w-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition">
+                        Registrar devolución
+                    </button>
+                </form>
+                @endif
                 @endcan
 
                 @if ($order->payments->count())
@@ -776,7 +815,10 @@
                     @foreach ($order->payments as $payment)
                         <div class="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
                             <div class="flex items-center gap-2">
-                                <span class="font-medium text-gray-800">{{ money($payment->amount) }}</span>
+                                <span class="font-medium {{ $payment->isRefund() ? 'text-amber-700' : 'text-gray-800' }}">{{ money($payment->amount) }}</span>
+                                @if ($payment->isRefund())
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">Devolución</span>
+                                @endif
                                 <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
                                     {{ $payment->method_label }}
                                 </span>

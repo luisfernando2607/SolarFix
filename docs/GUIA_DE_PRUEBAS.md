@@ -132,6 +132,16 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] Como **recepcionista de Guayaquil**, cambia en la URL el número de una orden de Quito para cobrarla o facturarla. → "403".
 - [ ] Deja un campo obligatorio vacío en cualquier formulario. → El mensaje sale en español.
 
+## 14. Dinero que cuadra
+
+- [ ] Registra un anticipo de $100 y luego baja la mano de obra a $60 en "Editar". → Aparece "Saldo a favor del cliente $40" y el formulario de **devolución**; al registrarla, sale de la caja del día.
+- [ ] Factura una orden con saldo. → La factura queda "Emitida"; al cobrar el saldo pasa sola a "Pagada".
+- [ ] Con la factura vigente intenta cambiar la mano de obra o agregar un repuesto. → Lo impide y pide anular la factura.
+- [ ] En **Configuración** desmarca "precios con IVA incluido" y factura una orden de $100. → El total de la orden pasa a $115 y el saldo pide cobrar el IVA. Anula la factura. → La orden vuelve a $100.
+- [ ] Intenta eliminar una orden con pagos o con factura vigente. → Lo impide.
+- [ ] Cierra la caja de un día y al día siguiente intenta registrar un pago o un gasto con la fecha del día cerrado. → Lo impide.
+- [ ] En una orden entregada, en "Editar" cambia el estado. → Avisa que debe registrarse un reclamo de garantía.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

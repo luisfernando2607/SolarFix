@@ -40,6 +40,7 @@ class Order extends Model
         'parts_cost',
         'surcharge_percent',
         'surcharge_amount',
+        'tax_amount',
         'total_amount',
         'amount_paid',
         'balance_due',
@@ -59,6 +60,7 @@ class Order extends Model
             'parts_cost' => 'decimal:2',
             'surcharge_percent' => 'decimal:2',
             'surcharge_amount' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
             'balance_due' => 'decimal:2',
@@ -233,10 +235,38 @@ class Order extends Model
         $paid = round((float) $this->payments()->sum('amount'), 2);
 
         $this->surcharge_amount = $surcharge;
-        $this->total_amount = round($subtotal + $surcharge, 2);
+        $this->total_amount = round($subtotal + $surcharge + (float) $this->tax_amount, 2);
         $this->amount_paid = $paid;
         $this->balance_due = round(max(0, $this->total_amount - $paid), 2);
         $this->save();
+    }
+
+    /**
+     * Lo cobrado de más (por ejemplo, si bajó el costo después de un anticipo): se devuelve al cliente.
+     */
+    public function creditDue(): float
+    {
+        return round(max(0, (float) $this->amount_paid - (float) $this->total_amount), 2);
+    }
+
+    /**
+     * Factura vigente (emitida o pagada) de la orden, si la hay.
+     */
+    public function activeInvoice(): ?Invoice
+    {
+        return $this->invoices()->where('status', '!=', 'anulada')->first();
+    }
+
+    /**
+     * Motivo por el que no se pueden cambiar los costos: una factura vigente ya los fijó.
+     */
+    public function costsLockedReason(): ?string
+    {
+        $invoice = $this->activeInvoice();
+
+        return $invoice
+            ? "La orden tiene la factura #{$invoice->invoice_number} vigente; anúlala para cambiar costos o repuestos."
+            : null;
     }
 
     public function isWarrantyOrder(): bool

@@ -69,27 +69,34 @@ class SignatureController extends Controller
         $path = 'signatures/' . $order->id . '-' . $stage . '-' . now()->format('YmdHis') . '.png';
         Storage::disk('local')->put($path, $png);
 
-        DB::transaction(function () use ($order, $stage, $path, $request, $paymentAmount) {
-            if ($stage === 'delivery' && $paymentAmount > 0) {
-                OrderPayment::register($order, $paymentAmount, $request->payment_method, Auth::id(), $request->payment_reference, 'Cobrado al entregar');
-            }
+        try {
+            DB::transaction(function () use ($order, $stage, $path, $request, $paymentAmount) {
+                if ($stage === 'delivery' && $paymentAmount > 0) {
+                    OrderPayment::register($order, $paymentAmount, $request->payment_method, Auth::id(), $request->payment_reference, 'Cobrado al entregar');
+                }
 
-            $existing = OrderSignature::where('order_id', $order->id)->where('stage', $stage)->first();
-            if ($existing) {
-                Storage::disk('local')->delete($existing->signature_path);
-            }
+                $existing = OrderSignature::where('order_id', $order->id)->where('stage', $stage)->first();
+                if ($existing) {
+                    Storage::disk('local')->delete($existing->signature_path);
+                }
 
-            OrderSignature::updateOrCreate(
-                ['order_id' => $order->id, 'stage' => $stage],
-                ['signature_path' => $path, 'signed_at' => now(), 'ip_address' => $request->ip()],
-            );
+                OrderSignature::updateOrCreate(
+                    ['order_id' => $order->id, 'stage' => $stage],
+                    ['signature_path' => $path, 'signed_at' => now(), 'ip_address' => $request->ip()],
+                );
 
-            if ($stage === 'delivery') {
-                $order->isReturnWithoutRepair()
-                    ? $order->markReturnedWithoutRepair(Auth::id())
-                    : $order->markDelivered(Auth::id(), 'Entrega firmada por el cliente');
-            }
-        });
+                if ($stage === 'delivery') {
+                    $order->isReturnWithoutRepair()
+                        ? $order->markReturnedWithoutRepair(Auth::id())
+                        : $order->markDelivered(Auth::id(), 'Entrega firmada por el cliente');
+                }
+            });
+        } catch (\DomainException $e) {
+            // Cobro rechazado (saldo cambiado o caja cerrada): no queda la firma suelta.
+            Storage::disk('local')->delete($path);
+
+            return back()->withErrors(['payment_amount' => $e->getMessage()])->withInput();
+        }
 
         $message = match (true) {
             $stage === 'reception' => 'Firma de recepción registrada.',

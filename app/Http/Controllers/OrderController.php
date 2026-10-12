@@ -23,6 +23,7 @@ use App\Services\OrderWorkflow;
 use App\Support\BranchContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -156,8 +157,8 @@ class OrderController extends Controller
         $partsCost = (float) ($validated['parts_cost'] ?? 0);
         $surchargePercent = (float) ($validated['surcharge_percent'] ?? 0);
         $subtotal = $diagnosisCost + $laborCost + $partsCost;
-        $surchargeAmount = $subtotal * ($surchargePercent / 100);
-        $validated['surcharge_amount'] = round($surchargeAmount, 2);
+        $surchargeAmount = round($subtotal * ($surchargePercent / 100), 2);
+        $validated['surcharge_amount'] = $surchargeAmount;
         $validated['total_amount'] = round($subtotal + $surchargeAmount, 2);
         // El anticipo es un cobro: solo quien puede registrar pagos, y nunca más que el total.
         $amountPaid = Gate::allows('register-payments') ? round((float) ($validated['amount_paid'] ?? 0), 2) : 0.0;
@@ -359,6 +360,11 @@ class OrderController extends Controller
         if ($validated['status'] === 'delivered' && $order->status !== 'delivered') {
             return back()->withInput()->withErrors(['status' => 'La entrega se registra desde "Entregar" (cobro y firma del cliente).']);
         }
+        // Una orden entregada ya tiene garantía, comisión y repuestos instalados: si el equipo
+        // vuelve, se abre un reclamo de garantía en vez de reabrirla.
+        if ($order->status === 'delivered' && $validated['status'] !== 'delivered') {
+            return back()->withInput()->withErrors(['status' => 'La orden ya fue entregada. Si el equipo vuelve, registra un reclamo de garantía.']);
+        }
 
         // Los técnicos no editan órdenes cerradas y solo avanzan a los pasos permitidos.
         if (Auth::user()->isTechnician()) {
@@ -380,26 +386,26 @@ class OrderController extends Controller
             unset($validated['user_id']);
         }
 
+        foreach (['diagnosis_cost', 'labor_cost', 'parts_cost', 'surcharge_percent'] as $field) {
+            $validated[$field] = round((float) ($validated[$field] ?? 0), 2);
+        }
         // Si la orden tiene repuestos del inventario, su costo sale de ellos y no del formulario.
         if ($order->parts()->exists()) {
             $validated['parts_cost'] = round((float) $order->parts()->sum('subtotal'), 2);
         }
 
-        $diagnosisCost = (float) ($validated['diagnosis_cost'] ?? 0);
-        $laborCost = (float) ($validated['labor_cost'] ?? 0);
-        $partsCost = (float) ($validated['parts_cost'] ?? 0);
-        $surchargePercent = (float) ($validated['surcharge_percent'] ?? 0);
-        $subtotal = $diagnosisCost + $laborCost + $partsCost;
-        $surchargeAmount = $subtotal * ($surchargePercent / 100);
-        $validated['surcharge_amount'] = round($surchargeAmount, 2);
-        $validated['total_amount'] = round($subtotal + $surchargeAmount, 2);
-        $amountPaid = (float) $order->payments()->sum('amount');
-        $validated['amount_paid'] = round($amountPaid, 2);
-        $validated['balance_due'] = round(max(0, $validated['total_amount'] - $amountPaid), 2);
+        // Con factura vigente los costos quedan fijos (la factura los refleja).
+        $costsChanged = collect(['diagnosis_cost', 'labor_cost', 'parts_cost', 'surcharge_percent'])
+            ->contains(fn ($field) => abs((float) $order->{$field} - $validated[$field]) > 0.004);
+        if ($costsChanged && ($reason = $order->costsLockedReason())) {
+            return back()->withInput()->withErrors(['labor_cost' => $reason]);
+        }
 
         $oldStatus = $order->status;
         $oldTechnician = $order->user_id;
-        $order->update($validated);
+        $order->fill($validated);
+        // Recargo, total, pagado y saldo con la misma fórmula que el resto de la app.
+        $order->recalculateTotals();
 
         if ($order->user_id && (int) $order->user_id !== (int) $oldTechnician) {
             AssignmentNotification::notify($order->user_id, 'Orden asignada',
@@ -419,11 +425,21 @@ class OrderController extends Controller
 
     public function destroy(Order $order)
     {
-        if (! in_array($order->status, ['delivered', 'closed_no_repair'])) {
-            app(InventoryService::class)->releaseOrderParts($order, 'Devuelto: anulada la orden', Auth::id());
+        // Con dinero de por medio no se anula a ciegas: primero se devuelve o se anula la factura.
+        if ($invoice = $order->activeInvoice()) {
+            return back()->with('error', "La orden tiene la factura #{$invoice->invoice_number} vigente; anúlala antes de eliminar la orden.");
         }
-        $order->delete();
-        Commission::syncFor($order);
+        if ((float) $order->payments()->sum('amount') > 0.004) {
+            return back()->with('error', 'La orden tiene pagos registrados; devuelve el dinero (o elimina los pagos) antes de eliminarla.');
+        }
+
+        DB::transaction(function () use ($order) {
+            if (! in_array($order->status, ['delivered', 'closed_no_repair'])) {
+                app(InventoryService::class)->releaseOrderParts($order, 'Devuelto: anulada la orden', Auth::id());
+            }
+            $order->delete();
+            Commission::syncFor($order);
+        });
 
         return redirect()->route('orders.index')
             ->with('success', 'Orden eliminada.');

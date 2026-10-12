@@ -115,6 +115,12 @@ class InvoiceController extends Controller
         $ivaAmount = round($subtotal * (float) $validated['iva_percent'] / 100, 2);
 
         $invoice = DB::transaction(function () use ($validated, $items, $subtotal, $ivaAmount) {
+            // Bloquea la orden: un doble envío no genera dos facturas vigentes.
+            $order = ! empty($validated['order_id']) ? Order::lockForUpdate()->findOrFail($validated['order_id']) : null;
+            if ($existing = $order?->activeInvoice()) {
+                return $existing;
+            }
+
             $invoice = Invoice::createWithUniqueNumber([
                 'order_id' => $validated['order_id'] ?? null,
                 'client_id' => $validated['client_id'] ?? null,
@@ -139,14 +145,20 @@ class InvoiceController extends Controller
 
             $invoice->items()->createMany($items->all());
 
-            if ($invoice->order_id) {
-                OrderPayment::where('order_id', $invoice->order_id)
+            if ($order) {
+                OrderPayment::where('order_id', $order->id)
                     ->whereNull('invoice_id')
                     ->update(['invoice_id' => $invoice->id]);
+                $invoice->syncPaidStatus($order);
             }
 
             return $invoice;
         });
+
+        if (! $invoice->wasRecentlyCreated) {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('info', 'La orden ya tiene una factura vigente: #' . $invoice->invoice_number);
+        }
 
         return redirect()->route('invoices.show', $invoice)
             ->with('success', 'Factura #' . $invoice->invoice_number . ' emitida exitosamente.');
@@ -248,9 +260,12 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
+        $this->authorizeInvoice($invoice);
+
         DB::transaction(function () use ($invoice) {
             // Los pagos quedan libres para asociarse a una nueva factura de la orden.
             $invoice->payments()->update(['invoice_id' => null]);
+            $this->releaseOrderTax($invoice);
             $invoice->delete();
         });
 
@@ -260,6 +275,8 @@ class InvoiceController extends Controller
 
     public function cancel(Invoice $invoice)
     {
+        $this->authorizeInvoice($invoice);
+
         if ($invoice->status === 'anulada') {
             return back()->with('error', 'La factura ya está anulada.');
         }
@@ -271,6 +288,7 @@ class InvoiceController extends Controller
             ]);
             // Los pagos quedan libres para asociarse a una nueva factura de la orden.
             $invoice->payments()->update(['invoice_id' => null]);
+            $this->releaseOrderTax($invoice);
         });
 
         return redirect()->route('invoices.show', $invoice)
@@ -279,8 +297,14 @@ class InvoiceController extends Controller
 
     public function markPaid(Invoice $invoice)
     {
+        $this->authorizeInvoice($invoice);
+
         if ($invoice->status !== 'emitida') {
             return back()->with('error', 'Solo se puede marcar como pagada una factura emitida.');
+        }
+        // La factura de una orden se paga con los cobros de la orden.
+        if ($invoice->order && (float) $invoice->order->balance_due > 0.004) {
+            return back()->with('error', 'La orden aún tiene un saldo de ' . money($invoice->order->balance_due) . '; registra el cobro en la orden.');
         }
 
         $invoice->update([
@@ -301,11 +325,7 @@ class InvoiceController extends Controller
             return back()->with('error', 'La orden no tiene costos registrados para facturar.');
         }
 
-        $existing = Invoice::where('order_id', $order->id)
-            ->where('status', '!=', 'anulada')
-            ->first();
-
-        if ($existing) {
+        if ($existing = $order->activeInvoice()) {
             return redirect()->route('invoices.show', $existing)
                 ->with('info', 'La orden ya tiene una factura vigente: #' . $existing->invoice_number);
         }
@@ -349,12 +369,20 @@ class InvoiceController extends Controller
             $subtotal = round(array_sum(array_map(fn ($i) => round($i['quantity'] * $i['unit_price'], 2), $items)), 2);
             $ivaAmount = round($orderTotal - $subtotal, 2);
         } else {
+            // Precios sin IVA: el IVA se suma a la orden para que el cliente lo pague con el saldo.
             $ivaAmount = round($subtotal * $ivaPercent / 100, 2);
         }
+        $addsTaxToOrder = $ivaAmount > 0 && Setting::get('prices_include_iva', '1') !== '1';
 
         $deviceTypeLabel = Order::deviceTypes()[$order->device_type] ?? $order->device_type;
 
-        $invoice = DB::transaction(function () use ($order, $items, $subtotal, $ivaPercent, $ivaAmount, $deviceTypeLabel) {
+        $invoice = DB::transaction(function () use ($order, $items, $subtotal, $ivaPercent, $ivaAmount, $deviceTypeLabel, $addsTaxToOrder) {
+            // Bloquea la orden: un doble clic no genera dos facturas vigentes.
+            $order = Order::lockForUpdate()->findOrFail($order->id);
+            if ($existing = $order->activeInvoice()) {
+                return $existing;
+            }
+
             $invoice = Invoice::createWithUniqueNumber([
                 'order_id' => $order->id,
                 'client_id' => $order->client?->id,
@@ -390,11 +418,35 @@ class InvoiceController extends Controller
                 ->whereNull('invoice_id')
                 ->update(['invoice_id' => $invoice->id]);
 
+            if ($addsTaxToOrder) {
+                $order->tax_amount = $ivaAmount;
+                $order->recalculateTotals();
+            }
+            $invoice->syncPaidStatus($order);
+
             return $invoice;
         });
 
+        if (! $invoice->wasRecentlyCreated) {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('info', 'La orden ya tiene una factura vigente: #' . $invoice->invoice_number);
+        }
+
         return redirect()->route('invoices.show', $invoice)
-            ->with('success', 'Factura #' . $invoice->invoice_number . ' generada desde la orden.');
+            ->with('success', 'Factura #' . $invoice->invoice_number . ' generada desde la orden.'
+                . ($addsTaxToOrder ? ' Se sumó el IVA (' . money($ivaAmount) . ') al saldo de la orden.' : ''));
+    }
+
+    /**
+     * Al anular o eliminar la factura, la orden deja de cobrar el IVA que se le sumó.
+     */
+    private function releaseOrderTax(Invoice $invoice): void
+    {
+        $order = $invoice->order;
+        if ($order && (float) $order->tax_amount > 0) {
+            $order->tax_amount = 0;
+            $order->recalculateTotals();
+        }
     }
 
     private function authorizeInvoice(Invoice $invoice): void

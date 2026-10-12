@@ -51,6 +51,23 @@ class Invoice extends Model
         ];
     }
 
+    /**
+     * Emitida ↔ pagada según el saldo de la orden (la factura sigue a los cobros).
+     */
+    public function syncPaidStatus(Order $order): void
+    {
+        if ($this->status === 'anulada') {
+            return;
+        }
+
+        $settled = (float) $order->balance_due <= 0.004;
+        if ($settled && $this->status === 'emitida') {
+            $this->update(['status' => 'pagada', 'paid_at' => now()]);
+        } elseif (! $settled && $this->status === 'pagada') {
+            $this->update(['status' => 'emitida', 'paid_at' => null]);
+        }
+    }
+
     public static function statuses(): array
     {
         return [

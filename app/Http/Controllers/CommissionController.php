@@ -36,8 +36,9 @@ class CommissionController extends Controller
 
         $commissions = (clone $query)->orderBy('user_id')->orderBy('id')->get();
 
+        // Adelantos del mes y los de meses anteriores aún sin liquidar (se descuentan en el próximo pago).
         $advances = CommissionAdvance::with('user')
-            ->where('period', $period)
+            ->where(fn ($q) => $q->where('period', $period)->orWhere(fn ($q) => $q->where('period', '<', $period)->where('is_settled', false)))
             ->when($userId, fn ($q) => $q->where('user_id', $userId))
             ->orderBy('id')
             ->get();
@@ -88,8 +89,10 @@ class CommissionController extends Controller
                 ->where('is_paid', false)
                 ->lockForUpdate()
                 ->get();
+            // Adelantos del período y de meses anteriores sin liquidar (por ejemplo, de un mes
+            // en que el técnico no tuvo comisiones): se descuentan en el siguiente pago.
             $advances = CommissionAdvance::where('user_id', $validated['user_id'])
-                ->where('period', $validated['period'])
+                ->where('period', '<=', $validated['period'])
                 ->where('is_settled', false)
                 ->lockForUpdate()
                 ->get();

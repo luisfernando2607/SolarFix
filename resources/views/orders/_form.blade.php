@@ -25,6 +25,14 @@
             </div>
         @endif
         @if($editing) @method('PUT') @endif
+        @if ($editing && $order->status === 'delivered')
+            <div class="mb-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-3 text-sm text-gray-700">
+                La orden ya fue entregada: su estado no cambia. Si el equipo vuelve, registra un reclamo de garantía.
+            </div>
+        @endif
+        @if ($editing && ($lockReason = $order->costsLockedReason()))
+            <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">{{ $lockReason }}</div>
+        @endif
 
         @if($editing)
         @php

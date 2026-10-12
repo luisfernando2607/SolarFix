@@ -32,6 +32,22 @@ class CashClosing extends Model
         ];
     }
 
+    /**
+     * Mensaje de error si se quiere mover dinero en un día anterior ya cerrado de la sucursal.
+     * El día de hoy puede seguir recibiendo cobros: el cierre se vuelve a hacer.
+     */
+    public static function lockedDayError(?int $branchId, $date): ?string
+    {
+        $day = \Illuminate\Support\Carbon::parse($date)->startOfDay();
+        if (! $day->lt(today())) {
+            return null;
+        }
+
+        $closed = self::where('branch_id', $branchId ?? Branch::mainId())->whereDate('closing_date', $day)->exists();
+
+        return $closed ? 'La caja del ' . $day->format('d/m/Y') . ' ya está cerrada; registra el movimiento con fecha de hoy.' : null;
+    }
+
     public function closedBy()
     {
         return $this->belongsTo(User::class, 'closed_by')->withTrashed();

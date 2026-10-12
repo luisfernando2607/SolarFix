@@ -38,7 +38,7 @@ class OrderPartController extends Controller
 
     public function destroy(Order $order, OrderPart $part)
     {
-        if ($part->order_id !== $order->id) {
+        if ((int) $part->order_id !== (int) $order->id) {
             abort(404);
         }
         if ($error = $this->guard($order)) {
@@ -58,6 +58,6 @@ class OrderPartController extends Controller
             return 'La orden está cerrada; no se pueden cambiar sus repuestos.';
         }
 
-        return null;
+        return $order->costsLockedReason();
     }
 }

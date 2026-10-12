@@ -94,6 +94,10 @@ class CashClosingController extends Controller
             'description' => ['required', 'string', 'max:255'],
         ]);
 
+        if ($error = CashClosing::lockedDayError($branch, $date)) {
+            return back()->withInput()->with('error', $error);
+        }
+
         CashMovement::create($validated + ['movement_date' => $date, 'branch_id' => $branch, 'registered_by' => Auth::id()]);
 
         return redirect()->route('cash.index', ['date' => $date->toDateString(), 'branch' => $branch])
@@ -105,6 +109,9 @@ class CashClosingController extends Controller
         abort_unless(Auth::user()->isAdmin() || Auth::user()->isSuperAdmin(), 403, 'Solo un administrador puede eliminar movimientos de caja.');
 
         $date = $movement->movement_date->toDateString();
+        if ($error = CashClosing::lockedDayError($movement->branch_id, $date)) {
+            return back()->with('error', $error);
+        }
         $movement->delete();
 
         return redirect()->route('cash.index', ['date' => $date, 'branch' => $movement->branch_id])->with('success', 'Movimiento eliminado.');

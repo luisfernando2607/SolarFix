@@ -76,11 +76,18 @@ class OrderWorkController extends Controller
             'labor_cost' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
         ]);
 
+        $diagnosisCost = round((float) ($validated['diagnosis_cost'] ?? 0), 2);
+        $laborCost = round((float) ($validated['labor_cost'] ?? 0), 2);
+        $costsChanged = abs((float) $order->diagnosis_cost - $diagnosisCost) > 0.004 || abs((float) $order->labor_cost - $laborCost) > 0.004;
+        if ($costsChanged && ($reason = $order->costsLockedReason())) {
+            return back()->with('error', $reason);
+        }
+
         $order->fill([
             'diagnosis' => $validated['diagnosis'] ?? null,
             'work_done' => $validated['work_done'] ?? null,
-            'diagnosis_cost' => $validated['diagnosis_cost'] ?? 0,
-            'labor_cost' => $validated['labor_cost'] ?? 0,
+            'diagnosis_cost' => $diagnosisCost,
+            'labor_cost' => $laborCost,
         ]);
         $order->recalculateTotals();
 
