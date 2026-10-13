@@ -37,12 +37,14 @@ class Commission extends Model
 
     /**
      * Crea, actualiza o elimina la comisión de la orden según su estado actual.
-     * Las comisiones ya pagadas no se tocan.
+     * Una comisión ya pagada no se modifica: la diferencia queda como ajuste para el próximo pago.
      */
     public static function syncFor(Order $order): ?self
     {
         $commission = self::where('order_id', $order->id)->first();
         if ($commission?->is_paid) {
+            self::adjustPaid($commission, $order);
+
             return $commission;
         }
 
@@ -89,6 +91,38 @@ class Commission extends Model
         }
 
         return self::create($attributes + ['order_id' => $order->id]);
+    }
+
+    /**
+     * Comisión pagada y orden corregida después (costos o anulación): registra la diferencia
+     * entre lo que corresponde ahora y lo ya pagado (más ajustes anteriores) como ajuste del técnico.
+     */
+    private static function adjustPaid(self $commission, Order $order): void
+    {
+        $applies = $order->status === 'delivered' && ! $order->trashed();
+        $base = Setting::get('commission_base', 'service') === 'total'
+            ? (float) $order->total_amount
+            : (float) $order->diagnosis_cost + (float) $order->labor_cost;
+        $target = ! $applies ? 0 : ($commission->commission_type === 'fixed'
+            ? (float) $commission->commission_value
+            : round($base * (float) $commission->commission_value / 100, 2));
+
+        // Lo ya reconocido: lo pagado menos los ajustes que descuentan (amount > 0) más los que suman.
+        $recognized = (float) $commission->commission_amount
+            - (float) CommissionAdvance::where('order_id', $order->id)->where('user_id', $commission->user_id)->sum('amount');
+        $delta = round($target - $recognized, 2);
+        if (abs($delta) < 0.01) {
+            return;
+        }
+
+        CommissionAdvance::create([
+            'user_id' => $commission->user_id,
+            'order_id' => $order->id,
+            'amount' => -$delta,
+            'period' => now()->format('Y-m'),
+            'notes' => 'Ajuste de la comisión pagada de la orden ' . $order->order_number . ($delta > 0 ? ' (a favor del técnico)' : ' (se descuenta)'),
+            'registered_by' => \Illuminate\Support\Facades\Auth::id(),
+        ]);
     }
 
     public function user()

@@ -9,7 +9,7 @@ class CommissionAdvance extends Model
 {
     use Auditable;
 
-    protected $fillable = ['user_id', 'amount', 'period', 'notes', 'is_settled', 'settled_at', 'registered_by'];
+    protected $fillable = ['user_id', 'order_id', 'amount', 'period', 'notes', 'is_settled', 'settled_at', 'registered_by'];
 
     protected function casts(): array
     {
@@ -27,6 +27,6 @@ class CommissionAdvance extends Model
 
     public function auditDescription(): string
     {
-        return 'Adelanto de comisión de ' . money($this->amount) . ' (' . $this->period . ')';
+        return ($this->order_id ? 'Ajuste de comisión de ' : 'Adelanto de comisión de ') . money($this->amount) . ' (' . $this->period . ')';
     }
 }

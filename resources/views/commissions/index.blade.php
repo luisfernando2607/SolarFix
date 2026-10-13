@@ -49,13 +49,14 @@
 
     @if ($advances->isNotEmpty())
         <div class="mb-6 bg-white rounded-xl shadow-sm border">
-            <h3 class="px-6 py-3 border-b text-sm font-semibold text-gray-800">Adelantos del mes</h3>
+            <h3 class="px-6 py-3 border-b text-sm font-semibold text-gray-800">Adelantos y ajustes</h3>
             <ul class="divide-y">
                 @foreach ($advances as $advance)
                     <li class="px-6 py-2 flex flex-wrap justify-between gap-2 text-sm">
                         <span>{{ $advance->user?->name }} · {{ $advance->created_at->format('d/m/Y') }}{{ $advance->notes ? ' · ' . $advance->notes : '' }}</span>
-                        <span class="{{ $advance->is_settled ? 'text-gray-400' : 'font-medium text-gray-800' }}">
-                            {{ money($advance->amount) }} {{ $advance->is_settled ? '(descontado)' : '' }}
+                        <span class="{{ $advance->is_settled ? 'text-gray-400' : ((float) $advance->amount < 0 ? 'font-medium text-green-700' : 'font-medium text-gray-800') }}">
+                            {{ (float) $advance->amount < 0 ? '+' . money(-$advance->amount) : '−' . money($advance->amount) }}
+                            {{ $advance->is_settled ? ((float) $advance->amount < 0 ? '(pagado)' : '(descontado)') : '' }}
                         </span>
                     </li>
                 @endforeach
@@ -84,19 +85,19 @@
                         <span class="text-gray-500">Pagado</span>
                         <span class="font-semibold text-green-700">{{ money($row['paid']) }}</span>
                     </div>
-                    @if ($row['advances'] > 0)
+                    @if ($row['advances'] != 0)
                         <div class="flex justify-between text-sm">
-                            <span class="text-gray-500">Adelantos</span>
-                            <span class="font-semibold text-gray-700">−{{ money($row['advances']) }}</span>
+                            <span class="text-gray-500">{{ $row['advances'] > 0 ? 'Adelantos y ajustes' : 'Ajustes a favor' }}</span>
+                            <span class="font-semibold {{ $row['advances'] > 0 ? 'text-gray-700' : 'text-green-700' }}">{{ $row['advances'] > 0 ? '−' : '+' }}{{ money(abs($row['advances'])) }}</span>
                         </div>
-                        @if ($row['pending'] > 0)
+                        @if ($row['pending'] > 0 || $row['advances'] < 0)
                             <div class="flex justify-between text-sm border-t mt-1 pt-1">
                                 <span class="text-gray-700 font-medium">A pagar</span>
                                 <span class="font-bold text-gray-900">{{ money($row['to_pay']) }}</span>
                             </div>
                         @endif
                     @endif
-                    @if ($canManage && $row['pending'] > 0)
+                    @if ($canManage && ($row['pending'] > 0 || $row['advances'] < 0))
                         <form method="POST" action="{{ route('commissions.pay') }}" class="mt-3"
                             onsubmit="return confirm({{ \Illuminate\Support\Js::from('¿Marcar como pagadas las comisiones pendientes de ' . ($row['user']?->name ?? '') . '?') }})">
                             @csrf

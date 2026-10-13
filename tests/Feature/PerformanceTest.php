@@ -95,4 +95,27 @@ class PerformanceTest extends TestCase
             ->assertViewHas('byMethod', fn ($rows) => $rows->firstWhere('label', 'Efectivo')['amount'] == 30)
             ->assertViewHas('monthly', fn ($months) => $months->last()['amount'] == 50);
     }
+
+    public function test_order_page_checklists_use_few_queries_and_count_per_stage(): void
+    {
+        $this->seed(\Database\Seeders\ChecklistSeeder::class);
+        $admin = User::factory()->role('admin')->create();
+        $order = $this->makeOrder('repairing');
+        $reception = \App\Models\Checklist::for('celular', 'reception')->activeItems()->get();
+        foreach ($reception as $item) {
+            \App\Models\OrderChecklistResult::create(['order_id' => $order->id, 'checklist_item_id' => $item->id, 'result' => 'ok']);
+        }
+
+        $progress = $order->checklistsProgress(['reception', 'diagnosis', 'delivery']);
+        $this->assertTrue($progress['reception']['complete']);
+        $this->assertSame($reception->count(), $progress['reception']['answered']);
+        $this->assertSame(0, $progress['diagnosis']['answered']);   // las respuestas de recepción no cuentan en otra etapa
+        $this->assertFalse($progress['delivery']['complete']);
+
+        $this->actingAs($admin)->get(route('orders.show', $order));
+        DB::enableQueryLog();
+        $this->actingAs($admin)->get(route('orders.show', $order))->assertOk();
+        $this->assertLessThanOrEqual(22, count(DB::getQueryLog()));
+        DB::disableQueryLog();
+    }
 }

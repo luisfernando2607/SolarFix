@@ -251,7 +251,7 @@ class CommissionAndReportTest extends TestCase
             ->assertSee('Pagar $20.00');
 
         $this->actingAs($admin)->post(route('commissions.pay'), ['user_id' => $tech->id, 'period' => $period])
-            ->assertSessionHas('success', fn ($m) => str_contains($m, '$20.00') && str_contains($m, 'adelantos por $10.00'));
+            ->assertSessionHas('success', fn ($m) => str_contains($m, '$20.00') && str_contains($m, 'adelantos y ajustes por $10.00'));
 
         $this->assertTrue(\App\Models\CommissionAdvance::first()->is_settled);
         $this->assertTrue(Commission::first()->is_paid);

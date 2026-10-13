@@ -262,18 +262,14 @@ class Order extends Model
     }
 
     /**
-     * Motivo por el que no se pueden cambiar los costos: una factura vigente ya los fijó,
-     * o la comisión del técnico ya se pagó con estos montos.
+     * Motivo por el que no se pueden cambiar los costos: una factura vigente ya los fijó.
+     * (Si la comisión del técnico ya se pagó, la diferencia queda como ajuste: ver Commission.)
      */
     public function costsLockedReason(): ?string
     {
         if ($invoice = $this->activeInvoice()) {
             return "La orden tiene la factura #{$invoice->invoice_number} vigente; anúlala para cambiar costos o repuestos.";
         }
-        if (Commission::where('order_id', $this->id)->where('is_paid', true)->exists()) {
-            return 'La comisión del técnico por esta orden ya se pagó con estos montos; los costos no se pueden cambiar.';
-        }
-
         return null;
     }
 
@@ -297,13 +293,15 @@ class Order extends Model
     /**
      * Tipo de garantía de la orden original que cubre este reclamo (full, labor o parts).
      */
+    private ?string $warrantyCoverageCache = null;
+
     public function warrantyCoverage(): ?string
     {
         if (! $this->isWarrantyOrder()) {
             return null;
         }
 
-        return Warranty::where('order_id', $this->parent_order_id)->value('warranty_type') ?? 'full';
+        return $this->warrantyCoverageCache ??= Warranty::where('order_id', $this->parent_order_id)->value('warranty_type') ?? 'full';
     }
 
     /**
@@ -443,22 +441,47 @@ class Order extends Model
      */
     public function checklistProgress(string $stage): ?array
     {
-        $checklist = Checklist::for($this->device_type, $stage);
-        if (! $checklist) {
-            return null;
+        return $this->checklistsProgress([$stage])[$stage] ?? null;
+    }
+
+    /**
+     * Avance de varias etapas a la vez con tres consultas en total (checklists, ítems y respuestas),
+     * en lugar de tres por etapa.
+     *
+     * @return array<string, array> etapa => avance (solo las etapas con checklist para este equipo)
+     */
+    public function checklistsProgress(array $stages): array
+    {
+        $checklists = Checklist::with('activeItems')
+            ->where('device_type', $this->device_type)->whereIn('stage', $stages)->where('is_active', true)
+            ->get()->keyBy('stage');
+        if ($checklists->isEmpty()) {
+            return [];
         }
 
-        $items = $checklist->activeItems()->get();
-        $results = $this->checklistResults()->whereIn('checklist_item_id', $items->pluck('id'))->get()->keyBy('checklist_item_id');
-        $answered = $results->where('result', '!=', 'pending');
+        $results = $this->checklistResults()
+            ->whereIn('checklist_item_id', $checklists->flatMap(fn ($c) => $c->activeItems->pluck('id')))
+            ->get()->keyBy('checklist_item_id');
 
-        return [
-            'checklist' => $checklist,
-            'total' => $items->count(),
-            'answered' => $answered->count(),
-            'damaged' => $answered->where('result', 'damaged')->count(),
-            'complete' => $items->where('is_required', true)->every(fn ($item) => isset($results[$item->id]) && $results[$item->id]->result !== 'pending'),
-        ];
+        $progress = [];
+        foreach ($stages as $stage) {
+            if (! $checklist = $checklists->get($stage)) {
+                continue;
+            }
+            $items = $checklist->activeItems;
+            // intersectByKeys (no only(): en colecciones Eloquent filtra por id del modelo, no por la clave).
+            $own = $results->intersectByKeys($items->pluck('id')->flip());
+            $answered = $own->where('result', '!=', 'pending');
+            $progress[$stage] = [
+                'checklist' => $checklist,
+                'total' => $items->count(),
+                'answered' => $answered->count(),
+                'damaged' => $answered->where('result', 'damaged')->count(),
+                'complete' => $items->where('is_required', true)->every(fn ($item) => isset($own[$item->id]) && $own[$item->id]->result !== 'pending'),
+            ];
+        }
+
+        return $progress;
     }
 
     public function whatsappLogs()

@@ -269,16 +269,31 @@ class IntegrityTest extends TestCase
         $this->assertTrue(CommissionAdvance::first()->is_settled);
     }
 
-    public function test_costs_locked_after_commission_is_paid(): void
+    public function test_cost_change_after_paid_commission_creates_adjustment(): void
     {
         $admin = $this->admin();
         $tech = User::factory()->role('technician')->create(['commission_type' => 'percent', 'commission_value' => 10]);
-        $order = $this->makeOrder(['user_id' => $tech->id, 'status' => 'ready']);
+        $order = $this->makeOrder(['user_id' => $tech->id, 'status' => 'ready']);   // mano de obra 100 → comisión 10
         $order->markDelivered(null);
         $this->actingAs($admin)->post(route('commissions.pay'), ['user_id' => $tech->id, 'period' => now()->format('Y-m')]);
 
-        $this->actingAs($admin)->put(route('orders.update', $order), $this->editPayload($order->fresh(), ['labor_cost' => 20]))
-            ->assertSessionHasErrors('labor_cost');
-        $this->assertEquals(100, $order->fresh()->labor_cost);
+        // Se corrige la mano de obra a 60: la comisión pagada no cambia, queda un ajuste de 4 a descontar.
+        $this->actingAs($admin)->put(route('orders.update', $order), $this->editPayload($order->fresh(), ['labor_cost' => 60, 'status' => 'delivered']))
+            ->assertSessionHasNoErrors();
+        $commission = \App\Models\Commission::first();
+        $this->assertTrue($commission->is_paid);
+        $this->assertEquals(10, $commission->commission_amount);
+        $this->assertEquals(4, CommissionAdvance::where('order_id', $order->id)->sum('amount'));
+
+        // Guardar otra vez sin cambios no duplica; subir a 150 deja el neto a favor del técnico (+5).
+        $this->actingAs($admin)->put(route('orders.update', $order), $this->editPayload($order->fresh(), ['status' => 'delivered']));
+        $this->assertSame(1, CommissionAdvance::where('order_id', $order->id)->count());
+        $this->actingAs($admin)->put(route('orders.update', $order), $this->editPayload($order->fresh(), ['labor_cost' => 150, 'status' => 'delivered']));
+        $this->assertEquals(-5, CommissionAdvance::where('order_id', $order->id)->sum('amount'));
+
+        // El próximo pago (sin comisiones nuevas) le abona los 5 a favor.
+        $this->actingAs($admin)->post(route('commissions.pay'), ['user_id' => $tech->id, 'period' => now()->format('Y-m')])
+            ->assertSessionHas('success', fn ($m) => str_contains($m, 'más ajustes a favor'));
+        $this->assertSame(0, CommissionAdvance::where('order_id', $order->id)->where('is_settled', false)->count());
     }
 }

@@ -97,7 +97,8 @@ class CommissionController extends Controller
                 ->lockForUpdate()
                 ->get();
 
-            if ($pending->isEmpty()) {
+            // Sin comisiones pendientes solo se paga si hay ajustes a favor del técnico.
+            if ($pending->isEmpty() && (float) $advances->sum('amount') >= 0) {
                 return null;
             }
 
@@ -127,7 +128,8 @@ class CommissionController extends Controller
         $name = User::withTrashed()->find($validated['user_id'])->name;
         $message = $result
             ? "Pago a {$name}: " . money($result['paid']) . " ({$result['count']} comisiones por " . money($result['earned'])
-                . ($result['advanced'] > 0 ? ' menos adelantos por ' . money($result['advanced']) : '') . ').'
+                . ($result['advanced'] > 0 ? ' menos adelantos y ajustes por ' . money($result['advanced']) : '')
+                . ($result['advanced'] < 0 ? ' más ajustes a favor por ' . money(-$result['advanced']) : '') . ').'
             : 'No había comisiones pendientes.';
 
         return redirect()->route('commissions.index', ['period' => $validated['period']])->with('success', $message);

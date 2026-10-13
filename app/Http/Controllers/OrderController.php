@@ -243,7 +243,7 @@ class OrderController extends Controller
         ]);
 
         return view('orders.show', [
-            'checklists' => collect(Checklist::stages())->map(fn ($label, $stage) => $order->checklistProgress($stage))->filter(),
+            'checklists' => collect($order->checklistsProgress(array_keys(Checklist::stages()))),
             'activity' => Gate::allows('manage-users')
                 ? AuditLog::with('user')->where('order_id', $order->id)->orderByDesc('id')->take(30)->get()
                 : collect(),
