@@ -125,6 +125,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/import', [\App\Http\Controllers\ImportController::class, 'store'])->middleware('throttle:10,1')->name('import.store');
         Route::get('/system', fn () => view('system.index', ['checks' => \App\Support\SystemCheck::run()]))->name('system.index');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::post('/settings/test-email', [SettingController::class, 'testEmail'])->middleware('throttle:5,1')->name('settings.test-email');
     });
 
     Route::middleware('role:super_admin,admin,receptionist')->group(function () {
@@ -165,6 +166,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/{order}/photos/{photo}', [OrderController::class, 'showPhoto'])->name('orders.photo.show');
         Route::delete('/orders/{order}/photos/{photo}', [OrderController::class, 'deletePhoto'])->name('orders.photo.delete');
         Route::post('/orders/{order}/whatsapp/{type}', [WhatsAppController::class, 'send'])->name('orders.whatsapp');
+        Route::post('/orders/{order}/email/{type}', [WhatsAppController::class, 'email'])->middleware('throttle:10,1')->name('orders.email');
         Route::controller(SignatureController::class)->where(['stage' => 'reception|delivery'])->group(function () {
             Route::get('/orders/{order}/signatures/{stage}', 'create')->name('orders.signatures.create');
             Route::post('/orders/{order}/signatures/{stage}', 'store')->name('orders.signatures.store');

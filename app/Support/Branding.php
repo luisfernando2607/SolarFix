@@ -72,6 +72,16 @@ class Branding
         return self::$dataUri;
     }
 
+    /**
+     * Bytes del PNG (para incrustarlo en correos, donde los data URI se bloquean).
+     */
+    public static function logoPng(): ?string
+    {
+        $uri = self::logoDataUri();
+
+        return $uri ? base64_decode(substr($uri, strlen('data:image/png;base64,'))) : null;
+    }
+
     public static function flush(): void
     {
         self::$loaded = false;

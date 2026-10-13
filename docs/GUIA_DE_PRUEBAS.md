@@ -184,6 +184,12 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] **Marcar como enviada** y **WhatsApp al proveedor**. → Abre WhatsApp con la lista del pedido.
 - [ ] **Registrar recepción** con una cantidad menor a la pedida y otro costo. → El stock sube lo recibido y el costo promedio cambia.
 
+## 20. Correo al cliente
+
+- [ ] **Configuración → Correo a clientes → Enviarme un correo de prueba**. → Llega a tu correo (con el SMTP configurado).
+- [ ] Activa "Enviar avisos por correo automáticamente" y marca lista una orden de un cliente con correo. → Le llega "Su equipo está listo" con el logo y el botón al seguimiento.
+- [ ] En la orden, **Correo al cliente → Presupuesto**. → Se envía y queda en la lista de envíos ("Enviado" o "Falló" con el motivo).
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

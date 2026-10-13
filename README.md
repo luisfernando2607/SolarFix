@@ -36,6 +36,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 📄 **Presupuesto en PDF** | Con logo, conceptos, validez y QR para aprobar en línea; el cliente también lo descarga desde su enlace |
 | ✅ **Checklists** | Recepción, diagnóstico y control de calidad por tipo de equipo; los daños se muestran al cliente antes de firmar |
 | ✍️ **Firma digital** | El cliente firma en pantalla al recibir y al entregar (o al retirar sin reparar) |
+| ✉️ **Correo al cliente** | Presupuesto, equipo listo y entrega por correo (con logo y botón al seguimiento), automáticos o a mano desde la orden; cada envío queda registrado |
 | 💬 **WhatsApp** | Presupuesto, equipo listo, entrega con garantía, citas y mantenimientos (enlaces wa.me) |
 | 📦 **Inventario** | Repuestos con stock, costo promedio, entradas por proveedor, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden. **Compras sugeridas** por proveedor según el consumo de los últimos 90 días y **órdenes de compra** (PDF o WhatsApp al proveedor; al recibirlas suman stock y actualizan el costo) |
 | 💵 **Cobros y caja** | Pagos por orden, comprobantes, saldo a favor y devoluciones, caja del día con fondo inicial, gastos, retiros y cuadre; los días anteriores ya cerrados no se alteran |
@@ -131,7 +132,8 @@ El seeder crea la sucursal, el usuario administrador, los catálogos (accesorios
    ```
    Así se ejecuta `php artisan solarfix:backup` todos los días a las 02:00: guarda en `storage/app/backups` un .zip con la base de datos (vía `mysqldump`) y las fotos y firmas, y conserva los últimos 14 (`BACKUP_KEEP`). **Copia fuera del servidor:** con `BACKUP_DISK=offsite` y `BACKUP_OFFSITE_PATH=/ruta/montada` (otro disco, un NAS o una carpeta sincronizada con la nube) cada respaldo se copia también allí. También se puede ejecutar a mano, con `--to=/otra/carpeta`, `--keep=30` o `--disk=offsite`.
 6. **HTTPS** es necesario para que el celular ofrezca instalar la app.
-7. **Revisión final:** `php artisan solarfix:check` (o **Estado del sistema** en el menú del admin) dice qué falta: modo producción, HTTPS, contraseñas por defecto, datos y RUC del negocio, cron, respaldos y copia externa. Mientras falte algo indispensable, el panel del admin muestra un aviso.
+7. **Correo (opcional):** para los avisos por correo a clientes, configura el SMTP en el `.env` (`MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`) y prueba con **Configuración → Enviarme un correo de prueba**.
+8. **Revisión final:** `php artisan solarfix:check` (o **Estado del sistema** en el menú del admin) dice qué falta: modo producción, HTTPS, contraseñas por defecto, datos y RUC del negocio, cron, respaldos y copia externa. Mientras falte algo indispensable, el panel del admin muestra un aviso.
 
 Las fotos y firmas son privadas: se sirven a través de la app con control de acceso. No hace falta `php artisan storage:link`.
 

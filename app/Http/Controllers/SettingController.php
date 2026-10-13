@@ -37,6 +37,7 @@ class SettingController extends Controller
         'customer_survey' => 'portal',
         'online_booking' => 'portal',
         'require_admin_2fa' => 'security',
+        'email_notifications' => 'portal',
     ];
 
     public function edit()
@@ -51,6 +52,24 @@ class SettingController extends Controller
             'paymentMethods' => PaymentMethods::all(),
             'templates' => collect(WhatsAppMessage::TEMPLATES)->map(fn ($default, $type) => (string) Setting::get('wa_template_' . $type, '')),
         ]);
+    }
+
+    /**
+     * Correo de prueba para comprobar la configuración del servidor de correo.
+     */
+    public function testEmail(\Illuminate\Http\Request $request)
+    {
+        $to = $request->user()->email;
+        try {
+            \Illuminate\Support\Facades\Mail::raw('Este es un correo de prueba de ' . Setting::get('company_name', 'SolarFix') . '. Si lo recibió, los avisos por correo a los clientes funcionan.',
+                fn ($message) => $message->to($to)->subject('Correo de prueba · ' . Setting::get('company_name', 'SolarFix')));
+        } catch (\Throwable $e) {
+            return back()->with('error', 'No se pudo enviar: ' . mb_substr($e->getMessage(), 0, 300));
+        }
+
+        return back()->with('success', in_array(config('mail.default'), ['log', 'array'], true)
+            ? 'El servidor no tiene correo configurado (MAIL_MAILER=' . config('mail.default') . '): el correo quedó en el registro y no salió.'
+            : "Correo de prueba enviado a {$to}. Revisa tu bandeja (y la carpeta de spam).");
     }
 
     /**
@@ -135,6 +154,7 @@ class SettingController extends Controller
             'customer_survey' => ['boolean'],
             'online_booking' => ['boolean'],
             'require_admin_2fa' => ['boolean'],
+            'email_notifications' => ['boolean'],
             // El número de orden (prefijo-AAAAMMDD-0001) cabe en 20 caracteres con hasta 6 de prefijo.
             'order_prefix' => ['required', 'regex:/^[A-Z0-9]{1,6}$/'],
             'invoice_prefix' => ['required', 'regex:/^[A-Z0-9]{1,8}$/'],
@@ -156,7 +176,7 @@ class SettingController extends Controller
         ]);
 
         foreach (self::FIELDS as $key => $group) {
-            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check', 'online_approval', 'customer_survey', 'online_booking', 'require_admin_2fa'], true);
+            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check', 'online_approval', 'customer_survey', 'online_booking', 'require_admin_2fa', 'email_notifications'], true);
             Setting::put($key, $isFlag ? (string) (int) $request->boolean($key) : (string) ($validated[$key] ?? ''), $group);
         }
 

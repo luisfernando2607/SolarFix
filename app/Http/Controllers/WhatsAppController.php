@@ -12,6 +12,25 @@ use Illuminate\Support\Facades\DB;
 class WhatsAppController extends Controller
 {
     /**
+     * Envía ahora mismo el aviso por correo al cliente (además de los automáticos).
+     */
+    public function email(Order $order, string $type)
+    {
+        abort_unless(array_key_exists($type, \App\Mail\OrderUpdateMail::SUBJECTS), 404);
+        abort_unless($order->isVisibleTo(Auth::user()), 403, 'Esta orden está asignada a otro técnico.');
+
+        if (! \App\Services\ClientNotifier::send($order, $type, now: true)) {
+            return back()->with('error', 'El cliente no tiene un correo válido.');
+        }
+
+        $log = \App\Models\EmailLog::where('order_id', $order->id)->latest('id')->first();
+
+        return $log?->status === 'sent'
+            ? back()->with('success', 'Correo enviado a ' . $log->to . '.')
+            : back()->with('error', 'No se pudo enviar el correo: ' . ($log?->error ?? 'error desconocido') . '. Revisa la configuración de correo del servidor.');
+    }
+
+    /**
      * Registra el mensaje y abre WhatsApp con el texto listo para enviar.
      */
     public function send(Order $order, string $type)
@@ -47,6 +66,7 @@ class WhatsAppController extends Controller
                     'notes' => 'Presupuesto enviado por WhatsApp',
                 ]);
                 $order->update(['status' => 'waiting_approval']);
+                \App\Services\ClientNotifier::statusChanged($order, 'waiting_approval');
             }
         });
 

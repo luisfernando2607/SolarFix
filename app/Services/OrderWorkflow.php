@@ -74,6 +74,7 @@ class OrderWorkflow
                 'changed_by' => $userId,
                 'notes' => $note ?: null,
             ]);
+            ClientNotifier::statusChanged($order, $order->status);
         }
 
         // Sin reparación: los repuestos reservados para el presupuesto vuelven al stock.

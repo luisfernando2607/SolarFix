@@ -167,6 +167,24 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Correo a clientes</h3>
+            <p class="text-xs text-gray-500 mb-3">Además de WhatsApp, el cliente con correo recibe el presupuesto, el aviso de equipo listo y el de entrega (mismo texto de las plantillas, con el logo y el enlace de seguimiento).</p>
+            @if (in_array(config('mail.default'), ['log', 'array'], true))
+                <p class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    El servidor todavía no tiene correo configurado (<code>MAIL_MAILER={{ config('mail.default') }}</code>): los correos quedan en el registro y no salen.
+                    Configura <code>MAIL_MAILER=smtp</code>, <code>MAIL_HOST</code>, <code>MAIL_PORT</code>, <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code> y <code>MAIL_FROM_ADDRESS</code> en el .env (Gmail, el correo de tu dominio, Brevo…).
+                </p>
+            @endif
+            <label class="flex items-start gap-2">
+                <input type="hidden" name="email_notifications" value="0">
+                <input type="checkbox" name="email_notifications" value="1" {{ old('email_notifications', $settings['email_notifications'] ?? '0') ? 'checked' : '' }}
+                    class="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">Enviar avisos por correo automáticamente<span class="block text-xs text-gray-500">Desde cada orden también se puede enviar a mano.</span></span>
+            </label>
+            <button type="submit" form="testEmailForm" class="mt-3 bg-white hover:bg-gray-50 text-gray-700 border px-3 py-1.5 rounded-lg text-sm">Enviarme un correo de prueba</button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-3">Seguridad</h3>
             <label class="flex items-start gap-2">
                 <input type="hidden" name="require_admin_2fa" value="0">
@@ -276,5 +294,6 @@
             </button>
         </div>
     </form>
+    <form id="testEmailForm" method="POST" action="{{ route('settings.test-email') }}" class="hidden">@csrf</form>
 </div>
 @endsection

@@ -156,7 +156,8 @@ class Order extends Model
      */
     public function markDelivered(?int $userId, ?string $notes = null): void
     {
-        if ($this->status !== 'delivered') {
+        $justDelivered = $this->status !== 'delivered';
+        if ($justDelivered) {
             OrderStatusHistory::create([
                 'order_id' => $this->id,
                 'from_status' => $this->status,
@@ -172,6 +173,9 @@ class Order extends Model
 
         $this->issueWarranty();
         Commission::syncFor($this);
+        if ($justDelivered) {
+            \App\Services\ClientNotifier::statusChanged($this, 'delivered');
+        }
     }
 
     /**

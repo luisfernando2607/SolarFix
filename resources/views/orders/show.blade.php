@@ -752,6 +752,33 @@
                 @endif
             </div>
 
+            @if ($order->client?->email)
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Correo al cliente</h3>
+                <p class="text-xs text-gray-500 mb-3">{{ $order->client->email }}</p>
+                <div class="grid grid-cols-2 gap-2">
+                    @foreach (\App\Mail\OrderUpdateMail::SUBJECTS as $mailType => $subject)
+                        @continue($mailType === 'pickup_reminder' && $order->status !== 'ready')
+                        <form method="POST" action="{{ route('orders.email', [$order, $mailType]) }}">
+                            @csrf
+                            <button type="submit" class="w-full bg-white hover:bg-gray-50 text-gray-700 border px-3 py-2 rounded-lg text-xs font-medium">{{ \App\Services\WhatsAppMessage::TYPES[$mailType] ?? $mailType }}</button>
+                        </form>
+                    @endforeach
+                </div>
+                @php $emailLogs = \App\Models\EmailLog::where('order_id', $order->id)->latest('id')->take(5)->get(); @endphp
+                @if ($emailLogs->isNotEmpty())
+                    <ul class="mt-3 divide-y text-xs">
+                        @foreach ($emailLogs as $log)
+                            <li class="py-1.5 flex justify-between gap-2">
+                                <span>{{ \App\Services\WhatsAppMessage::TYPES[$log->type] ?? $log->type }} · {{ $log->sent_at->format('d/m H:i') }}</span>
+                                <span class="{{ $log->status === 'sent' ? 'text-green-700' : 'text-red-600' }}" title="{{ $log->error }}">{{ $log->status === 'sent' ? 'Enviado' : 'Falló' }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+            @endif
+
             @if ($order->review)
             <div class="bg-white rounded-xl shadow-sm border p-6">
                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">Calificación del cliente</h3>
