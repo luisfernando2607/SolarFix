@@ -15,5 +15,6 @@ abstract class TestCase extends BaseTestCase
         // La configuración se guarda en memoria por petición; cada test parte de la base limpia.
         Setting::flushCache();
         Branch::flushCache();
+        \App\Support\Branding::flush();
     }
 }

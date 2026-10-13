@@ -23,6 +23,7 @@
 
 <div class="hdr">
     @php $company = \App\Support\Company::info($order->branch_id); @endphp
+    @if ($company['logo']) <img src="{{ $company['logo'] }}" alt="" style="max-height:40pt;max-width:140pt;margin-bottom:3pt"> @endif
     <p style="font-size:11pt;font-weight:bold;margin:0 0 2pt 0">{{ $company['name'] }}{{ $company['branch'] ? ' — ' . $company['branch'] : '' }}</p>
     <p style="margin:0 0 4pt 0">{{ collect([$company['tax_id'] ? 'RUC ' . $company['tax_id'] : null, $company['address'], $company['phone']])->filter()->join(' · ') }}</p>
     <h1>ORDEN DE SERVICIO #{{ $order->order_number }}</h1>

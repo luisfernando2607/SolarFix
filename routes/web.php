@@ -57,12 +57,21 @@ Route::post('/seguimiento/{token}/calificar', [TrackingController::class, 'revie
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::get('/two-factor-challenge', [\App\Http\Controllers\TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/two-factor-challenge', [\App\Http\Controllers\TwoFactorController::class, 'verify'])->middleware('throttle:5,1');
 });
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/password', [\App\Http\Controllers\PasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password', [\App\Http\Controllers\PasswordController::class, 'update'])->name('password.update');
+    Route::controller(\App\Http\Controllers\TwoFactorController::class)->group(function () {
+        Route::get('/two-factor', 'show')->name('two-factor.show');
+        Route::post('/two-factor', 'start')->name('two-factor.start');
+        Route::post('/two-factor/confirm', 'confirm')->middleware('throttle:10,1')->name('two-factor.confirm');
+        Route::post('/two-factor/recovery-codes', 'regenerate')->name('two-factor.recovery');
+        Route::delete('/two-factor', 'disable')->name('two-factor.disable');
+    });
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

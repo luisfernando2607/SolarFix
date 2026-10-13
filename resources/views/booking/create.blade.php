@@ -11,6 +11,9 @@
 @php $field = 'w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white'; @endphp
 <main class="max-w-lg mx-auto p-4 sm:p-6">
     <header class="text-center mb-6">
+        @if ($company['logo'])
+            <img src="{{ $company['logo'] }}" alt="{{ $company['name'] }}" class="mx-auto mb-2 h-14 w-auto max-w-48 object-contain">
+        @endif
         <h1 class="text-xl font-bold">{{ $company['name'] }}</h1>
         <p class="text-sm text-gray-500">Solicite una visita técnica o un turno en el taller</p>
     </header>

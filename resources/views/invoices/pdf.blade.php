@@ -32,6 +32,7 @@
         <tr>
             <td style="width:60%">
                 @php $company = \App\Support\Company::info($invoice->branch_id); @endphp
+                @if ($company['logo']) <img src="{{ $company['logo'] }}" alt="" style="max-height:45pt;max-width:150pt;margin-bottom:4pt"> @endif
                 <h1>FACTURA</h1>
                 <div class="sub" style="font-weight:bold">{{ $company['name'] }}{{ $company['branch'] ? ' — ' . $company['branch'] : '' }}</div>
                 @if ($company['tax_id']) <div class="sub">RUC: {{ $company['tax_id'] }}</div> @endif

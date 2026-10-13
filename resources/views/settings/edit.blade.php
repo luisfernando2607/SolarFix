@@ -13,13 +13,30 @@
         <p class="text-gray-500">Datos del negocio, facturación y alertas.</p>
     </div>
 
-    <form method="POST" action="{{ route('settings.update') }}" class="space-y-6">
+    <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
         @method('PUT')
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-1">Negocio</h3>
-            <p class="text-xs text-gray-500 mb-4">Aparece en los mensajes de WhatsApp.</p>
+            <p class="text-xs text-gray-500 mb-4">Aparece en tickets, facturas, comprobantes, la página del cliente y los mensajes de WhatsApp.</p>
+            <div class="mb-4 flex flex-wrap items-center gap-4">
+                @if ($logo = \App\Support\Branding::logoDataUri())
+                    <img src="{{ $logo }}" alt="Logo actual" class="h-16 w-auto max-w-40 object-contain border rounded-lg p-1 bg-white">
+                @endif
+                <div>
+                    <label for="logo" class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+                    <input type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/webp"
+                        class="block text-sm text-gray-700 file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700">
+                    <p class="text-xs text-gray-500 mt-1">PNG con fondo transparente, de preferencia. Se ajusta solo.</p>
+                    @error('logo') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                @if ($logo)
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="remove_logo" value="1" class="w-4 h-4 border-gray-300 rounded"> Quitar logo
+                    </label>
+                @endif
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @foreach (['company_name' => 'Nombre *', 'company_tax_id' => 'RUC', 'company_phone' => 'Teléfono', 'company_email' => 'Email', 'company_address' => 'Dirección'] as $key => $label)
                     <div>
@@ -141,6 +158,19 @@
                     <span class="text-sm text-gray-700">{{ $label }}<span class="block text-xs text-gray-500">{{ $help }}</span></span>
                 </label>
             @endforeach
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-3">Seguridad</h3>
+            <label class="flex items-start gap-2">
+                <input type="hidden" name="require_admin_2fa" value="0">
+                <input type="checkbox" name="require_admin_2fa" value="1" {{ old('require_admin_2fa', $settings['require_admin_2fa'] ?? '0') ? 'checked' : '' }}
+                    class="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">
+                    Exigir verificación en dos pasos a los administradores
+                    <span class="block text-xs text-gray-500">Al entrar, quien no la tenga deberá configurarla antes de continuar. Actívala primero en tu cuenta.</span>
+                </span>
+            </label>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">

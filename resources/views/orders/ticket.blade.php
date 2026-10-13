@@ -27,6 +27,7 @@
         <a href="{{ route('orders.show', $order) }}">Volver a la orden</a>
     </div>
 
+    @if ($company['logo']) <div class="c"><img src="{{ $company['logo'] }}" alt="" style="max-height:18mm;max-width:50mm"></div> @endif
     <div class="c b big">{{ $company['name'] }}</div>
     @if ($company['tax_id']) <div class="c">RUC {{ $company['tax_id'] }}</div> @endif
     @if ($company['address']) <div class="c">{{ $company['address'] }}</div> @endif

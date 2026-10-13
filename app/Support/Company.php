@@ -17,6 +17,7 @@ class Company
 
         return [
             'name' => Setting::get('company_name', 'SolarFix'),
+            'logo' => Branding::logoDataUri(),
             'tax_id' => Setting::get('company_tax_id'),
             'branch' => $branch?->name,
             'phone' => $branch?->phone ?: Setting::get('company_phone'),

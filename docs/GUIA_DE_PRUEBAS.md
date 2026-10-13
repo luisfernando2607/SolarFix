@@ -168,6 +168,14 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] **Reportes → Por técnico**: muestra días promedio, calificación y reclamos de garantía de cada técnico.
 - [ ] Una orden lista hace más de 7 días (configurable) muestra **Recordar retiro** en el Mostrador; el mensaje dice cuántos días lleva lista.
 
+## 18. Logo y verificación en dos pasos
+
+- [ ] **Configuración → Negocio**: sube el logo. → Aparece en el ticket, la factura, el comprobante, el PDF de la orden y la página de seguimiento.
+- [ ] Menú → **Verificación en dos pasos** → escanea el QR con Google Authenticator y escribe el código. → Muestra 8 códigos de respaldo; guárdalos.
+- [ ] Cierra sesión y vuelve a entrar. → Después de la contraseña pide el código del celular.
+- [ ] Entra usando un código de respaldo. → Funciona una sola vez.
+- [ ] **Configuración → Seguridad**: exige la verificación a los administradores. → Un admin sin ella debe configurarla antes de usar la app.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

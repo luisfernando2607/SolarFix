@@ -24,6 +24,7 @@
 
 <div class="hdr">
     @php $company = \App\Support\Company::info($order->branch_id); @endphp
+    @if ($company['logo']) <img src="{{ $company['logo'] }}" alt="" style="max-height:32pt;max-width:120pt"> @endif
     <h1>{{ $company['name'] }}</h1>
     @if ($company['tax_id']) <p>RUC: {{ $company['tax_id'] }}</p> @endif
     @if ($company['address']) <p>{{ $company['address'] }}</p> @endif

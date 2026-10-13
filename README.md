@@ -47,7 +47,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 👥 **Clientes duplicados** | Detección por teléfono o cédula y unión con todo su historial |
 | 📊 **Reportes** | Ingresos (órdenes y ventas), **utilidad estimada** (menos repuestos, comisiones, costo de lo vendido y gastos), órdenes, técnicos, tipos de equipo, repuestos y satisfacción; exportación a Excel de órdenes, pagos y ventas |
 | 🏢 **Multi-sucursal** | Sucursales con código en el número de orden, caja e inventario por sucursal, traslados de repuestos y reportes por sucursal; los admins ven todas |
-| ⚙️ **Configuración** | Datos del negocio, IVA, prefijos de orden y factura, moneda, métodos de pago, textos de WhatsApp, alertas y comisiones |
+| ⚙️ **Configuración** | Datos del negocio y **logo** (en tickets, facturas, comprobantes y la página del cliente), IVA, prefijos de orden y factura, moneda, métodos de pago, textos de WhatsApp, alertas y comisiones |
 | 🧑‍🔧 **Para técnicos** | Cola "Mi trabajo" por etapa, tomar órdenes sin técnico, acciones rápidas de estado, panel de diagnóstico y costos, bitácora y fotos con la cámara |
 | 🧾 **Para recepción** | Búsqueda global (tecla `/`), panel Mostrador (listos, por aprobar, recibidos hoy), cobro y entrega en un paso, ticket de 80 mm con QR |
 | 🔗 **Seguimiento del cliente** | Enlace privado y QR por orden: el cliente ve estado, fechas y saldo sin llamar al taller, **aprueba o rechaza el presupuesto en línea** y **califica el servicio** al recibir su equipo |
@@ -72,6 +72,7 @@ Reglas de seguridad:
 
 - Solo un `super_admin` crea, edita o elimina a otro `super_admin`, y siempre queda al menos uno activo. Nadie cambia su propio rol ni se desactiva a sí mismo.
 - Un usuario desactivado queda fuera al instante, aunque tenga la sesión abierta.
+- **Verificación en dos pasos** (Google/Microsoft Authenticator) para cualquier usuario, con 8 códigos de respaldo; se puede exigir a los administradores en Configuración.
 - La contraseña que asigna otra persona (al crear o restablecer un usuario) se cambia en el primer ingreso. Cada usuario cambia la suya en **Cambiar contraseña**, y al hacerlo se cierran sus otras sesiones.
 - La entrega se registra solo con cobro y firma, nunca desde "Editar orden". Los técnicos avanzan la orden paso a paso, no modifican órdenes cerradas, no registran cobros y en el buscador de clientes ven pocos resultados y sin correo ni dirección.
 

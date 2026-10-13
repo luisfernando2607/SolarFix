@@ -32,6 +32,12 @@ class EnsureAccountIsUsable
             return redirect()->route('password.edit')->with('info', 'Por seguridad, cambia tu contraseña antes de continuar.');
         }
 
+        // La configuración puede exigir la verificación en dos pasos a los administradores.
+        if (! $user->hasTwoFactor() && \App\Http\Controllers\TwoFactorController::requiredFor($user)
+            && ! $request->routeIs('two-factor.*', 'password.*', 'logout')) {
+            return redirect()->route('two-factor.show')->with('info', 'Activa la verificación en dos pasos para continuar.');
+        }
+
         return $next($request);
     }
 }

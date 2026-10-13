@@ -33,9 +33,9 @@ trait Auditable
 
     private function auditValues(array $values): array
     {
-        $values = array_diff_key($values, array_flip(['created_at', 'updated_at', 'remember_token']));
+        $values = array_diff_key($values, array_flip(['created_at', 'updated_at', 'remember_token', 'two_factor_last_step']));
 
-        foreach (['password', 'unlock_value'] as $masked) {
+        foreach (['password', 'unlock_value', 'two_factor_secret', 'two_factor_recovery_codes'] as $masked) {
             if (array_key_exists($masked, $values)) {
                 $values[$masked] = $values[$masked] === null ? null : '[oculto]';
             }

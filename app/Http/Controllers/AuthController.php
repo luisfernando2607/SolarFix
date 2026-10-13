@@ -19,6 +19,13 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
+        // Con verificación en dos pasos: contraseña correcta → pedir el código antes de entrar.
+        $provider = Auth::getProvider();
+        $user = $provider->retrieveByCredentials([...$credentials, 'is_active' => true]);
+        if ($user && $user->hasTwoFactor() && $provider->validateCredentials($user, $credentials)) {
+            return TwoFactorController::beginChallenge($request, $user, $request->boolean('remember'));
+        }
+
         if (Auth::attempt([...$credentials, 'is_active' => true], $request->boolean('remember'))) {
             $request->session()->regenerate();
 

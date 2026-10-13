@@ -35,6 +35,7 @@ class SettingController extends Controller
         'online_approval' => 'portal',
         'customer_survey' => 'portal',
         'online_booking' => 'portal',
+        'require_admin_2fa' => 'security',
     ];
 
     public function edit()
@@ -132,6 +133,7 @@ class SettingController extends Controller
             'online_approval' => ['boolean'],
             'customer_survey' => ['boolean'],
             'online_booking' => ['boolean'],
+            'require_admin_2fa' => ['boolean'],
             // El número de orden (prefijo-AAAAMMDD-0001) cabe en 20 caracteres con hasta 6 de prefijo.
             'order_prefix' => ['required', 'regex:/^[A-Z0-9]{1,6}$/'],
             'invoice_prefix' => ['required', 'regex:/^[A-Z0-9]{1,8}$/'],
@@ -142,6 +144,8 @@ class SettingController extends Controller
             'payment_methods' => ['required', 'array', 'max:20'],
             'payment_methods.*.key' => ['nullable', 'string', 'max:30'],
             'payment_methods.*.label' => ['nullable', 'string', 'max:40'],
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'remove_logo' => ['nullable', 'boolean'],
             'wa_templates' => ['nullable', 'array'],
             'wa_templates.*' => ['nullable', 'string', 'max:2000'],
         ], [
@@ -150,8 +154,18 @@ class SettingController extends Controller
         ]);
 
         foreach (self::FIELDS as $key => $group) {
-            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check', 'online_approval', 'customer_survey', 'online_booking'], true);
+            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check', 'online_approval', 'customer_survey', 'online_booking', 'require_admin_2fa'], true);
             Setting::put($key, $isFlag ? (string) (int) $request->boolean($key) : (string) ($validated[$key] ?? ''), $group);
+        }
+
+        if ($request->hasFile('logo')) {
+            try {
+                \App\Support\Branding::storeLogo($request->file('logo'));
+            } catch (\DomainException $e) {
+                return back()->withInput()->withErrors(['logo' => $e->getMessage()]);
+            }
+        } elseif ($request->boolean('remove_logo')) {
+            \App\Support\Branding::removeLogo();
         }
 
         Setting::put('payment_methods', json_encode($this->paymentMethods($validated['payment_methods']), JSON_UNESCAPED_UNICODE), 'billing');

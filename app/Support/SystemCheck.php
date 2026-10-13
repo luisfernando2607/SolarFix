@@ -29,6 +29,7 @@ class SystemCheck
             self::item('HTTPS', $https, $production ? 'fail' : 'warn', 'APP_URL debe empezar con https:// (el seguimiento y las firmas viajan por internet).'),
             self::item('Cookies solo por HTTPS', ! $https || config('session.secure'), 'warn', 'SESSION_SECURE_COOKIE=true cuando el sitio usa HTTPS.'),
             self::item('Sin contraseñas por defecto', ! self::defaultPasswordUsers(), 'fail', 'Usuarios con la contraseña "password": ' . implode(', ', self::defaultPasswordUsers()) . '.'),
+            self::item('Administradores con verificación en dos pasos', ! self::adminsWithout2fa(), 'warn', 'Sin verificación en dos pasos: ' . implode(', ', self::adminsWithout2fa()) . '. Cada uno la activa en su menú; también se puede exigir en Configuración.'),
             self::item('Datos del negocio', Setting::get('company_name', 'SolarFix') !== 'SolarFix' && filled(Setting::get('company_phone')), 'warn', 'Completa nombre y teléfono en Configuración: salen en tickets, facturas y WhatsApp.'),
             self::item('RUC del negocio', filled(Setting::get('company_tax_id')), 'warn', 'Escribe el RUC en Configuración para que salga en facturas y comprobantes.'),
             self::item('Programador (cron)', is_file($heartbeat) && filemtime($heartbeat) > now()->subMinutes(15)->timestamp, 'fail', 'Agrega al cron del servidor: * * * * * cd ' . base_path() . ' && php artisan schedule:run'),
@@ -57,6 +58,12 @@ class SystemCheck
     private static function recent(?string $iso, int $days): bool
     {
         return $iso && Carbon::parse($iso)->gt(now()->subDays($days));
+    }
+
+    private static function adminsWithout2fa(): array
+    {
+        return User::where('is_active', true)->whereIn('role', ['super_admin', 'admin'])
+            ->whereNull('two_factor_confirmed_at')->pluck('name')->all();
     }
 
     /**
