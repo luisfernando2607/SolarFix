@@ -25,6 +25,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Ingreso: 5 intentos por minuto por cuenta (correo + IP) y 30 por IP. Así un taller donde
+        // todos salen a internet con la misma IP no se bloquea al empezar el día, y adivinar
+        // contraseñas sigue limitado.
+        \Illuminate\Support\Facades\RateLimiter::for('login', fn (\Illuminate\Http\Request $request) => [
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(5)->by(mb_strtolower((string) $request->input('email')) . '|' . $request->ip()),
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by($request->ip()),
+        ]);
+        // Código de verificación en dos pasos: 5 intentos por minuto por sesión.
+        \Illuminate\Support\Facades\RateLimiter::for('two-factor', fn (\Illuminate\Http\Request $request) => [
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(5)->by($request->session()->getId()),
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by($request->ip()),
+        ]);
+
         // Con APP_URL en https, los enlaces (QR, WhatsApp, correos) se generan siempre con https.
         if (str_starts_with((string) config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
