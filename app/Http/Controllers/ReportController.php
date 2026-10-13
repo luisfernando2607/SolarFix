@@ -69,6 +69,7 @@ class ReportController extends Controller
         ];
 
         return view('reports.index', [
+            'profit' => app(\App\Services\ProfitReport::class)->forPeriod($from, $to, BranchContext::current()),
             'satisfaction' => $satisfaction,
             'branchName' => ($branch = BranchContext::current()) ? Branch::find($branch)?->name : null,
             'from' => $from,

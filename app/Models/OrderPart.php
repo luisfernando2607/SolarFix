@@ -11,13 +11,14 @@ class OrderPart extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['order_id', 'spare_part_id', 'quantity', 'unit_price', 'subtotal'];
+    protected $fillable = ['order_id', 'spare_part_id', 'quantity', 'unit_price', 'unit_cost', 'subtotal'];
 
     protected function casts(): array
     {
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
+            'unit_cost' => 'decimal:2',
             'subtotal' => 'decimal:2',
         ];
     }

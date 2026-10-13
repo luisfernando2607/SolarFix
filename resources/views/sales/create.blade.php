@@ -16,7 +16,7 @@
             <h3 class="text-base font-semibold text-gray-800 mb-3">Productos</h3>
             <div class="relative">
                 <label for="partSearch" class="block text-sm font-medium text-gray-700 mb-1">Buscar repuesto o accesorio</label>
-                <input type="search" id="partSearch" autocomplete="off" placeholder="Nombre o código…" class="{{ $field }}">
+                <input type="search" id="partSearch" autocomplete="off" placeholder="Nombre o código (puedes usar el lector de código de barras)" autofocus class="{{ $field }}">
                 <div id="partResults" class="hidden absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-72 overflow-y-auto"></div>
             </div>
             @error('items') <p class="text-sm text-red-600 mt-2">{{ $message }}</p> @enderror
@@ -157,8 +157,29 @@
         }, 250);
     });
     input.addEventListener('blur', function () { setTimeout(function () { results.classList.add('hidden'); }, 200); });
-    // Enter en el buscador no envía el formulario.
-    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+    // Enter no envía el formulario. Con lector de código de barras (escribe el código y Enter):
+    // si el código coincide exacto con un repuesto, se agrega directo.
+    input.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var q = input.value.trim();
+        if (!q) return;
+        clearTimeout(timer);
+        fetch(searchUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (items) {
+                var match = items.find(function (i) { return i.code && i.code.toLowerCase() === q.toLowerCase(); })
+                    || (items.length === 1 ? items[0] : null);
+                if (match && match.stock > 0) {
+                    addItem(match);
+                    input.value = '';
+                    results.classList.add('hidden');
+                } else if (match) {
+                    results.innerHTML = '<div class="px-3 py-2 text-sm text-red-600">Sin stock: ' + match.name.replace(/</g, '&lt;') + '</div>';
+                    results.classList.remove('hidden');
+                }
+            });
+    });
 })();
 </script>
 @include('partials.client-search')

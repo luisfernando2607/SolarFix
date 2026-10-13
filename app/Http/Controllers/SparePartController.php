@@ -177,6 +177,33 @@ class SparePartController extends Controller
     /**
      * Búsqueda para agregar repuestos a una orden: muestra el stock de la sucursal de la orden.
      */
+    /**
+     * Sugerencia de compra por proveedor (consumo de los últimos 90 días); ?export=csv para Excel.
+     */
+    public function reorder(Request $request)
+    {
+        $rows = app(\App\Services\PurchaseSuggestion::class)->for(BranchContext::current());
+
+        if ($request->query('export') === 'csv') {
+            return response()->streamDownload(function () use ($rows) {
+                $out = fopen('php://output', 'w');
+                fwrite($out, "\xEF\xBB\xBF");
+                fputcsv($out, ['Proveedor', 'Código', 'Repuesto', 'Stock', 'Mínimo', 'Consumo mensual', 'Pedir', 'Costo unitario', 'Total'], ';');
+                foreach ($rows as $row) {
+                    fputcsv($out, [$row['supplier'], $row['part']->code, $row['part']->name, $row['stock'], $row['min_stock'],
+                        number_format($row['monthly'], 1, ',', ''), $row['quantity'], number_format($row['unit_cost'], 2, ',', ''), number_format($row['total'], 2, ',', '')], ';');
+                }
+                fclose($out);
+            }, 'compras-sugeridas-' . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        return view('spare_parts.reorder', [
+            'groups' => $rows->groupBy('supplier'),
+            'total' => round((float) $rows->sum('total'), 2),
+            'days' => \App\Services\PurchaseSuggestion::DAYS,
+        ]);
+    }
+
     public function search(Request $request)
     {
         $request->validate(['q' => ['required', 'string', 'max:100'], 'branch_id' => ['nullable', 'integer']]);
@@ -192,6 +219,7 @@ class SparePartController extends Controller
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
+                'code' => $p->code,
                 'label' => trim($p->name . ($p->code ? ' · ' . $p->code : '')) . ' — stock ' . $p->stockIn($branchId) . ' — ' . money($p->sale_price),
                 'stock' => $p->stockIn($branchId),
                 'sale_price' => (float) $p->sale_price,

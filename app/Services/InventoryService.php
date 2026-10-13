@@ -122,6 +122,7 @@ class InventoryService
                 'spare_part_id' => $locked->id,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
+                'unit_cost' => $locked->cost_price,
                 'subtotal' => round($unitPrice * $quantity, 2),
             ]);
 

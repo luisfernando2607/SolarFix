@@ -180,6 +180,37 @@
         </div>
     </div>
 
+    {{-- Utilidad estimada: cascada de ingresos y costos del período --}}
+    <div class="bg-white rounded-xl shadow-sm border p-6 mt-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="text-base font-semibold text-gray-800">Utilidad estimada del período</h3>
+            <p class="text-2xl font-bold {{ $profit['profit'] >= 0 ? 'text-emerald-700' : 'text-red-600' }}">
+                {{ $money($profit['profit']) }}
+                @if ($profit['margin'] !== null)<span class="text-sm font-medium text-gray-500">· margen {{ $profit['margin'] }}%</span>@endif
+            </p>
+        </div>
+        <div class="overflow-x-auto mt-3">
+            <table class="w-full text-sm">
+                <tbody class="divide-y">
+                    @foreach ([
+                        ['Órdenes entregadas (sin IVA)', $profit['orders_revenue'], '+'],
+                        ['Costo de repuestos usados', $profit['parts_cost'], '−'],
+                        ['Comisiones de técnicos', $profit['commissions'], '−'],
+                        ['Ventas de mostrador', $profit['sales_revenue'], '+'],
+                        ['Costo de lo vendido', $profit['sales_cost'], '−'],
+                        ['Gastos registrados en caja', $profit['expenses'], '−'],
+                    ] as [$label, $amount, $sign])
+                        <tr>
+                            <td class="py-2 text-gray-600">{{ $label }}</td>
+                            <td class="py-2 text-right font-medium {{ $sign === '−' ? 'text-gray-700' : 'text-gray-900' }}">{{ $sign }} {{ $money($amount) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Estimación de gestión: usa el costo promedio de cada repuesto al momento de usarlo o venderlo. No reemplaza la contabilidad.</p>
+    </div>
+
     @if ($satisfaction['latest']->isNotEmpty())
         <div class="bg-white rounded-xl shadow-sm border p-6 mt-6">
             <h3 class="text-base font-semibold text-gray-800 mb-3">Últimos comentarios de clientes</h3>

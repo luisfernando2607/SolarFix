@@ -98,6 +98,17 @@ class DashboardController extends Controller
             ? Appointment::visibleTo($user)->whereNull('user_id')->whereIn('status', ['pending', 'confirmed'])->where('scheduled_at', '>=', now())->count()
             : 0;
 
+        // Solicitudes de cita hechas por clientes en la página pública, aún sin confirmar.
+        $onlineRequests = $user->can('manage-appointments')
+            ? Appointment::with('client')->visibleTo($user)->where('requested_online', true)->where('status', 'pending')
+                ->where('scheduled_at', '>=', today())->orderBy('scheduled_at')->take(10)->get()
+            : collect();
+
+        // Órdenes con dinero cobrado de más: hay que devolverlo al cliente.
+        $creditOrders = $user->can('register-payments')
+            ? Order::visibleTo($user)->with('client')->whereColumn('amount_paid', '>', 'total_amount')->orderBy('updated_at')->take(10)->get()
+            : collect();
+
         $myWork = $user->isTechnician() ? $this->technicianQueue($user) : null;
         $counter = $user->can('manage-invoices') ? $this->counterPanel() : null;
         // Indicadores del mes: se recalculan cada 5 minutos (son varias consultas sobre todo el historial).
@@ -118,6 +129,8 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'systemIssues' => $systemIssues,
+            'onlineRequests' => $onlineRequests,
+            'creditOrders' => $creditOrders,
             'stats' => $stats,
             'recentOrders' => $recentOrders,
             'staleOrders' => $staleOrders,

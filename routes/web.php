@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');
         Route::resource('suppliers', SupplierController::class)->except(['destroy']);
         Route::get('/spare-parts/create', [SparePartController::class, 'create'])->name('spare-parts.create');
+        Route::get('/spare-parts-reorder', [SparePartController::class, 'reorder'])->name('spare-parts.reorder');
         Route::post('/spare-parts', [SparePartController::class, 'store'])->name('spare-parts.store');
         Route::get('/spare-parts/{spare_part}/edit', [SparePartController::class, 'edit'])->name('spare-parts.edit');
         Route::put('/spare-parts/{spare_part}', [SparePartController::class, 'update'])->name('spare-parts.update');

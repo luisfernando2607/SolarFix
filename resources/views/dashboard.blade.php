@@ -355,6 +355,37 @@
     </div>
     @endif
 
+    @if ($onlineRequests->isNotEmpty() || $creditOrders->isNotEmpty())
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        @if ($onlineRequests->isNotEmpty())
+        <div class="bg-white rounded-xl shadow-sm border border-blue-200">
+            <h3 class="px-6 py-3 border-b bg-blue-50 text-base font-semibold text-blue-900">Citas pedidas en línea por confirmar ({{ $onlineRequests->count() }})</h3>
+            <ul class="divide-y">
+                @foreach ($onlineRequests as $request)
+                    <li><a href="{{ route('appointments.show', $request) }}" class="px-6 py-2 flex flex-wrap justify-between gap-2 text-sm hover:bg-gray-50">
+                        <span>{{ $request->client?->name }} · {{ $request->title }}</span>
+                        <span class="text-gray-500">{{ $request->scheduled_at->format('d/m H:i') }}</span>
+                    </a></li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+        @if ($creditOrders->isNotEmpty())
+        <div class="bg-white rounded-xl shadow-sm border border-amber-200">
+            <h3 class="px-6 py-3 border-b bg-amber-50 text-base font-semibold text-amber-900">Saldos a favor por devolver ({{ $creditOrders->count() }})</h3>
+            <ul class="divide-y">
+                @foreach ($creditOrders as $order)
+                    <li><a href="{{ route('orders.show', $order) }}" class="px-6 py-2 flex flex-wrap justify-between gap-2 text-sm hover:bg-gray-50">
+                        <span>{{ $order->order_number }} · {{ $order->client?->name }}</span>
+                        <span class="font-semibold text-amber-800">{{ money($order->creditDue()) }}</span>
+                    </a></li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+    </div>
+    @endif
+
     @if ($duePlans)
     <a href="{{ route('maintenance-plans.index') }}" class="mt-6 block bg-white rounded-xl shadow-sm border border-amber-200 px-6 py-4 hover:bg-amber-50">
         <span class="text-base font-semibold text-amber-800">{{ $duePlans }} {{ $duePlans === 1 ? 'mantenimiento preventivo vencido o por vencer' : 'mantenimientos preventivos vencidos o por vencer' }}</span>

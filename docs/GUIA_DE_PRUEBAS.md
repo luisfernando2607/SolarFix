@@ -153,6 +153,13 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] En una orden, **Etiqueta**. → Se abre la etiqueta de 50 × 30 mm lista para imprimir; el QR abre la orden.
 - [ ] En **Configuración → Página del cliente** desactiva cada opción. → Desaparece de la página pública.
 
+## 16. Gestión del negocio (admin)
+
+- [ ] **Reportes → Utilidad estimada**: con una orden entregada que usó repuestos, una venta y un gasto de caja, los montos coinciden con lo registrado.
+- [ ] **Inventario → Compras sugeridas**: un repuesto que se vende seguido y quedó bajo aparece con su proveedor, cuánto pedir y el costo; el Excel abre en columnas.
+- [ ] **Ventas → Nueva venta** con un lector de código de barras: al escanear, el producto se agrega solo.
+- [ ] En el **Dashboard** de recepción aparecen las citas pedidas en línea por confirmar y los saldos a favor por devolver.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

@@ -36,7 +36,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | ✅ **Checklists** | Recepción, diagnóstico y control de calidad por tipo de equipo; los daños se muestran al cliente antes de firmar |
 | ✍️ **Firma digital** | El cliente firma en pantalla al recibir y al entregar (o al retirar sin reparar) |
 | 💬 **WhatsApp** | Presupuesto, equipo listo, entrega con garantía, citas y mantenimientos (enlaces wa.me) |
-| 📦 **Inventario** | Repuestos con stock, costo promedio, entradas por proveedor, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden |
+| 📦 **Inventario** | Repuestos con stock, costo promedio, entradas por proveedor, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden. **Compras sugeridas** por proveedor según el consumo de los últimos 90 días (Excel e impresión) |
 | 💵 **Cobros y caja** | Pagos por orden, comprobantes, saldo a favor y devoluciones, caja del día con fondo inicial, gastos, retiros y cuadre; los días anteriores ya cerrados no se alteran |
 | 🧾 **Facturas** | Desde la orden, con IVA configurable (incluido o no en los precios; si no, se suma al saldo de la orden). Pasa a "pagada" sola cuando la orden queda saldada y fija los costos mientras esté vigente |
 | 🛡️ **Garantías** | Emitidas al entregar; el reclamo abre una orden vinculada y la cobertura (completa, mano de obra o repuestos) define qué se cobra |
@@ -45,7 +45,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 💰 **Comisiones** | Fijas o porcentuales por técnico, generadas al entregar; adelantos que se descuentan al pagar |
 | 📈 **Indicadores** | Mes actual vs. anterior (ingresos, entregas, ticket, días de reparación, aprobación de presupuestos, retrabajos), cuentas por cobrar y valor del inventario |
 | 👥 **Clientes duplicados** | Detección por teléfono o cédula y unión con todo su historial |
-| 📊 **Reportes** | Ingresos (órdenes y ventas), órdenes, técnicos, tipos de equipo, repuestos y satisfacción; exportación a Excel de órdenes, pagos y ventas |
+| 📊 **Reportes** | Ingresos (órdenes y ventas), **utilidad estimada** (menos repuestos, comisiones, costo de lo vendido y gastos), órdenes, técnicos, tipos de equipo, repuestos y satisfacción; exportación a Excel de órdenes, pagos y ventas |
 | 🏢 **Multi-sucursal** | Sucursales con código en el número de orden, caja e inventario por sucursal, traslados de repuestos y reportes por sucursal; los admins ven todas |
 | ⚙️ **Configuración** | Datos del negocio, IVA, prefijos de orden y factura, moneda, métodos de pago, textos de WhatsApp, alertas y comisiones |
 | 🧑‍🔧 **Para técnicos** | Cola "Mi trabajo" por etapa, tomar órdenes sin técnico, acciones rápidas de estado, panel de diagnóstico y costos, bitácora y fotos con la cámara |

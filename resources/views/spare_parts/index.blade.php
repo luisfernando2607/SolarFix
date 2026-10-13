@@ -10,7 +10,10 @@
             <p class="text-gray-500">Stock, precios y movimientos.</p>
         </div>
         @can('manage-inventory')
-            <a href="{{ route('spare-parts.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Nuevo repuesto</a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('spare-parts.reorder') }}" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition">Compras sugeridas</a>
+                <a href="{{ route('spare-parts.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Nuevo repuesto</a>
+            </div>
         @endcan
     </div>
 
