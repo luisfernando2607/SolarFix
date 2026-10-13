@@ -53,6 +53,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | 🔗 **Seguimiento del cliente** | Enlace privado y QR por orden: el cliente ve estado, fechas y saldo sin llamar al taller, **aprueba o rechaza el presupuesto en línea** y **califica el servicio** al recibir su equipo |
 | 🛒 **Ventas de mostrador** | Accesorios y repuestos sin orden: descuenta stock de la sucursal, entra a la caja y a los reportes, comprobante de 80 mm y anulación |
 | 🗓️ **Citas en línea** | Página pública `/agendar` para compartir en redes: el cliente pide una visita o turno y recepción la confirma |
+| 📥 **Importar datos** | Clientes y repuestos desde Excel (CSV) con plantilla: omite clientes repetidos, actualiza repuestos por código y carga el stock inicial |
 | 🏷️ **Etiqueta del equipo** | Adhesivo de 50 × 30 mm con número de orden, cliente y QR que abre la orden en la app |
 | 📱 **App instalable** | Se agrega a la pantalla de inicio del celular y se abre como app (PWA) |
 | 💾 **Respaldos** | Diarios y automáticos: base de datos, fotos y firmas en un .zip |

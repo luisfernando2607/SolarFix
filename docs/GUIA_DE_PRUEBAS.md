@@ -160,6 +160,14 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] **Ventas → Nueva venta** con un lector de código de barras: al escanear, el producto se agrega solo.
 - [ ] En el **Dashboard** de recepción aparecen las citas pedidas en línea por confirmar y los saldos a favor por devolver.
 
+## 17. Operación diaria
+
+- [ ] **Importar datos**: descarga la plantilla de clientes, agrega 3 filas (una repetida y una sin teléfono) e impórtala. → Dice cuántos se crearon, cuántos ya existían y qué filas tienen error.
+- [ ] Importa la plantilla de repuestos con stock. → Aparecen en Inventario con su stock en la sucursal y un ajuste "Carga inicial desde archivo".
+- [ ] Sube una foto grande desde el celular a una orden. → Se ve bien orientada y carga rápido.
+- [ ] **Reportes → Por técnico**: muestra días promedio, calificación y reclamos de garantía de cada técnico.
+- [ ] Una orden lista hace más de 7 días (configurable) muestra **Recordar retiro** en el Mostrador; el mensaje dice cuántos días lleva lista.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

@@ -113,7 +113,7 @@
             @php $maxTech = max(1, $byTechnician->max('total')); @endphp
             <div class="overflow-x-auto">
             <table class="w-full text-sm">
-                <thead><tr class="border-b text-left text-gray-600"><th class="px-6 py-2 font-semibold">Técnico</th><th class="px-3 py-2 font-semibold text-right">Órdenes</th><th class="px-3 py-2 font-semibold text-right">Total</th><th class="px-6 py-2 font-semibold text-right">Comisión</th></tr></thead>
+                <thead><tr class="border-b text-left text-gray-600"><th class="px-6 py-2 font-semibold">Técnico</th><th class="px-3 py-2 font-semibold text-right">Órdenes</th><th class="px-3 py-2 font-semibold text-right">Total</th><th class="px-3 py-2 font-semibold text-right" title="Días promedio desde el ingreso hasta la entrega">Días</th><th class="px-3 py-2 font-semibold text-right" title="Calificación promedio de los clientes">★</th><th class="px-3 py-2 font-semibold text-right" title="Reclamos de garantía sobre sus trabajos">Garantías</th><th class="px-6 py-2 font-semibold text-right">Comisión</th></tr></thead>
                 <tbody>
                     @forelse ($byTechnician as $row)
                         <tr class="border-b">
@@ -123,10 +123,13 @@
                             </td>
                             <td class="px-3 py-2 text-right">{{ $row['orders'] }}</td>
                             <td class="px-3 py-2 text-right font-medium">{{ $money($row['total']) }}</td>
+                            <td class="px-3 py-2 text-right">{{ $row['avg_days'] ?? '—' }}</td>
+                            <td class="px-3 py-2 text-right">{{ $row['rating'] ?? '—' }}</td>
+                            <td class="px-3 py-2 text-right {{ $row['reworks'] ? 'text-red-600 font-medium' : 'text-gray-500' }}">{{ $row['reworks'] }}</td>
                             <td class="px-6 py-2 text-right text-gray-600">{{ $money($row['commission']) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="4" class="px-6 py-6 text-center text-gray-500">Sin entregas en el período.</td></tr>
+                        <tr><td colspan="7" class="px-6 py-6 text-center text-gray-500">Sin entregas en el período.</td></tr>
                     @endforelse
                 </tbody>
             </table>

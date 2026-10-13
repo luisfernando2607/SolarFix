@@ -191,7 +191,7 @@ class OrderController extends Controller
 
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('order_photos', 'local');
+                $path = \App\Support\PhotoStorage::store($photo);
                 OrderPhoto::create([
                     'order_id' => $order->id,
                     'stage' => 'reception',
@@ -462,7 +462,7 @@ class OrderController extends Controller
             'caption' => ['nullable', 'string', 'max:200'],
         ]);
 
-        $path = $request->file('photo')->store('order_photos', 'local');
+        $path = \App\Support\PhotoStorage::store($request->file('photo'));
 
         OrderPhoto::create([
             'order_id' => $order->id,

@@ -108,11 +108,12 @@
                                         <span class="block text-xs text-gray-500 truncate">{{ $order->brand?->name ?? $order->brand_text }} {{ $order->deviceModel?->name ?? $order->model_text }}{{ $order->client?->phone ? ' · ' . $order->client->phone : '' }}</span>
                                     </a>
                                     <div class="text-right text-xs space-y-1">
-                                        <span class="block {{ $order->status_since->lt(now()->subDays(7)) ? 'text-red-600 font-semibold' : 'text-gray-500' }}">lista {{ $order->status_since->diffForHumans() }}</span>
+                                        <span class="block {{ $order->status_since->lt(now()->subDays($pickupReminderDays)) ? 'text-red-600 font-semibold' : 'text-gray-500' }}">lista {{ $order->status_since->diffForHumans() }}</span>
                                         @if ($order->balance_due > 0) <span class="block text-red-600 font-medium">Saldo {{ money($order->balance_due) }}</span> @endif
                                         <span class="flex gap-1 justify-end">
-                                            <form method="POST" action="{{ route('orders.whatsapp', [$order, 'ready']) }}" target="_blank">@csrf
-                                                <button type="submit" class="px-2 py-1 rounded border border-green-300 text-green-700 hover:bg-green-50">Avisar</button>
+                                            @php $overdue = $order->status_since->lt(now()->subDays($pickupReminderDays)); @endphp
+                                            <form method="POST" action="{{ route('orders.whatsapp', [$order, $overdue ? 'pickup_reminder' : 'ready']) }}" target="_blank">@csrf
+                                                <button type="submit" class="px-2 py-1 rounded border {{ $overdue ? 'border-red-300 text-red-700 hover:bg-red-50' : 'border-green-300 text-green-700 hover:bg-green-50' }}">{{ $overdue ? 'Recordar retiro' : 'Avisar' }}</button>
                                             </form>
                                             <a href="{{ route('orders.signatures.create', [$order, 'delivery']) }}" class="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Entregar</a>
                                         </span>

@@ -96,6 +96,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export/{dataset}', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::get('/import', [\App\Http\Controllers\ImportController::class, 'index'])->name('import.index');
+        Route::get('/import/template/{type}', [\App\Http\Controllers\ImportController::class, 'template'])->name('import.template');
+        Route::post('/import', [\App\Http\Controllers\ImportController::class, 'store'])->middleware('throttle:10,1')->name('import.store');
         Route::get('/system', fn () => view('system.index', ['checks' => \App\Support\SystemCheck::run()]))->name('system.index');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });

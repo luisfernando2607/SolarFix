@@ -721,6 +721,7 @@
                 @if (\App\Services\WhatsAppMessage::normalizePhone($order->client?->phone))
                     <div class="space-y-2">
                         @foreach (\App\Services\WhatsAppMessage::TYPES as $waType => $waLabel)
+                            @continue($waType === 'pickup_reminder' && $order->status !== 'ready')
                             <form method="POST" action="{{ route('orders.whatsapp', [$order, $waType]) }}" target="_blank"
                                 onsubmit="setTimeout(function () { window.location.reload(); }, 1500)">
                                 @csrf

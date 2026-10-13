@@ -180,6 +180,13 @@
                     @error('stale_order_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
+                    <label for="pickup_reminder_days" class="block text-sm font-medium text-gray-700 mb-1">Recordar retiro después de (días lista)</label>
+                    <input type="number" min="1" max="365" id="pickup_reminder_days" name="pickup_reminder_days"
+                        value="{{ old('pickup_reminder_days', $settings['pickup_reminder_days'] ?? 7) }}"
+                        class="{{ $input }} @error('pickup_reminder_days') border-red-500 @enderror">
+                    @error('pickup_reminder_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
                     <label for="warranty_alert_days" class="block text-sm font-medium text-gray-700 mb-1">Avisar garantías que vencen en (días) *</label>
                     <input type="number" min="1" id="warranty_alert_days" name="warranty_alert_days"
                         value="{{ old('warranty_alert_days', $settings['warranty_alert_days']) }}" required

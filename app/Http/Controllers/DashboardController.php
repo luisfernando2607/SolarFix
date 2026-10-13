@@ -129,6 +129,7 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'systemIssues' => $systemIssues,
+            'pickupReminderDays' => (int) Setting::get('pickup_reminder_days', 7),
             'onlineRequests' => $onlineRequests,
             'creditOrders' => $creditOrders,
             'stats' => $stats,

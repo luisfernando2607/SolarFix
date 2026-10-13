@@ -59,6 +59,15 @@ class ReportController extends Controller
             ->map(fn ($o) => $o->entry_date->diffInDays($o->delivery_date));
 
         $commissions = Commission::whereIn('order_id', $delivered->pluck('id'))->get()->groupBy('user_id');
+        // Calidad por técnico: calificaciones de sus entregas y reclamos de garantía abiertos en el
+        // período sobre trabajos suyos (retrabajos).
+        $reviews = \App\Models\OrderReview::whereIn('order_id', $delivered->pluck('id'))->get(['order_id', 'rating']);
+        $reworks = BranchContext::apply(Order::query(), 'orders.branch_id')->whereNotNull('orders.parent_order_id')
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->join('orders as original', 'original.id', '=', 'orders.parent_order_id')
+            ->selectRaw('original.user_id as technician, count(*) as total')
+            ->groupBy('original.user_id')
+            ->pluck('total', 'technician');
 
         // Satisfacción: calificaciones recibidas en el período (por la sucursal de la orden).
         $reviews = BranchContext::applyThroughOrder(\App\Models\OrderReview::query())->whereBetween('created_at', [$from, $to]);
@@ -92,6 +101,10 @@ class ReportController extends Controller
                 'orders' => $orders->count(),
                 'total' => round((float) $orders->sum('total_amount'), 2),
                 'commission' => round((float) ($commissions[$userId] ?? collect())->sum('commission_amount'), 2),
+                'avg_days' => ($days = $orders->filter(fn ($o) => $o->entry_date && $o->delivery_date)->map(fn ($o) => $o->entry_date->diffInDays($o->delivery_date)))->count()
+                    ? round($days->avg(), 1) : null,
+                'rating' => ($ratings = $reviews->whereIn('order_id', $orders->pluck('id')))->count() ? round($ratings->avg('rating'), 1) : null,
+                'reworks' => (int) ($reworks[$userId] ?? 0),
             ])->sortByDesc('total')->values(),
             'byDevice' => $received->map(fn ($row) => [
                 'label' => Order::deviceTypes()[$row->device_type] ?? $row->device_type,

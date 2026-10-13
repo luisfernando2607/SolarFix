@@ -16,6 +16,7 @@ class WhatsAppMessage
         'budget' => 'Presupuesto',
         'ready' => 'Equipo listo',
         'delivery' => 'Entrega y garantía',
+        'pickup_reminder' => 'Recordatorio de retiro',
     ];
 
     /**
@@ -51,6 +52,7 @@ class WhatsAppMessage
         'budget' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) ya fue diagnosticado.\n\n{diagnostico}\n\n*Presupuesto:*\n{detalle_presupuesto}\n*Total: {total}*\n{abonos}\n\nPuede aprobar o rechazar la reparación aquí: {seguimiento}\nTambién puede responder a este mensaje. ¡Gracias!",
         'ready' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu equipo {equipo} (orden *{orden}*) está *listo para retirar*.\n{saldo_pendiente}\n\n{direccion_negocio}\n\nEstado de su orden: {seguimiento}",
         'delivery' => "Hola {cliente}, gracias por confiar en *{negocio}*.\nLe entregamos su equipo {equipo} (orden *{orden}*).\n\n{trabajo_realizado}\n\n{garantia}\n\nConserve su número de orden ({orden}) para cualquier consulta.\n¿Cómo le atendimos? Califíquenos aquí: {seguimiento}",
+        'pickup_reminder' => "Hola {cliente}, le saludamos de *{negocio}*.\nLe recordamos que su equipo {equipo} (orden *{orden}*) está listo para retirar desde hace {dias} días.\n{saldo_pendiente}\n\n{direccion_negocio}\n\nEstado de su orden: {seguimiento}",
         'appointment_confirmation' => "Hola {cliente}, le saludamos de *{negocio}*.\nSu cita de {servicio} quedó agendada para el *{fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
         'appointment_reminder' => "Hola {cliente}, le recordamos de *{negocio}* su cita de {servicio} para *mañana {fecha_hora}*.\n{direccion}\n{tecnico}\n\nSi necesita reprogramar, responda a este mensaje. ¡Gracias!",
         'maintenance_due' => "Hola {cliente}, le saludamos de *{negocio}*.\nSegún su plan de mantenimiento, {cuando} el mantenimiento de: *{equipo}*.\n\n¿Desea que agendemos una visita? Responda a este mensaje con el día y la hora que le convienen.",
@@ -60,6 +62,7 @@ class WhatsAppMessage
         'budget' => 'Presupuesto',
         'ready' => 'Equipo listo',
         'delivery' => 'Entrega y garantía',
+        'pickup_reminder' => 'Recordatorio de retiro',
         'appointment_confirmation' => 'Confirmación de cita',
         'appointment_reminder' => 'Recordatorio de cita',
         'maintenance_due' => 'Mantenimiento preventivo',
@@ -72,6 +75,7 @@ class WhatsAppMessage
         'budget' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'diagnostico', 'detalle_presupuesto', 'total', 'abonos', 'saldo', 'seguimiento'],
         'ready' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'total', 'saldo', 'saldo_pendiente', 'direccion_negocio', 'seguimiento'],
         'delivery' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'trabajo_realizado', 'garantia', 'total', 'seguimiento'],
+        'pickup_reminder' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'orden', 'dias', 'total', 'saldo', 'saldo_pendiente', 'direccion_negocio', 'seguimiento'],
         'appointment_confirmation' => ['cliente', 'negocio', 'telefono_negocio', 'servicio', 'fecha_hora', 'direccion', 'tecnico'],
         'appointment_reminder' => ['cliente', 'negocio', 'telefono_negocio', 'servicio', 'fecha_hora', 'direccion', 'tecnico'],
         'maintenance_due' => ['cliente', 'negocio', 'telefono_negocio', 'equipo', 'cuando', 'fecha'],
@@ -107,6 +111,11 @@ class WhatsAppMessage
                 'abonos' => (float) $order->amount_paid > 0
                     ? 'Abonado: ' . money($order->amount_paid) . "\n" . 'Saldo: ' . money($order->balance_due)
                     : '',
+            ],
+            'pickup_reminder' => [
+                'dias' => (string) self::daysReady($order),
+                'saldo_pendiente' => (float) $order->balance_due > 0 ? 'Saldo pendiente: ' . money($order->balance_due) : '',
+                'direccion_negocio' => ($address = \App\Support\Company::info($order->branch_id)['address']) ? "Le esperamos en: {$address}" : '',
             ],
             'ready' => [
                 'saldo_pendiente' => (float) $order->balance_due > 0 ? 'Saldo pendiente: ' . money($order->balance_due) : '',
@@ -184,6 +193,16 @@ class WhatsAppMessage
             'negocio' => $company['name'],
             'telefono_negocio' => (string) $company['phone'],
         ];
+    }
+
+    /**
+     * Días desde que la orden quedó lista (según el historial; si no hay, la última modificación).
+     */
+    public static function daysReady(Order $order): int
+    {
+        $since = \App\Models\OrderStatusHistory::where('order_id', $order->id)->where('to_status', 'ready')->max('changed_at');
+
+        return (int) ($since ? \Illuminate\Support\Carbon::parse($since) : $order->updated_at)->diffInDays(now());
     }
 
     private static function budgetLines(Order $order): string
