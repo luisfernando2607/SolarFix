@@ -13,3 +13,6 @@ Schedule::command('solarfix:backup')->dailyAt('02:00')->withoutOverlapping();
 
 // Señal de vida del programador: la revisión del sistema avisa si el cron no está corriendo.
 Schedule::call(fn () => touch(storage_path('app/schedule-heartbeat')))->everyFiveMinutes()->name('schedule-heartbeat');
+
+// Limpieza de notificaciones leídas, registro de correos y auditoría antiguos (plazos en Configuración).
+Schedule::command('solarfix:prune')->dailyAt('03:30')->withoutOverlapping();

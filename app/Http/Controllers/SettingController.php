@@ -38,6 +38,9 @@ class SettingController extends Controller
         'online_booking' => 'portal',
         'require_admin_2fa' => 'security',
         'email_notifications' => 'portal',
+        'notification_retention_days' => 'system',
+        'email_log_retention_days' => 'system',
+        'audit_retention_days' => 'system',
     ];
 
     public function edit()
@@ -155,6 +158,9 @@ class SettingController extends Controller
             'online_booking' => ['boolean'],
             'require_admin_2fa' => ['boolean'],
             'email_notifications' => ['boolean'],
+            'notification_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
+            'email_log_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
+            'audit_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             // El número de orden (prefijo-AAAAMMDD-0001) cabe en 20 caracteres con hasta 6 de prefijo.
             'order_prefix' => ['required', 'regex:/^[A-Z0-9]{1,6}$/'],
             'invoice_prefix' => ['required', 'regex:/^[A-Z0-9]{1,8}$/'],

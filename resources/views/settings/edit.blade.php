@@ -198,6 +198,25 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Limpieza automática</h3>
+            <p class="text-xs text-gray-500 mb-4">Cada noche se borran los registros más antiguos que estos días, para que la base no crezca sin límite. 0 = conservar siempre. Órdenes, pagos, facturas y clientes nunca se borran.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                @foreach ([
+                    'notification_retention_days' => ['Notificaciones leídas', 90],
+                    'email_log_retention_days' => ['Registro de correos', 365],
+                    'audit_retention_days' => ['Auditoría', 730],
+                ] as $key => [$label, $default])
+                    <div>
+                        <label for="{{ $key }}" class="block text-sm font-medium text-gray-700 mb-1">{{ $label }} (días)</label>
+                        <input type="number" min="0" max="3650" id="{{ $key }}" name="{{ $key }}" value="{{ old($key, $settings[$key] ?? $default) }}"
+                            class="{{ $input }} @error($key) border-red-500 @enderror">
+                        @error($key) <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-3">Control de calidad</h3>
             <label class="flex items-start gap-2">
                 <input type="hidden" name="require_quality_check" value="0">
