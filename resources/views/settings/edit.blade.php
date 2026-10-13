@@ -141,6 +141,12 @@
                 <p class="text-xs text-gray-500 mt-1">Ej. plazo para retirar el equipo, política de garantía o de equipos abandonados.</p>
                 @error('ticket_terms') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
             </div>
+            <div class="mt-4 max-w-xs">
+                <label for="budget_validity_days" class="block text-sm font-medium text-gray-700 mb-1">Validez del presupuesto (días)</label>
+                <input type="number" min="1" max="365" id="budget_validity_days" name="budget_validity_days"
+                    value="{{ old('budget_validity_days', $settings['budget_validity_days'] ?? 15) }}" class="{{ $input }} @error('budget_validity_days') border-red-500 @enderror">
+                @error('budget_validity_days') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+            </div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">

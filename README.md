@@ -33,10 +33,11 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 |---|---|
 | 📋 **Órdenes de servicio** | Cliente, equipo (marca/modelo/IMEI), accesorios, fotos, PIN/patrón cifrado, falla declarada y técnico asignado |
 | 🔄 **Estados** | Recibido → En diagnóstico → Esperando aprobación → En reparación → Listo → Entregado · Cerrado sin reparación · En garantía |
+| 📄 **Presupuesto en PDF** | Con logo, conceptos, validez y QR para aprobar en línea; el cliente también lo descarga desde su enlace |
 | ✅ **Checklists** | Recepción, diagnóstico y control de calidad por tipo de equipo; los daños se muestran al cliente antes de firmar |
 | ✍️ **Firma digital** | El cliente firma en pantalla al recibir y al entregar (o al retirar sin reparar) |
 | 💬 **WhatsApp** | Presupuesto, equipo listo, entrega con garantía, citas y mantenimientos (enlaces wa.me) |
-| 📦 **Inventario** | Repuestos con stock, costo promedio, entradas por proveedor, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden. **Compras sugeridas** por proveedor según el consumo de los últimos 90 días (Excel e impresión) |
+| 📦 **Inventario** | Repuestos con stock, costo promedio, entradas por proveedor, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden. **Compras sugeridas** por proveedor según el consumo de los últimos 90 días y **órdenes de compra** (PDF o WhatsApp al proveedor; al recibirlas suman stock y actualizan el costo) |
 | 💵 **Cobros y caja** | Pagos por orden, comprobantes, saldo a favor y devoluciones, caja del día con fondo inicial, gastos, retiros y cuadre; los días anteriores ya cerrados no se alteran |
 | 🧾 **Facturas** | Desde la orden, con IVA configurable (incluido o no en los precios; si no, se suma al saldo de la orden). Pasa a "pagada" sola cuando la orden queda saldada y fija los costos mientras esté vigente |
 | 🛡️ **Garantías** | Emitidas al entregar; el reclamo abre una orden vinculada y la cobertura (completa, mano de obra o repuestos) define qué se cobra |

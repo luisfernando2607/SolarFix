@@ -194,6 +194,7 @@ class AppointmentTest extends TestCase
 
     public function test_dashboard_shows_today_and_unassigned(): void
     {
+        $this->travelTo(today()->setTime(10, 0)); // "en una hora" sigue siendo hoy, a cualquier hora que corra el test
         $this->appointment(['scheduled_at' => now()->addHour(), 'title' => 'Visita de hoy']);
 
         $this->actingAs($this->receptionist())->get(route('dashboard'))

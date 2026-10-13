@@ -176,6 +176,14 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] Entra usando un código de respaldo. → Funciona una sola vez.
 - [ ] **Configuración → Seguridad**: exige la verificación a los administradores. → Un admin sin ella debe configurarla antes de usar la app.
 
+## 19. Presupuesto y compras
+
+- [ ] En una orden con costos, **Presupuesto**. → PDF con logo, diagnóstico, conceptos, validez y QR para aprobar.
+- [ ] Abre el enlace de seguimiento de una orden esperando aprobación. → "Descargar presupuesto (PDF)".
+- [ ] **Inventario → Compras sugeridas → Crear orden de compra** en un proveedor. → Borrador con lo sugerido; cambia cantidades, agrega un repuesto y guarda.
+- [ ] **Marcar como enviada** y **WhatsApp al proveedor**. → Abre WhatsApp con la lista del pedido.
+- [ ] **Registrar recepción** con una cantidad menor a la pedida y otro costo. → El stock sube lo recibido y el costo promedio cambia.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

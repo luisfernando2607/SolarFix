@@ -252,6 +252,30 @@ class OrderController extends Controller
         ]);
     }
 
+    /**
+     * Presupuesto para el cliente (PDF): conceptos, total, validez y QR para aprobar en línea.
+     */
+    public function budget(Order $order)
+    {
+        $this->authorizeOrder($order);
+
+        return self::budgetPdf($order)->stream('presupuesto-' . $order->order_number . '.pdf');
+    }
+
+    public static function budgetPdf(Order $order)
+    {
+        $order->loadMissing(['client', 'brand', 'deviceModel', 'parts.sparePart']);
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('orders.budget', [
+            'order' => $order,
+            'company' => \App\Support\Company::info($order->branch_id),
+            'concepts' => \App\Services\WhatsAppMessage::budgetConcepts($order),
+            'validDays' => (int) Setting::get('budget_validity_days', 15),
+            'pricesIncludeIva' => Setting::get('prices_include_iva', '1') === '1',
+            'onlineApproval' => Setting::get('online_approval', '1') === '1',
+        ]);
+    }
+
     public function pdf(Order $order)
     {
         $this->authorizeOrder($order);

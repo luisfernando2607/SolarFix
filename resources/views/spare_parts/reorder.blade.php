@@ -19,9 +19,17 @@
 
     @forelse ($groups as $supplier => $rows)
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-6">
-            <div class="px-6 py-3 border-b bg-gray-50/50 flex justify-between text-sm">
+            <div class="px-6 py-3 border-b bg-gray-50/50 flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span class="font-semibold text-gray-800">{{ $supplier }}</span>
-                <span class="text-gray-600">{{ money($rows->sum('total')) }}</span>
+                <span class="flex items-center gap-3">
+                    <span class="text-gray-600">{{ money($rows->sum('total')) }}</span>
+                    <form method="POST" action="{{ route('purchase-orders.store') }}">
+                        @csrf
+                        <input type="hidden" name="supplier_id" value="{{ $rows->first()['supplier_id'] }}">
+                        <input type="hidden" name="from_suggestion" value="1">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Crear orden de compra</button>
+                    </form>
+                </span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">

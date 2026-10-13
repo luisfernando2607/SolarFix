@@ -87,6 +87,7 @@
                 @endif
             </dl>
 
+            <a href="{{ route('tracking.budget', $order->tracking_token) }}" target="_blank" class="mt-3 inline-block text-sm text-blue-600 hover:underline">Descargar presupuesto (PDF)</a>
             <form method="POST" action="{{ route('tracking.decide', $order->tracking_token) }}" class="mt-4">
                 @csrf
                 <input type="hidden" name="decision" value="approve">

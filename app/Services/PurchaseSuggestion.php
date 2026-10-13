@@ -59,6 +59,7 @@ class PurchaseSuggestion
                     'unit_cost' => $unitCost,
                     'total' => round($quantity * $unitCost, 2),
                     'supplier' => $purchase ? ($suppliers[$purchase->supplier_id] ?? 'Sin proveedor') : 'Sin proveedor',
+                    'supplier_id' => $purchase && isset($suppliers[$purchase->supplier_id]) ? (int) $purchase->supplier_id : null,
                 ];
             })
             ->filter(fn ($row) => $row['quantity'] > 0)

@@ -12,6 +12,7 @@
         @can('manage-inventory')
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('spare-parts.reorder') }}" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition">Compras sugeridas</a>
+                <a href="{{ route('purchase-orders.index') }}" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition">Órdenes de compra</a>
                 <a href="{{ route('spare-parts.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ Nuevo repuesto</a>
             </div>
         @endcan

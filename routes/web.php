@@ -45,6 +45,10 @@ Route::get('/seguimiento/{token}', [TrackingController::class, 'show'])
 // Solicitud de cita en línea (pública; con límite contra abusos).
 Route::get('/agendar', [\App\Http\Controllers\BookingController::class, 'create'])->middleware('throttle:30,1')->name('booking.create');
 Route::post('/agendar', [\App\Http\Controllers\BookingController::class, 'store'])->middleware('throttle:5,10')->name('booking.store');
+Route::get('/seguimiento/{token}/presupuesto', [TrackingController::class, 'budget'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:10,1')
+    ->name('tracking.budget');
 Route::post('/seguimiento/{token}/decision', [TrackingController::class, 'decide'])
     ->where('token', '[A-Za-z0-9]{32}')
     ->middleware('throttle:10,1')
@@ -89,6 +93,17 @@ Route::middleware('auth')->group(function () {
         Route::resource('suppliers', SupplierController::class)->except(['destroy']);
         Route::get('/spare-parts/create', [SparePartController::class, 'create'])->name('spare-parts.create');
         Route::get('/spare-parts-reorder', [SparePartController::class, 'reorder'])->name('spare-parts.reorder');
+        Route::controller(\App\Http\Controllers\PurchaseOrderController::class)->group(function () {
+            Route::get('/purchase-orders', 'index')->name('purchase-orders.index');
+            Route::post('/purchase-orders', 'store')->name('purchase-orders.store');
+            Route::get('/purchase-orders/{purchaseOrder}', 'show')->name('purchase-orders.show');
+            Route::put('/purchase-orders/{purchaseOrder}', 'update')->name('purchase-orders.update');
+            Route::patch('/purchase-orders/{purchaseOrder}/send', 'send')->name('purchase-orders.send');
+            Route::get('/purchase-orders/{purchaseOrder}/pdf', 'pdf')->name('purchase-orders.pdf');
+            Route::post('/purchase-orders/{purchaseOrder}/whatsapp', 'whatsapp')->name('purchase-orders.whatsapp');
+            Route::post('/purchase-orders/{purchaseOrder}/receive', 'receive')->name('purchase-orders.receive');
+            Route::patch('/purchase-orders/{purchaseOrder}/cancel', 'cancel')->name('purchase-orders.cancel');
+        });
         Route::post('/spare-parts', [SparePartController::class, 'store'])->name('spare-parts.store');
         Route::get('/spare-parts/{spare_part}/edit', [SparePartController::class, 'edit'])->name('spare-parts.edit');
         Route::put('/spare-parts/{spare_part}', [SparePartController::class, 'update'])->name('spare-parts.update');
@@ -143,6 +158,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/orders/{order}/parts/{part}', [OrderPartController::class, 'destroy'])->name('orders.parts.destroy');
         Route::resource('orders', OrderController::class)->except(['destroy']);
         Route::get('/orders/{order}/pdf', [OrderController::class, 'pdf'])->name('orders.pdf');
+        Route::get('/orders/{order}/budget', [OrderController::class, 'budget'])->name('orders.budget');
         Route::get('/orders/{order}/ticket', [OrderController::class, 'ticket'])->name('orders.ticket');
         Route::get('/orders/{order}/label', [OrderController::class, 'label'])->name('orders.label');
         Route::post('/orders/{order}/photos', [OrderController::class, 'uploadPhoto'])->name('orders.photo.upload');

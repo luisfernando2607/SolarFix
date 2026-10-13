@@ -35,6 +35,17 @@ class TrackingController extends Controller
     }
 
     /**
+     * El cliente descarga su presupuesto mientras espera su respuesta.
+     */
+    public function budget(string $token)
+    {
+        $order = $this->order($token);
+        abort_unless($this->canDecide($order), 404);
+
+        return OrderController::budgetPdf($order)->stream('presupuesto-' . $order->order_number . '.pdf');
+    }
+
+    /**
      * El cliente aprueba o rechaza el presupuesto: la orden avanza como si lo hiciera el taller.
      */
     public function decide(Request $request, string $token)
