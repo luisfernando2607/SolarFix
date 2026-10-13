@@ -115,6 +115,8 @@ El seeder crea la sucursal, el usuario administrador, los catálogos (accesorios
 
 ## 🌐 Puesta en producción
 
+> Paso a paso para un **VPS** (Ubuntu + Nginx) o un **hosting con cPanel**: [`docs/PUBLICACION.md`](docs/PUBLICACION.md). Para actualizar después: `bash docs/deploy/actualizar.sh`.
+
 1. **Entorno** (`.env`): `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` con HTTPS, `APP_TIMEZONE=America/Guayaquil`, `SESSION_SECURE_COOKIE=true`. Si hay un proxy delante (Nginx, Cloudflare, el panel del hosting), `TRUSTED_PROXIES=*` para que la app detecte el HTTPS.
 2. **Código y dependencias:**
    ```bash
