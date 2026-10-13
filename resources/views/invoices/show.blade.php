@@ -3,8 +3,8 @@
 @section('title', 'Factura #' . $invoice->invoice_number)
 
 @section('content')
-<div class="p-6 max-w-4xl mx-auto">
-    <div class="mb-6 flex items-center justify-between">
+<div class="p-4 sm:p-6 max-w-4xl mx-auto">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
             <a href="{{ route('invoices.index') }}" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -20,7 +20,7 @@
                 </span>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('invoices.pdf', $invoice) }}" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 PDF

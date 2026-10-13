@@ -13,8 +13,8 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 Volver a órdenes
             </a>
-            <div class="flex items-center gap-3 mt-2">
-                <h2 class="text-2xl font-bold text-gray-800">Orden #{{ $order->order_number }}</h2>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                <h2 class="text-2xl font-bold text-gray-800 break-all">Orden #{{ $order->order_number }}</h2>
                 @if (\App\Models\Branch::isMultiple() && $order->branch)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ $order->branch->name }}</span>
                 @endif
@@ -31,7 +31,7 @@
                 </span>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('orders.pdf', $order) }}" class="bg-white hover:bg-gray-50 text-gray-700 border px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 PDF

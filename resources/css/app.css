@@ -8,3 +8,18 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/*
+ * Tailwind 4 usa el color del texto como color de borde por defecto (Tailwind 3 usaba gris claro).
+ * Las vistas se diseñaron con "border" esperando el gris claro: sin esto, tarjetas y tablas
+ * quedan con un contorno negro.
+ */
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentcolor);
+    }
+}

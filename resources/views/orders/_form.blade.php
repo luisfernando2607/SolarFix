@@ -3,7 +3,7 @@
     $editing = !is_null($order);
 @endphp
 
-<div class="p-6 max-w-7xl mx-auto">
+<div class="p-4 sm:p-6 max-w-7xl mx-auto">
     <div class="mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <a href="{{ $cancelRoute }}" class="text-gray-400 hover:text-gray-600 p-1">
@@ -89,7 +89,7 @@
         </div>
         @endif
 
-        <div class="grid grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
 
             <div class="bg-white rounded-xl shadow-sm border">
                 <div class="px-6 py-4 border-b bg-gray-50/50 rounded-t-xl flex items-center gap-2">
@@ -580,7 +580,7 @@
         var total = sub + surchAmt;
         var balance = total - paid;
 
-        document.getElementById('surcharge_amount_display').innerHTML = 'Recargo: <span class="font-semibold text-gray-700">' + currency + ' + surchAmt.toFixed(2) + '</span>';
+        document.getElementById('surcharge_amount_display').innerHTML = 'Recargo: <span class="font-semibold text-gray-700">' + currency + surchAmt.toFixed(2) + '</span>';
         document.getElementById('total_amount').value = total.toFixed(2);
         document.getElementById('balance_due').value = Math.max(0, balance).toFixed(2);
 

@@ -3,7 +3,7 @@
 @section('title', 'Nueva Factura')
 
 @section('content')
-<div class="p-6 max-w-4xl mx-auto">
+<div class="p-4 sm:p-6 max-w-4xl mx-auto">
     <a href="{{ route('invoices.index') }}" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 mb-4">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         Volver a facturas
@@ -112,9 +112,9 @@
                     }
                 @endphp
                 @foreach ($defaultItems as $i => $item)
-                <div class="item-row flex items-center gap-2">
+                <div class="item-row flex flex-wrap sm:flex-nowrap items-center gap-2">
                     <input type="text" name="items[{{ $i }}][description]" placeholder="Descripción" value="{{ $item[0] }}" required
-                        class="flex-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        class="basis-full sm:basis-auto flex-1 min-w-0 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                     <input type="number" name="items[{{ $i }}][quantity]" step="0.01" min="0.01" value="{{ $item[1] }}" required
                         class="w-20 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center">
                     <input type="number" name="items[{{ $i }}][unit_price]" step="0.01" min="0" value="{{ $item[2] }}" required
@@ -198,10 +198,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('add_item').addEventListener('click', function () {
         const container = document.getElementById('items_container');
         const row = document.createElement('div');
-        row.className = 'item-row flex items-center gap-2';
+        row.className = 'item-row flex flex-wrap sm:flex-nowrap items-center gap-2';
         row.innerHTML = `
             <input type="text" name="items[${itemIndex}][description]" placeholder="Descripción" required
-                class="flex-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                class="basis-full sm:basis-auto flex-1 min-w-0 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
             <input type="number" name="items[${itemIndex}][quantity]" step="0.01" min="0.01" value="1" required
                 class="w-20 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center">
             <input type="number" name="items[${itemIndex}][unit_price]" step="0.01" min="0" value="0" required

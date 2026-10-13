@@ -111,14 +111,14 @@
             <p class="text-xs text-gray-500 mb-3">Corrige lo que llegó realmente y el costo de la factura del proveedor. Lo recibido se suma al stock{{ \App\Models\Branch::isMultiple() ? ' de ' . $order->branch?->name : '' }} y actualiza el costo promedio.</p>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead><tr class="border-b text-left text-gray-600"><th class="py-2 font-semibold">Repuesto</th><th class="py-2 font-semibold text-right">Pedido</th><th class="py-2 font-semibold w-28">Recibido</th><th class="py-2 font-semibold w-32">Costo unit.</th></tr></thead>
+                    <thead><tr class="border-b text-left text-gray-600"><th class="py-2 pr-3 font-semibold">Repuesto</th><th class="py-2 px-3 font-semibold text-right">Pedido</th><th class="py-2 px-3 font-semibold w-28">Recibido</th><th class="py-2 pl-3 font-semibold w-32">Costo unit.</th></tr></thead>
                     <tbody>
                         @foreach ($order->items as $item)
                             <tr class="border-b">
-                                <td class="py-2">{{ $item->sparePart?->name }}</td>
-                                <td class="py-2 text-right">{{ $item->quantity }}</td>
-                                <td class="py-2"><input type="number" name="received[{{ $item->id }}][quantity]" value="{{ $item->quantity }}" min="0" aria-label="Recibido de {{ $item->sparePart?->name }}" class="{{ $field }} w-24"></td>
-                                <td class="py-2"><input type="number" name="received[{{ $item->id }}][unit_cost]" value="{{ $item->unit_cost }}" min="0" step="0.01" aria-label="Costo de {{ $item->sparePart?->name }}" class="{{ $field }} w-28"></td>
+                                <td class="py-2 pr-3">{{ $item->sparePart?->name }}</td>
+                                <td class="py-2 px-3 text-right">{{ $item->quantity }}</td>
+                                <td class="py-2 px-3"><input type="number" name="received[{{ $item->id }}][quantity]" value="{{ $item->quantity }}" min="0" aria-label="Recibido de {{ $item->sparePart?->name }}" class="{{ $field }} w-24"></td>
+                                <td class="py-2 pl-3"><input type="number" name="received[{{ $item->id }}][unit_cost]" value="{{ $item->unit_cost }}" min="0" step="0.01" aria-label="Costo de {{ $item->sparePart?->name }}" class="{{ $field }} w-28"></td>
                             </tr>
                         @endforeach
                     </tbody>
