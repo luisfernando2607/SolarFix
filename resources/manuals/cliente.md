@@ -10,6 +10,8 @@ Al dejar su equipo recibe un **ticket con un código QR** (y el enlace por Whats
 - La fecha estimada de entrega, el total, lo abonado y el saldo.
 - La garantía, después de la entrega.
 
+![Página de seguimiento de la orden en el celular](/manuales/c-seguimiento.jpg)
+
 El enlace es privado: compártalo solo con quien retirará el equipo.
 
 ## Aprobar el presupuesto
@@ -19,6 +21,9 @@ Cuando terminemos el diagnóstico, le enviaremos el presupuesto. En su enlace ve
 - **Aprobar reparación**: empezamos a repararlo de inmediato.
 - **No deseo la reparación**: puede pasar a retirar su equipo (puede dejarnos el motivo).
 - **Descargar presupuesto (PDF)** si lo necesita.
+
+![Presupuesto con los botones para aprobar o rechazar la reparación](/manuales/c-presupuesto.jpg)
+
 
 También puede respondernos por WhatsApp o llamarnos.
 
@@ -33,6 +38,9 @@ Después de la entrega, en el mismo enlace puede **calificarnos de 1 a 5 estrell
 ## Pedir una cita
 
 Para visitas técnicas a domicilio, instalaciones o mantenimientos, puede pedir una cita en nuestra página **Agendar** (la compartimos en redes y por WhatsApp). Elija el día y la hora y cuéntenos qué necesita: le confirmaremos la cita.
+
+![Página para pedir una cita](/manuales/c-agendar.jpg)
+
 
 ## Garantía
 

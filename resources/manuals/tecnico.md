@@ -11,6 +11,9 @@ Al entrar (la primera vez, la app te pide **cambiar la contraseña** que te dier
 - **Órdenes sin técnico**: equipos que nadie tomó todavía. Presiona **Tomar** para asignártelo.
 - Arriba ves tu **comisión del mes**.
 
+![Mi trabajo: órdenes del técnico por etapa](/manuales/t-mi-trabajo.jpg)
+
+
 La campana de avisos (arriba) te avisa cuando te asignan una orden, una cita o un reclamo de garantía, y cuando un cliente aprueba un presupuesto o responde por WhatsApp.
 
 ## 2. Diagnosticar
@@ -19,6 +22,9 @@ La campana de avisos (arriba) te avisa cuando te asignan una orden, una cita o u
 2. **Acciones rápidas → Iniciar diagnóstico**.
 3. Si el tipo de equipo tiene checklist, **Checklists → Diagnóstico → Completar**.
 4. En **Trabajo técnico** escribe el **Diagnóstico**, el **Costo diagnóstico** y la **Mano de obra** → **Guardar trabajo**.
+
+![Trabajo técnico: diagnóstico, trabajo realizado y costos](/manuales/t-trabajo.jpg)
+
 5. Si necesitas repuestos del inventario: **Repuestos → Agregar** (busca por nombre o código). Se descuentan del stock y se suman al presupuesto.
 
 ## 3. Pedir la aprobación del cliente
@@ -28,10 +34,16 @@ La campana de avisos (arriba) te avisa cuando te asignan una orden, una cita o u
 - Si te responde por teléfono: **Cliente aprobó: iniciar reparación** o **Cliente rechazó: cerrar sin reparación**.
 - Si al reparar aparece un daño adicional: **Daño adicional: pedir aprobación** (vuelve a esperar la respuesta del cliente).
 
+![Acciones rápidas de la orden](/manuales/t-acciones.jpg)
+
+
 ## 4. Reparar
 
 1. **Acciones rápidas → Iniciar reparación** (o se inicia sola cuando el cliente aprueba en línea).
 2. Usa la **Bitácora técnica** para dejar notas: qué pediste, qué probaste, qué falta. Quedan con tu nombre y la hora.
+
+![Bitácora técnica con una nota](/manuales/t-bitacora.jpg)
+
 3. **Fotos → Tomar o elegir foto → Subir**: puedes tomar la foto con la cámara del celular (antes y después de la reparación).
 4. Al terminar, en **Trabajo técnico** escribe el **Trabajo realizado** → **Guardar trabajo**.
 5. Si aplica, **Checklists → Control de calidad → Completar** (puede ser obligatorio para marcarla lista).

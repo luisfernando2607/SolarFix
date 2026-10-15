@@ -13,6 +13,8 @@ El administrador ve **todas las sucursales** (con el selector *Sucursal* del men
    - **Envío de WhatsApp** y **Correo a clientes** (ver *docs/WHATSAPP.md*).
    - **Seguridad**: exigir verificación en dos pasos a los administradores.
    - **Alertas**, **comisiones** y **limpieza automática**.
+![Configuración → Negocio: nombre, RUC, teléfono, correo, dirección y logo](/manuales/a-negocio.jpg)
+
 3. **Sucursales**: crea cada sucursal con su código (va en el número de orden: ORD-QTO-…), dirección y teléfono.
 4. **Usuarios → Nuevo**: técnicos (con su comisión: fija o porcentaje), recepción y otros administradores. La contraseña que les das es temporal: la cambian al entrar.
 5. **Catálogos**: Marcas, Modelos, Accesorios, **Checklists** por tipo de equipo (recepción, diagnóstico y control de calidad) y Proveedores.
@@ -37,8 +39,14 @@ El administrador ve **todas las sucursales** (con el selector *Sucursal* del men
 - **Inventario → Nuevo repuesto**: código (puede ser el código de barras), categoría, costo, precio de venta y **stock mínimo**.
 - **Ajustar** el stock después de un conteo físico (queda el motivo).
 - **Compras sugeridas**: lo que conviene pedir, por proveedor, según lo usado y vendido en los últimos 90 días.
+
+![Compras sugeridas por proveedor](/manuales/a-compras-sugeridas.jpg)
+
 - **Crear orden de compra** desde la sugerencia → ajusta cantidades y costos → **PDF** o **WhatsApp al proveedor** → **Marcar como enviada**.
 - Cuando llega la mercadería: **Registrar recepción** con lo que llegó y el costo de la factura. El stock y el costo promedio se actualizan solos.
+
+![Orden de compra en borrador y recepción de la mercadería](/manuales/a-orden-compra.jpg)
+
 
 ## 5. Comisiones
 
@@ -49,6 +57,9 @@ El administrador ve **todas las sucursales** (con el selector *Sucursal* del men
 **Reportes** (elige el período):
 - Ingresos (órdenes y ventas), órdenes recibidas y entregadas, ticket promedio, días de reparación, satisfacción.
 - **Utilidad estimada**: ingresos menos repuestos, comisiones, costo de lo vendido y gastos.
+
+![Reportes → Utilidad estimada del período](/manuales/a-utilidad.jpg)
+
 - Por técnico (órdenes, días, calificación, garantías), por tipo de equipo y repuestos más usados.
 - **Excel**: órdenes, pagos y ventas.
 

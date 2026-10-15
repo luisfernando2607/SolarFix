@@ -41,9 +41,20 @@ class HelpController extends Controller
     {
         abort_unless(isset($this->available()[$manual]), 404);
 
+        // Las capturas van incrustadas: el PDF no carga archivos de la web.
+        $html = preg_replace_callback('#<img src="/manuales/([a-z0-9-]+\.jpg)" alt="([^"]*)"\s*/?>#', function ($m) {
+            $file = public_path('manuales/' . $m[1]);
+            if (! is_file($file)) {
+                return '';
+            }
+            $width = str_starts_with($m[1], 'a-') ? '100%' : '62mm';
+
+            return '<img src="data:image/jpeg;base64,' . base64_encode(file_get_contents($file)) . '" alt="' . $m[2] . '" style="width:' . $width . ';border:0.5pt solid #ccc;margin:4pt 0 8pt">';
+        }, $this->html($manual));
+
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('help.pdf', [
             'title' => self::MANUALS[$manual],
-            'html' => $this->html($manual),
+            'html' => $html,
             'company' => \App\Support\Company::info(Auth::user()->branch_id),
         ])->stream('manual-' . $manual . '.pdf');
     }

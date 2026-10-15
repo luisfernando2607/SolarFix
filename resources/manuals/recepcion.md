@@ -12,6 +12,9 @@ Recepción recibe los equipos, atiende a los clientes, cobra, entrega, factura y
 3. Más abajo: citas de hoy, **citas pedidas en línea por confirmar** y **saldos a favor por devolver**.
 4. En **Caja del día**, registra el **Fondo inicial** (el efectivo con el que abres).
 
+![Panel Mostrador: equipos listos para entregar, con los botones Recordar retiro y Entregar](/manuales/r-mostrador.jpg)
+
+
 > Atajo: la tecla **/** abre el buscador. Busca por número de orden, nombre, teléfono, cédula o IMEI.
 
 ## 2. Recibir un equipo
@@ -26,11 +29,17 @@ Recepción recibe los equipos, atiende a los clientes, cobra, entrega, factura y
 8. **Técnico asignado** (o déjalo sin asignar: los técnicos pueden tomarlo).
 9. **Crear Orden**.
 
+![Formulario de nueva orden en el celular](/manuales/r-nueva-orden.jpg)
+
+
 Después, en la orden:
 - **Ticket**: imprímelo (impresora de 80 mm) y entrégalo al cliente. Tiene el QR de seguimiento.
 - **Etiqueta**: pégala en el equipo para identificarlo en el taller.
 - **Checklists → Recepción → Completar**: revisa el equipo con el cliente presente y marca lo dañado.
 - **Firmas → Firmar recepción**: el cliente firma en la pantalla.
+
+![Orden con los botones PDF, Presupuesto, Ticket, Etiqueta y Editar, y las acciones rápidas](/manuales/r-orden.jpg)
+
 
 ## 3. Mientras el equipo está en el taller
 
@@ -45,6 +54,9 @@ Después, en la orden:
 2. Muestra al cliente el resumen (trabajo, total, garantía).
 3. En **Cobrar el saldo antes de entregar**: monto, método (efectivo, transferencia, tarjeta…) y referencia si aplica. Si no paga ahora, deja 0: el saldo queda pendiente.
 4. El cliente **firma** en el recuadro → **Firmar y marcar como entregado**.
+
+![Entrega: firma del cliente y cobro del saldo](/manuales/r-entrega.jpg)
+
 5. La app emite la **garantía** y, si está activado, le envía al cliente el aviso de entrega con el enlace para **calificar** el servicio.
 
 Si el cliente no quiso la reparación, la orden queda "Cerrado sin reparación": se entrega igual con su firma (devolución sin reparar).
@@ -66,6 +78,9 @@ Para accesorios y repuestos que se venden sin reparar nada:
 3. Ajusta las cantidades, elige el cliente si quieres (opcional) y el método de pago.
 4. **Cobrar y registrar venta** → **Imprimir comprobante**.
 
+![Nueva venta de mostrador con dos productos](/manuales/r-venta.jpg)
+
+
 El stock baja solo y la venta entra a la caja del día.
 
 ## 7. Citas y mantenimientos
@@ -85,6 +100,9 @@ Si un cliente vuelve con un equipo en garantía, busca la orden original (por te
 2. Registra **gastos** (taxi, compras menores) y **retiros** (depósito al banco) en *Movimientos de efectivo*.
 3. Cuenta el efectivo y escribe el **Efectivo contado**. Si no coincide con el esperado, escribe la explicación.
 4. **Cerrar caja**. Si después del cierre entra otro cobro del mismo día, vuelve a cerrar.
+
+![Caja del día: cobros y ventas por método de pago](/manuales/r-caja.jpg)
+
 
 Un día anterior ya cerrado no se puede modificar.
 
