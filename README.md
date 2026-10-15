@@ -177,6 +177,8 @@ Para probar a mano en el navegador, por módulo y por rol: [`docs/GUIA_DE_PRUEBA
 
 ## 📚 Documentación
 
+- **Manuales de uso por rol** (Recepción, Técnico, Administrador y guía para el cliente): dentro de la app en **Ayuda** (cada usuario ve el de su rol) y en PDF. Fuente: `resources/manuals/`.
+
 - [Documento de procesos](docs/SolarFix_Documento_De_Procesos.md)
 - [Guía de pruebas](docs/GUIA_DE_PRUEBAS.md)
 - [Esquema original de base de datos](docs/solarfix_schema.sql) (referencia; el esquema real lo crean las migraciones)

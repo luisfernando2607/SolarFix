@@ -68,6 +68,9 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/password', [\App\Http\Controllers\PasswordController::class, 'edit'])->name('password.edit');
+    Route::get('/ayuda', [\App\Http\Controllers\HelpController::class, 'index'])->name('help.index');
+    Route::get('/ayuda/{manual}', [\App\Http\Controllers\HelpController::class, 'show'])->whereAlpha('manual')->name('help.show');
+    Route::get('/ayuda/{manual}/pdf', [\App\Http\Controllers\HelpController::class, 'pdf'])->whereAlpha('manual')->name('help.pdf');
     Route::put('/password', [\App\Http\Controllers\PasswordController::class, 'update'])->name('password.update');
     Route::controller(\App\Http\Controllers\TwoFactorController::class)->group(function () {
         Route::get('/two-factor', 'show')->name('two-factor.show');
