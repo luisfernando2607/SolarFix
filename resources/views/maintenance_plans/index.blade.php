@@ -59,7 +59,7 @@
                                     @if ($open)
                                         <a href="{{ route('appointments.show', $open) }}" class="text-xs px-3 py-1.5 rounded-lg border bg-blue-50 text-blue-700">Cita {{ $open->scheduled_at->format('d/m H:i') }}</a>
                                     @elseif ($plan->is_active)
-                                        <form method="POST" action="{{ route('maintenance-plans.whatsapp', $plan) }}" target="_blank">
+                                        <form method="POST" action="{{ route('maintenance-plans.whatsapp', $plan) }}" target="{{ \App\Services\WhatsAppCloud::enabled() ? '_self' : '_blank' }}">
                                             @csrf
                                             <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-green-300 text-green-700 hover:bg-green-50">Avisar por WhatsApp</button>
                                         </form>

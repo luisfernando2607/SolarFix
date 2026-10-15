@@ -284,8 +284,71 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-6">
-            <h3 class="text-base font-semibold text-gray-800 mb-1">Mensajes de WhatsApp</h3>
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Envío de WhatsApp</h3>
             <p class="text-xs text-gray-500 mb-4">
+                <strong>Enlace:</strong> la app abre WhatsApp con el mensaje listo y una persona lo envía (sin costo).
+                <strong>WhatsApp Cloud API:</strong> la app envía sola desde el número del negocio, con estado de entrega y lectura y las respuestas del cliente en la orden.
+                Pasos para conectarla: <code>docs/WHATSAPP.md</code>.
+            </p>
+            @php $waConfigured = \App\Services\WhatsAppCloud::configured(); @endphp
+            <p class="mb-4 rounded-lg border px-3 py-2 text-xs {{ $waConfigured ? 'border-green-200 bg-green-50 text-green-900' : 'border-amber-200 bg-amber-50 text-amber-900' }}">
+                @if ($waConfigured)
+                    Credenciales de Meta cargadas en el servidor. URL del webhook para Meta: <code class="break-all">{{ route('webhooks.whatsapp') }}</code>
+                @else
+                    Faltan las credenciales de Meta en el <code>.env</code> (<code>WHATSAPP_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>): mientras tanto se usa el modo enlace.
+                @endif
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="whatsapp_mode" class="block text-sm font-medium text-gray-700 mb-1">Modo de envío</label>
+                    <select id="whatsapp_mode" name="whatsapp_mode" class="{{ $input }} bg-white">
+                        <option value="link" {{ old('whatsapp_mode', $settings['whatsapp_mode'] ?? 'link') === 'link' ? 'selected' : '' }}>Enlace (abrir WhatsApp)</option>
+                        <option value="api" {{ old('whatsapp_mode', $settings['whatsapp_mode'] ?? 'link') === 'api' ? 'selected' : '' }} {{ $waConfigured ? '' : 'disabled' }}>WhatsApp Cloud API (envío automático)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="wa_api_language" class="block text-sm font-medium text-gray-700 mb-1">Idioma de las plantillas en Meta</label>
+                    <input type="text" id="wa_api_language" name="wa_api_language" maxlength="5" value="{{ old('wa_api_language', $settings['wa_api_language'] ?? 'es') ?: 'es' }}"
+                        class="{{ $input }} @error('wa_api_language') border-red-500 @enderror">
+                    <p class="text-xs text-gray-500 mt-1">El código con que las creaste: <code>es</code>, <code>es_EC</code>, <code>es_MX</code>…</p>
+                </div>
+            </div>
+            <label class="mt-4 flex items-start gap-2">
+                <input type="hidden" name="whatsapp_auto" value="0">
+                <input type="checkbox" name="whatsapp_auto" value="1" {{ old('whatsapp_auto', $settings['whatsapp_auto'] ?? '0') ? 'checked' : '' }}
+                    class="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">Enviar solos los avisos (solo con la Cloud API)
+                    <span class="block text-xs text-gray-500">Presupuesto, equipo listo y entrega al cambiar el estado de la orden; recordatorios de citas del día siguiente y de equipos sin retirar cada tarde.</span></span>
+            </label>
+            <details class="mt-4">
+                <summary class="text-sm text-blue-600 cursor-pointer">Nombres de las plantillas en Meta</summary>
+                <p class="text-xs text-gray-500 mt-2 mb-3">Déjalos vacíos si creaste las plantillas con los nombres sugeridos.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @foreach (\App\Services\WhatsAppTemplates::DEFINITIONS as $type => $definition)
+                        <div>
+                            <label for="wa_api_{{ $type }}" class="block text-xs font-medium text-gray-700 mb-1">{{ \App\Services\WhatsAppMessage::TEMPLATE_LABELS[$type] ?? $type }}</label>
+                            <input type="text" id="wa_api_{{ $type }}" name="wa_api_templates[{{ $type }}]" placeholder="{{ $definition['name'] }}"
+                                value="{{ old('wa_api_templates.' . $type, \App\Models\Setting::get('wa_api_template_' . $type)) }}"
+                                class="{{ $input }} font-mono text-xs @error('wa_api_templates.' . $type) border-red-500 @enderror">
+                        </div>
+                    @endforeach
+                </div>
+            </details>
+            @if ($waConfigured)
+                <div class="mt-4 flex flex-wrap items-end gap-2 border-t pt-4">
+                    <div>
+                        <label for="test_phone" class="block text-xs font-medium text-gray-700 mb-1">Probar la conexión: enviar "hello_world" a</label>
+                        <input type="tel" id="test_phone" name="test_phone" form="testWhatsAppForm" placeholder="0991234567" class="{{ $input }}">
+                    </div>
+                    <button type="submit" form="testWhatsAppForm" class="bg-white hover:bg-gray-50 text-gray-700 border px-3 py-2 rounded-lg text-sm">Enviar prueba</button>
+                </div>
+            @endif
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-1">Textos de WhatsApp (modo enlace)</h3>
+            <p class="text-xs text-gray-500 mb-4">
+                Con la Cloud API se usan las plantillas aprobadas en Meta, no estos textos.
                 Deja un mensaje vacío para usar el texto original. Las variables van entre llaves, ej. <code>{cliente}</code>.
                 Una línea que solo tiene una variable sin valor (ej. <code>{diagnostico}</code> sin diagnóstico) no se envía.
                 Usa *asteriscos* para negrita.
@@ -314,5 +377,6 @@
         </div>
     </form>
     <form id="testEmailForm" method="POST" action="{{ route('settings.test-email') }}" class="hidden">@csrf</form>
+    <form id="testWhatsAppForm" method="POST" action="{{ route('settings.test-whatsapp') }}" class="hidden">@csrf</form>
 </div>
 @endsection

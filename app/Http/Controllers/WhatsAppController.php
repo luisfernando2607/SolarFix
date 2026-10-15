@@ -43,6 +43,18 @@ class WhatsAppController extends Controller
             return back()->with('error', 'El cliente no tiene un número de teléfono válido para WhatsApp.');
         }
 
+        // Con la Cloud API: se envía desde aquí y se vuelve a la orden con el resultado.
+        if (\App\Services\WhatsAppCloud::enabled()) {
+            $log = \App\Services\WhatsAppCloud::sendTemplate($type, $phone, \App\Services\WhatsAppTemplates::forOrder($type, $order),
+                ['order_id' => $order->id, 'client_id' => $order->client_id]);
+            if ($log->status === 'failed') {
+                return back()->with('error', 'WhatsApp no se envió: ' . $log->error);
+            }
+            $this->afterBudgetSent($order, $type);
+
+            return back()->with('success', 'Mensaje de WhatsApp enviado a ' . $phone . '.');
+        }
+
         $message = WhatsAppMessage::build($type, $order);
 
         DB::transaction(function () use ($order, $type, $phone, $message) {
@@ -55,21 +67,30 @@ class WhatsAppController extends Controller
                 'sent_by' => Auth::id(),
                 'sent_at' => now(),
             ]);
-
-            // Al enviar el presupuesto la orden queda esperando la aprobación del cliente.
-            if ($type === 'budget' && in_array($order->status, ['received', 'diagnosing'])) {
-                OrderStatusHistory::create([
-                    'order_id' => $order->id,
-                    'from_status' => $order->status,
-                    'to_status' => 'waiting_approval',
-                    'changed_by' => Auth::id(),
-                    'notes' => 'Presupuesto enviado por WhatsApp',
-                ]);
-                $order->update(['status' => 'waiting_approval']);
-                \App\Services\ClientNotifier::statusChanged($order, 'waiting_approval');
-            }
+            $this->afterBudgetSent($order, $type);
         });
 
         return redirect()->away(WhatsAppMessage::url($phone, $message));
+    }
+
+    /**
+     * Al enviar el presupuesto la orden queda esperando la aprobación del cliente.
+     */
+    private function afterBudgetSent(Order $order, string $type): void
+    {
+        if ($type !== 'budget' || ! in_array($order->status, ['received', 'diagnosing'])) {
+            return;
+        }
+
+        OrderStatusHistory::create([
+            'order_id' => $order->id,
+            'from_status' => $order->status,
+            'to_status' => 'waiting_approval',
+            'changed_by' => Auth::id(),
+            'notes' => 'Presupuesto enviado por WhatsApp',
+        ]);
+        $order->update(['status' => 'waiting_approval']);
+        // El aviso por WhatsApp ya salió; aquí solo el correo (si está activo).
+        \App\Services\ClientNotifier::statusChanged($order, 'waiting_approval', skipWhatsApp: true);
     }
 }

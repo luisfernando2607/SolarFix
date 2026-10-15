@@ -37,7 +37,7 @@ Los talleres suelen registrar equipos en cuadernos o chats de WhatsApp: se pierd
 | ✅ **Checklists** | Recepción, diagnóstico y control de calidad por tipo de equipo; los daños se muestran al cliente antes de firmar |
 | ✍️ **Firma digital** | El cliente firma en pantalla al recibir y al entregar (o al retirar sin reparar) |
 | ✉️ **Correo al cliente** | Presupuesto, equipo listo y entrega por correo (con logo y botón al seguimiento), automáticos o a mano desde la orden; cada envío queda registrado |
-| 💬 **WhatsApp** | Presupuesto, equipo listo, entrega con garantía, citas y mantenimientos (enlaces wa.me) |
+| 💬 **WhatsApp** | Presupuesto, equipo listo, entrega con garantía, recordatorio de retiro, citas y mantenimientos. Sin costo con enlaces wa.me, o **automático con la WhatsApp Cloud API de Meta**: envío solo al cambiar la orden y recordatorios diarios, estado entregado/leído y respuestas del cliente en la orden ([`docs/WHATSAPP.md`](docs/WHATSAPP.md)) |
 | 📦 **Inventario** | Repuestos con stock, costo promedio, entradas por proveedor, ajustes y alerta de stock bajo; se descuentan al usarlos en una orden. **Compras sugeridas** por proveedor según el consumo de los últimos 90 días y **órdenes de compra** (PDF o WhatsApp al proveedor; al recibirlas suman stock y actualizan el costo) |
 | 💵 **Cobros y caja** | Pagos por orden, comprobantes, saldo a favor y devoluciones, caja del día con fondo inicial, gastos, retiros y cuadre; los días anteriores ya cerrados no se alteran |
 | 🧾 **Facturas** | Desde la orden, con IVA configurable (incluido o no en los precios; si no, se suma al saldo de la orden). Pasa a "pagada" sola cuando la orden queda saldada y fija los costos mientras esté vigente |
@@ -171,7 +171,7 @@ Para probar a mano en el navegador, por módulo y por rol: [`docs/GUIA_DE_PRUEBA
 ## ⚠️ Limitaciones conocidas
 
 - **Facturación electrónica SRI:** las facturas son comprobantes internos; no se envían al SRI.
-- **WhatsApp:** los mensajes se abren en WhatsApp con el texto listo (wa.me); el envío automático requiere la API de WhatsApp Business.
+- **WhatsApp:** el envío automático requiere una cuenta de Meta con la WhatsApp Cloud API y plantillas aprobadas (ver `docs/WHATSAPP.md`); sin ella, los mensajes se abren en WhatsApp con el texto listo. Las respuestas a los clientes se contestan desde WhatsApp Business / Meta Business Suite, no desde SolarFix.
 
 ---
 

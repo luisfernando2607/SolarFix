@@ -18,6 +18,15 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    // WhatsApp Cloud API (Meta). Los datos salen de Meta → WhatsApp → Configuración de la API.
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),   // lo inventas tú y lo pones igual en Meta (webhook)
+        'app_secret' => env('WHATSAPP_APP_SECRET'),       // para validar que los avisos del webhook vienen de Meta
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

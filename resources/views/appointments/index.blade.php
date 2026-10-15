@@ -52,7 +52,7 @@
                             <span class="font-medium">{{ $reminder->scheduled_at->format('H:i') }}</span> · {{ $reminder->client?->name }} · {{ $reminder->title }}
                             @unless ($reminder->user_id) <span class="text-red-600 text-xs">· sin técnico</span> @endunless
                         </span>
-                        <form method="POST" action="{{ route('appointments.whatsapp', [$reminder, 'appointment_reminder']) }}" target="_blank"
+                        <form method="POST" action="{{ route('appointments.whatsapp', [$reminder, 'appointment_reminder']) }}" target="{{ \App\Services\WhatsAppCloud::enabled() ? '_self' : '_blank' }}"
                             onsubmit="setTimeout(function () { window.location.reload(); }, 1500)">
                             @csrf
                             <button type="submit" class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg">Enviar recordatorio</button>

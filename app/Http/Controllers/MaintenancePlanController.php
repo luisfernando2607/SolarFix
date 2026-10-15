@@ -78,6 +78,15 @@ class MaintenancePlanController extends Controller
             return back()->with('error', 'El cliente no tiene un número de teléfono válido para WhatsApp.');
         }
 
+        if (\App\Services\WhatsAppCloud::enabled()) {
+            $log = \App\Services\WhatsAppCloud::sendTemplate('maintenance_due', $phone, \App\Services\WhatsAppTemplates::forMaintenance($maintenancePlan),
+                ['client_id' => $maintenancePlan->client_id]);
+
+            return $log->status === 'failed'
+                ? back()->with('error', 'WhatsApp no se envió: ' . $log->error)
+                : back()->with('success', 'Mensaje de WhatsApp enviado a ' . $phone . '.');
+        }
+
         $message = WhatsAppMessage::buildMaintenanceDue($maintenancePlan);
 
         WhatsappLog::create([

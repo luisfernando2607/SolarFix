@@ -725,7 +725,7 @@
                     <div class="space-y-2">
                         @foreach (\App\Services\WhatsAppMessage::TYPES as $waType => $waLabel)
                             @continue($waType === 'pickup_reminder' && $order->status !== 'ready')
-                            <form method="POST" action="{{ route('orders.whatsapp', [$order, $waType]) }}" target="_blank"
+                            <form method="POST" action="{{ route('orders.whatsapp', [$order, $waType]) }}" target="{{ \App\Services\WhatsAppCloud::enabled() ? '_self' : '_blank' }}"
                                 onsubmit="setTimeout(function () { window.location.reload(); }, 1500)">
                                 @csrf
                                 <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
@@ -744,9 +744,30 @@
                 @endif
 
                 @if ($order->whatsappLogs->count())
-                    <ul class="mt-4 border-t pt-3 space-y-1 text-xs text-gray-500">
-                        @foreach ($order->whatsappLogs->take(5) as $log)
-                            <li>{{ \App\Services\WhatsAppMessage::TYPES[$log->trigger_event] ?? $log->trigger_event }} · {{ $log->sent_at->format('d/m/Y H:i') }} · {{ $log->sentBy?->name ?? '—' }}</li>
+                    @php
+                        $waStatus = [
+                            'sent' => ['✓ Enviado', 'text-gray-500'],
+                            'delivered' => ['✓✓ Entregado', 'text-gray-600'],
+                            'read' => ['✓✓ Leído', 'text-blue-600'],
+                            'failed' => ['✗ Falló', 'text-red-600'],
+                        ];
+                    @endphp
+                    <ul class="mt-4 border-t pt-3 space-y-2 text-xs">
+                        @foreach ($order->whatsappLogs->take(8) as $log)
+                            @if ($log->isInbound())
+                                <li class="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
+                                    <span class="font-semibold text-green-800">Respuesta del cliente</span>
+                                    <span class="text-gray-400">· {{ $log->sent_at->format('d/m H:i') }}</span>
+                                    <p class="text-gray-800 mt-0.5 whitespace-pre-line break-words">{{ $log->message_body }}</p>
+                                </li>
+                            @else
+                                <li class="text-gray-500 flex flex-wrap justify-between gap-x-2">
+                                    <span>{{ \App\Services\WhatsAppMessage::TYPES[$log->trigger_event] ?? \App\Services\WhatsAppMessage::TEMPLATE_LABELS[$log->trigger_event] ?? $log->trigger_event }} · {{ $log->sent_at->format('d/m/Y H:i') }} · {{ $log->sentBy?->name ?? 'Automático' }}</span>
+                                    @if ($log->channel === 'api' && $log->status)
+                                        <span class="{{ $waStatus[$log->status][1] ?? '' }}" title="{{ $log->error }}">{{ $waStatus[$log->status][0] ?? $log->status }}</span>
+                                    @endif
+                                </li>
+                            @endif
                         @endforeach
                     </ul>
                 @endif

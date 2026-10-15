@@ -32,10 +32,27 @@ class ClientNotifier
     /**
      * Llamado cuando la orden cambia de estado: avisa si ese estado tiene correo.
      */
-    public static function statusChanged(Order $order, string $status): void
+    public static function statusChanged(Order $order, string $status, bool $skipWhatsApp = false): void
     {
-        if (self::enabled() && isset(self::BY_STATUS[$status])) {
-            self::send($order, self::BY_STATUS[$status]);
+        if (! isset(self::BY_STATUS[$status])) {
+            return;
+        }
+        $type = self::BY_STATUS[$status];
+
+        if (self::enabled()) {
+            self::send($order, $type);
+        }
+        // WhatsApp automático por la Cloud API (después de responder la página).
+        if (! $skipWhatsApp && WhatsAppCloud::automatic()) {
+            $userId = Auth::id();
+            defer(function () use ($order, $type, $userId) {
+                $order = $order->fresh('client');
+                $phone = WhatsAppMessage::normalizePhone($order?->client?->phone);
+                if ($phone) {
+                    WhatsAppCloud::sendTemplate($type, $phone, WhatsAppTemplates::forOrder($type, $order),
+                        ['order_id' => $order->id, 'client_id' => $order->client_id, 'sent_by' => $userId]);
+                }
+            });
         }
     }
 

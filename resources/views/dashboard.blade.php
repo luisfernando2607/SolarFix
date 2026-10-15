@@ -112,7 +112,7 @@
                                         @if ($order->balance_due > 0) <span class="block text-red-600 font-medium">Saldo {{ money($order->balance_due) }}</span> @endif
                                         <span class="flex gap-1 justify-end">
                                             @php $overdue = $order->status_since->lt(now()->subDays($pickupReminderDays)); @endphp
-                                            <form method="POST" action="{{ route('orders.whatsapp', [$order, $overdue ? 'pickup_reminder' : 'ready']) }}" target="_blank">@csrf
+                                            <form method="POST" action="{{ route('orders.whatsapp', [$order, $overdue ? 'pickup_reminder' : 'ready']) }}" target="{{ \App\Services\WhatsAppCloud::enabled() ? '_self' : '_blank' }}">@csrf
                                                 <button type="submit" class="px-2 py-1 rounded border {{ $overdue ? 'border-red-300 text-red-700 hover:bg-red-50' : 'border-green-300 text-green-700 hover:bg-green-50' }}">{{ $overdue ? 'Recordar retiro' : 'Avisar' }}</button>
                                             </form>
                                             <a href="{{ route('orders.signatures.create', [$order, 'delivery']) }}" class="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Entregar</a>
@@ -142,7 +142,7 @@
                                     <div class="text-right text-xs space-y-1">
                                         <span class="block {{ $order->status_since->lt(now()->subHours(72)) ? 'text-red-600 font-semibold' : 'text-gray-500' }}">{{ $order->status_since->diffForHumans() }}</span>
                                         <span class="block text-gray-700">{{ money($order->total_amount) }}</span>
-                                        <form method="POST" action="{{ route('orders.whatsapp', [$order, 'budget']) }}" target="_blank">@csrf
+                                        <form method="POST" action="{{ route('orders.whatsapp', [$order, 'budget']) }}" target="{{ \App\Services\WhatsAppCloud::enabled() ? '_self' : '_blank' }}">@csrf
                                             <button type="submit" class="px-2 py-1 rounded border border-green-300 text-green-700 hover:bg-green-50">Reenviar presupuesto</button>
                                         </form>
                                     </div>

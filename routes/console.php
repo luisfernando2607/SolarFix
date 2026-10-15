@@ -16,3 +16,6 @@ Schedule::call(fn () => touch(storage_path('app/schedule-heartbeat')))->everyFiv
 
 // Limpieza de notificaciones leídas, registro de correos y auditoría antiguos (plazos en Configuración).
 Schedule::command('solarfix:prune')->dailyAt('03:30')->withoutOverlapping();
+
+// Recordatorios automáticos por WhatsApp (citas de mañana y equipos sin retirar), si están activados.
+Schedule::command('solarfix:whatsapp-reminders')->dailyAt('17:00')->withoutOverlapping();

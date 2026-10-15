@@ -125,6 +125,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/import', [\App\Http\Controllers\ImportController::class, 'store'])->middleware('throttle:10,1')->name('import.store');
         Route::get('/system', fn () => view('system.index', ['checks' => \App\Support\SystemCheck::run()]))->name('system.index');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::post('/settings/test-whatsapp', [SettingController::class, 'testWhatsApp'])->middleware('throttle:5,1')->name('settings.test-whatsapp');
         Route::post('/settings/test-email', [SettingController::class, 'testEmail'])->middleware('throttle:5,1')->name('settings.test-email');
     });
 

@@ -160,6 +160,17 @@ class AppointmentController extends Controller
             return back()->with('error', 'El cliente no tiene un número de teléfono válido para WhatsApp.');
         }
 
+        if (\App\Services\WhatsAppCloud::enabled()) {
+            $log = \App\Services\WhatsAppCloud::sendTemplate($type, $phone, \App\Services\WhatsAppTemplates::forAppointment($type, $appointment),
+                ['order_id' => $appointment->order_id, 'client_id' => $appointment->client_id]);
+            if ($log->status === 'failed') {
+                return back()->with('error', 'WhatsApp no se envió: ' . $log->error);
+            }
+            $this->markAppointmentNotified($appointment, $type);
+
+            return back()->with('success', 'Mensaje de WhatsApp enviado a ' . $phone . '.');
+        }
+
         $message = WhatsAppMessage::buildAppointment($type, $appointment);
 
         WhatsappLog::create([
@@ -172,13 +183,18 @@ class AppointmentController extends Controller
             'sent_at' => now(),
         ]);
 
+        $this->markAppointmentNotified($appointment, $type);
+
+        return redirect()->away(WhatsAppMessage::url($phone, $message));
+    }
+
+    private function markAppointmentNotified(Appointment $appointment, string $type): void
+    {
         if ($type === 'appointment_reminder') {
             $appointment->update(['reminder_sent' => true]);
         } elseif ($appointment->status === 'pending') {
             $appointment->update(['status' => 'confirmed']);
         }
-
-        return redirect()->away(WhatsAppMessage::url($phone, $message));
     }
 
     private function validated(Request $request, ?Appointment $appointment = null): array

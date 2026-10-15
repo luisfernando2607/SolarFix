@@ -208,6 +208,6 @@ class ConfigurationTest extends TestCase
 
         $this->assertSame('', Setting::get('wa_template_ready', ''));
         $this->assertStringContainsString('ya fue diagnosticado', \App\Services\WhatsAppMessage::build('budget', $this->budgetOrder()));
-        $this->actingAs($admin)->get(route('settings.edit'))->assertOk()->assertSee('Mensajes de WhatsApp')->assertSee('{detalle_presupuesto}');
+        $this->actingAs($admin)->get(route('settings.edit'))->assertOk()->assertSee('Textos de WhatsApp')->assertSee('{detalle_presupuesto}');
     }
 }

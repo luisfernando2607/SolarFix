@@ -190,6 +190,14 @@ Las pruebas automáticas (`php artisan test`) ya cubren la lógica; esta guía r
 - [ ] Activa "Enviar avisos por correo automáticamente" y marca lista una orden de un cliente con correo. → Le llega "Su equipo está listo" con el logo y el botón al seguimiento.
 - [ ] En la orden, **Correo al cliente → Presupuesto**. → Se envía y queda en la lista de envíos ("Enviado" o "Falló" con el motivo).
 
+## 21. WhatsApp automático (con la Cloud API conectada, ver docs/WHATSAPP.md)
+
+- [ ] **Configuración → Envío de WhatsApp → Enviar prueba** a tu número. → Llega "Hello World".
+- [ ] Modo *WhatsApp Cloud API*. En una orden, botón **Presupuesto**. → No abre WhatsApp: muestra "Mensaje enviado" y en la orden aparece ✓ Enviado, luego ✓✓ Entregado y ✓✓ Leído.
+- [ ] Responde ese mensaje desde el celular del cliente. → Aparece "Respuesta del cliente" en la orden y llega un aviso a la campana.
+- [ ] Activa **Enviar solos los avisos** y marca una orden como lista. → El cliente recibe "equipo listo" sin presionar nada.
+- [ ] Vuelve al modo *Enlace*. → Los botones abren WhatsApp como antes.
+
 ## Al terminar
 
 Anota cualquier pantalla que se vea mal, botón que no haga lo esperado o mensaje confuso, con el rol que usabas y los pasos para repetirlo.

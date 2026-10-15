@@ -56,7 +56,7 @@
         @endif
         @foreach (\App\Services\WhatsAppMessage::APPOINTMENT_TYPES as $waType => $waLabel)
             @if ($appointment->isOpen())
-                <form method="POST" action="{{ route('appointments.whatsapp', [$appointment, $waType]) }}" target="_blank"
+                <form method="POST" action="{{ route('appointments.whatsapp', [$appointment, $waType]) }}" target="{{ \App\Services\WhatsAppCloud::enabled() ? '_self' : '_blank' }}"
                     onsubmit="setTimeout(function () { window.location.reload(); }, 1500)">
                     @csrf
                     <button type="submit" class="w-full bg-white hover:bg-gray-50 text-green-700 border border-green-300 px-4 py-2.5 rounded-lg text-sm font-medium">WhatsApp: {{ strtolower($waLabel) }}</button>

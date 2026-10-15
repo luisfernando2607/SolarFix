@@ -35,6 +35,7 @@ class SystemCheck
             self::item('Programador (cron)', is_file($heartbeat) && filemtime($heartbeat) > now()->subMinutes(15)->timestamp, 'fail', 'Agrega al cron del servidor: * * * * * cd ' . base_path() . ' && php artisan schedule:run'),
             self::item('Respaldo reciente', self::recent($backups['local'] ?? null, 2), 'fail', 'No hay respaldo de las últimas 48 horas. Revisa el cron o ejecuta php artisan solarfix:backup.'),
             self::item('Copia fuera del servidor', self::recent($backups['offsite'] ?? null, 2), 'warn', 'Configura BACKUP_DISK (y BACKUP_OFFSITE_PATH) para guardar una copia en otro equipo o en la nube.'),
+            self::item('WhatsApp Cloud API', Setting::get('whatsapp_mode', 'link') !== 'api' || (\App\Services\WhatsAppCloud::configured() && $https), 'warn', 'El modo API necesita WHATSAPP_TOKEN y WHATSAPP_PHONE_NUMBER_ID en el .env, y HTTPS para recibir estados y respuestas (webhook).'),
             self::item('Correo de salida', Setting::get('email_notifications', '0') !== '1' || ! in_array(config('mail.default'), ['log', 'array'], true), 'warn', 'Los avisos por correo están activos pero MAIL_MAILER=' . config('mail.default') . ': configura el SMTP en el .env.'),
             self::item('Archivos de la interfaz', is_file(public_path('build/manifest.json')), 'fail', 'Ejecuta npm run build.'),
             self::item('Carpeta de almacenamiento escribible', is_writable(storage_path('app')), 'fail', 'Da permisos de escritura a storage/ al usuario del servidor web.'),

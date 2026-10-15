@@ -41,6 +41,9 @@ class SettingController extends Controller
         'notification_retention_days' => 'system',
         'email_log_retention_days' => 'system',
         'audit_retention_days' => 'system',
+        'whatsapp_mode' => 'whatsapp',
+        'whatsapp_auto' => 'whatsapp',
+        'wa_api_language' => 'whatsapp',
     ];
 
     public function edit()
@@ -55,6 +58,27 @@ class SettingController extends Controller
             'paymentMethods' => PaymentMethods::all(),
             'templates' => collect(WhatsAppMessage::TEMPLATES)->map(fn ($default, $type) => (string) Setting::get('wa_template_' . $type, '')),
         ]);
+    }
+
+    /**
+     * Mensaje de prueba por la WhatsApp Cloud API (plantilla hello_world de Meta).
+     */
+    public function testWhatsApp(\Illuminate\Http\Request $request)
+    {
+        $request->validate(['test_phone' => ['required', 'string', 'max:30']], [], ['test_phone' => 'teléfono']);
+        $phone = \App\Services\WhatsAppMessage::normalizePhone($request->test_phone);
+        if (! $phone) {
+            return back()->with('error', 'El teléfono no es válido.');
+        }
+        if (! \App\Services\WhatsAppCloud::configured()) {
+            return back()->with('error', 'Faltan WHATSAPP_TOKEN y WHATSAPP_PHONE_NUMBER_ID en el .env del servidor.');
+        }
+
+        [$sent, $error] = \App\Services\WhatsAppCloud::sendTest($phone);
+
+        return $sent
+            ? back()->with('success', "Mensaje de prueba enviado a +{$phone}. Si llega, la conexión con Meta funciona.")
+            : back()->with('error', 'Meta rechazó el mensaje: ' . $error);
     }
 
     /**
@@ -161,6 +185,11 @@ class SettingController extends Controller
             'notification_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             'email_log_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             'audit_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
+            'whatsapp_mode' => ['nullable', 'in:link,api'],
+            'whatsapp_auto' => ['boolean'],
+            'wa_api_language' => ['nullable', 'regex:/^[a-z]{2}(_[A-Z]{2})?$/'],
+            'wa_api_templates' => ['nullable', 'array'],
+            'wa_api_templates.*' => ['nullable', 'regex:/^[a-z0-9_]{1,512}$/'],
             // El número de orden (prefijo-AAAAMMDD-0001) cabe en 20 caracteres con hasta 6 de prefijo.
             'order_prefix' => ['required', 'regex:/^[A-Z0-9]{1,6}$/'],
             'invoice_prefix' => ['required', 'regex:/^[A-Z0-9]{1,8}$/'],
@@ -182,7 +211,7 @@ class SettingController extends Controller
         ]);
 
         foreach (self::FIELDS as $key => $group) {
-            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check', 'online_approval', 'customer_survey', 'online_booking', 'require_admin_2fa', 'email_notifications'], true);
+            $isFlag = in_array($key, ['prices_include_iva', 'require_quality_check', 'online_approval', 'customer_survey', 'online_booking', 'require_admin_2fa', 'email_notifications', 'whatsapp_auto'], true);
             Setting::put($key, $isFlag ? (string) (int) $request->boolean($key) : (string) ($validated[$key] ?? ''), $group);
         }
 
@@ -194,6 +223,12 @@ class SettingController extends Controller
             }
         } elseif ($request->boolean('remove_logo')) {
             \App\Support\Branding::removeLogo();
+        }
+
+        // Nombres de las plantillas aprobadas en Meta (vacío = el nombre sugerido).
+        foreach (array_keys(\App\Services\WhatsAppTemplates::DEFINITIONS) as $type) {
+            $name = trim((string) ($validated['wa_api_templates'][$type] ?? ''));
+            Setting::put('wa_api_template_' . $type, $name === \App\Services\WhatsAppTemplates::DEFINITIONS[$type]['name'] ? '' : $name, 'whatsapp');
         }
 
         Setting::put('payment_methods', json_encode($this->paymentMethods($validated['payment_methods']), JSON_UNESCAPED_UNICODE), 'billing');
