@@ -6,7 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name')) - {{ config('app.name') }}</title>
     <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#111827">
+    <meta name="theme-color" content="#0B1528">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="SolarFix">
@@ -20,10 +22,13 @@
             <aside id="sidebar" class="fixed md:sticky inset-y-0 left-0 top-0 z-40 h-screen w-64 bg-gray-900 text-white flex flex-col -translate-x-full md:translate-x-0 transition-transform duration-200">
                 @php $unreadCount = Auth::user()->unreadNotifications()->count(); @endphp
                 <div class="px-6 py-5 border-b border-gray-700 flex items-start justify-between gap-2">
-                    <div>
-                        <h1 class="text-xl font-bold tracking-tight">{{ config('app.name') }}</h1>
-                        <p class="text-xs text-gray-400 mt-0.5">Sistema de Reparaciones</p>
-                    </div>
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0">
+                        @include('partials.logo', ['class' => 'w-10 h-10 flex-none', 'id' => 'side'])
+                        <div class="min-w-0">
+                            <h1 class="text-xl font-bold tracking-tight leading-none">Solar<span class="text-brand-500">Fix</span></h1>
+                            <p class="text-[10px] uppercase tracking-wider text-gray-400 mt-1 whitespace-nowrap">Gestión de talleres</p>
+                        </div>
+                    </a>
                     <a href="{{ route('notifications.index') }}" class="relative inline-flex items-center text-gray-300 hover:text-white hidden md:inline-flex" aria-label="Notificaciones{{ $unreadCount ? ' (' . $unreadCount . ' sin leer)' : '' }}">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                             @if ($unreadCount)
@@ -207,7 +212,10 @@
                             <button type="button" id="sidebarToggle" class="p-1 -ml-1 text-gray-700" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                             </button>
-                            <h1 class="text-lg font-bold">{{ config('app.name') }}</h1>
+                            <span class="flex items-center gap-2">
+                                @include('partials.logo', ['class' => 'w-7 h-7', 'id' => 'top'])
+                                <h1 class="text-lg font-bold tracking-tight text-navy-900">Solar<span class="text-brand-500">Fix</span></h1>
+                            </span>
                         </div>
                         <div class="flex items-center gap-3">
                             <a href="{{ route('notifications.index') }}" class="relative inline-flex items-center text-gray-600" aria-label="Notificaciones{{ $unreadCount ? ' (' . $unreadCount . ' sin leer)' : '' }}">

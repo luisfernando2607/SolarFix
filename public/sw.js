@@ -1,6 +1,6 @@
 // SolarFix: permite instalar la app. No guarda páginas en caché (tienen datos privados);
 // solo muestra un aviso si no hay conexión.
-const OFFLINE_CACHE = 'solarfix-offline-v1';
+const OFFLINE_CACHE = 'solarfix-offline-v2';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

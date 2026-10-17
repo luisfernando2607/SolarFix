@@ -1,6 +1,9 @@
 <div align="center">
 
-# 🔧 SolarFix
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/img/logo-horizontal-dark.png">
+  <img src="public/img/logo-horizontal-light.png" alt="SolarFix" width="420">
+</picture>
 
 **Sistema de gestión integral para talleres de reparación**
 

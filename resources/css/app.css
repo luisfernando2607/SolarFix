@@ -7,6 +7,19 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Marca SolarFix (ver docs/Análisis Detallado de Ui-uX y public/img/logo-*.svg) */
+    --color-brand-300: #A6E4FF;
+    --color-brand-400: #4FC3FF;
+    --color-brand-500: #00A3FF;
+    --color-brand-600: #0090E8;
+    --color-brand-700: #0077C2;
+    --color-navy-700: #1C355A;
+    --color-navy-800: #14264A;
+    --color-navy-900: #0B1528;
+    --color-navy-950: #050B17;
+    --color-sun-400: #FFB300;
+    --color-sun-500: #FF8A00;
 }
 
 /*
